@@ -1,2 +1,10 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Entorno
 .env
-/backend/__pycache__
+
+# Editor
+.vscode/
