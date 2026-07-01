@@ -1,6 +1,9 @@
 import os
 import psycopg2
+import psycopg2.extras
 from dotenv import load_dotenv
+
+psycopg2.extras.register_uuid()  # le enseña a psycopg2 a adaptar uuid.UUID -> Postgres UUID
 
 load_dotenv()
 
