@@ -23,7 +23,7 @@ def ingest(medicion: MedicionIn):
                 (medicion.sensor_id,)
             )
             if curs.fetchone() is None:
-                raise HTTPException(status_code=404, detail="Sensor no encontrado")
+                raise HTTPException(404, "Sensor no encontrado")
 
             curs.execute(
                 "INSERT INTO mediciones (time, sensor_id, value) VALUES (%s, %s, %s)",
