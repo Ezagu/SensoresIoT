@@ -1,19 +1,13 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime, timezone
+from models.medicion import MedicionCreate
 
 from db import get_connection
 
 router = APIRouter()
 
-class MedicionIn(BaseModel):
-    sensor_id: str
-    value: float
-    time: Optional[datetime] = None
-
 @router.post("/medicion")
-def create_medicion(medicion: MedicionIn):
+def create_medicion(medicion: MedicionCreate):
     timestamp = medicion.time or datetime.now(timezone.utc)
 
     with get_connection() as conn:
