@@ -12,8 +12,8 @@ class MedicionIn(BaseModel):
     value: float
     time: Optional[datetime] = None
 
-@router.post("/ingest")
-def ingest(medicion: MedicionIn):
+@router.post("/medicion")
+def create_medicion(medicion: MedicionIn):
     timestamp = medicion.time or datetime.now(timezone.utc)
 
     with get_connection() as conn:
