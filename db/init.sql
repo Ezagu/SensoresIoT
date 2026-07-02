@@ -21,7 +21,6 @@ CREATE TABLE usuarios (
 CREATE TABLE dispositivos (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id      UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-    codigo          TEXT NOT NULL UNIQUE,
     nombre          TEXT NOT NULL,
     ubicacion       TEXT,
     descripcion     TEXT,
