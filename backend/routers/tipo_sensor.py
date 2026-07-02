@@ -13,19 +13,35 @@ class TipoSensorCreate(BaseModel):
   valor_min: Optional[float] = None
   valor_max: Optional[float] = None
 
-@router.post("/")
+class TipoSensorOut(BaseModel):
+  id: int
+  nombre: str
+  unidad: str
+  valor_min: Optional[float] = None
+  valor_max: Optional[float] = None
+
+
+@router.post("/", response_model=TipoSensorOut)
 def create_tipo_sensor(tipo_sensor: TipoSensorCreate):
   with get_connection() as conn:
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
       try:
+        nombre = tipo_sensor.nombre.capitalize()
         cur.execute(
           """
           INSERT INTO tipos_sensor (nombre, unidad, valor_min, valor_max)
           VALUES (%s, %s, %s, %s)
           RETURNING *
           """,
-          (tipo_sensor.nombre, tipo_sensor.unidad, tipo_sensor.valor_min, tipo_sensor.valor_max)
+          (nombre, tipo_sensor.unidad, tipo_sensor.valor_min, tipo_sensor.valor_max)
         )
         return cur.fetchone()
       except psycopg2.errors.UniqueViolation:
         raise HTTPException(status_code=409, detail="Ya existe un tipo de sensor con ese nombre")
+
+@router.get("/", response_model=list[TipoSensorOut])
+def tipos_de_sensores():
+  with get_connection() as conn:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+      cur.execute("SELECT * FROM tipos_sensor")
+      return cur.fetchall()
