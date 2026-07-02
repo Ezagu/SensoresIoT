@@ -1,30 +1,11 @@
 import psycopg2.extras
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from models.dispositivo import DispositivoCreate, DispositivoOut
 from uuid import UUID
-from typing import Optional
-from datetime import datetime
 
 from db import get_connection
 
 router = APIRouter()
-
-class DispositivoCreate(BaseModel):
-  usuario_id: UUID
-  nombre: Optional[str] = None
-  ubicacion: Optional[str] = None
-  descripcion: Optional[str] = None
-
-class DispositivoOut(BaseModel):
-  id: UUID
-  usuario_id: UUID
-  nombre: Optional[str] = None
-  ubicacion: Optional[str] = None
-  descripcion: Optional[str] = None
-  activo: bool
-  last_seen_at: Optional[datetime]
-  created_at: datetime
-
 
 @router.post("/", response_model=DispositivoOut)
 def create_dispositivo(dispositivo: DispositivoCreate):
