@@ -10,3 +10,18 @@ class MedicionCreate(BaseModel):
 class MedicionOut(BaseModel):
     value: float
     time: datetime
+
+class ResumenOut(BaseModel):
+  promedio: float | None
+  minimo: float | None
+  maximo: float | None
+
+class MedicionAgregadaOut(BaseModel):
+  bucket: datetime
+  promedio: float
+  minimo: float
+  maximo: float
+
+class DatosGraficoOut(BaseModel):
+  puntos: list[MedicionAgregadaOut]
+  resumen: ResumenOut
