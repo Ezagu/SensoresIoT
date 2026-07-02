@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+from models.dispositivo import DispositivoOut
 
 
 from db import get_connection
@@ -62,3 +63,10 @@ def create_usuario(usuario: UsuarioCreate):
                 return cur.fetchone()
     except psycopg2.errors.UniqueViolation:
         raise HTTPException(409, "El email ya está registrado")
+
+@router.get("/{usuario_id}/dispositivos", response_model=list[DispositivoOut])
+def get_dispositivos(usuario_id):
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute("SELECT * FROM dispositivos WHERE usuario_id = %s", (usuario_id,))
+            return cur.fetchall()

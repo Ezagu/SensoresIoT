@@ -79,8 +79,8 @@ RETURNING id;
 -- copiá el id que te devuelve y pegalo abajo en \gset o a mano
 
 -- 3. Un dispositivo (reemplazá el UUID del usuario)
-INSERT INTO dispositivos (usuario_id, codigo, nombre, ubicacion)
-VALUES ('67cb4055-5ca5-4718-8819-d5be28572fe1', 'ESP32-001', 'Placa Lote Norte', 'Campo A')
+INSERT INTO dispositivos (usuario_id, nombre, ubicacion)
+VALUES ('67cb4055-5ca5-4718-8819-d5be28572fe1', 'Placa Lote Norte', 'Campo A')
 RETURNING id;
 
 -- 4. Un sensor en ese dispositivo (reemplazá el UUID del dispositivo)
