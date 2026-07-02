@@ -1,7 +1,8 @@
 import psycopg2.extras
 from fastapi import APIRouter, HTTPException
-from models.dispositivo import DispositivoCreate, DispositivoOut
 from uuid import UUID
+from models.dispositivo import DispositivoCreate, DispositivoOut
+from models.sensor import SensorOut
 
 from db import get_connection
 
@@ -33,3 +34,10 @@ def get_dispositivo_by_id(dispositivo_id: UUID):
       if dispositivo is None:
         raise HTTPException(404, "dispositivo no existe")
       return dispositivo
+    
+@router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
+def get_sensores(dispositivo_id):
+  with get_connection() as conn:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+      cur.execute("SELECT * FROM sensores WHERE dispositivo_id = %s", (dispositivo_id,))
+      return cur.fetchall()
