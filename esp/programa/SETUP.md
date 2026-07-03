@@ -82,7 +82,7 @@ Abrí el Monitor Serie a **115200 baudios**. Deberías ver:
 ## Ajuste del intervalo
 
 ```cpp
-const int SEND_INTERVAL = 30000; // 30 segundos (en milisegundos)
+const int SEND_INTERVAL = 60000; // 30 segundos (en milisegundos)
 // Para pruebas rápidas, usá 5000 (5s)
 // Para producción, 60000 (1min) o más es suficiente para temperatura/presión
 ```
