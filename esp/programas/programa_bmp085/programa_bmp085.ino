@@ -1,14 +1,8 @@
-/*
- * ESP32 + AHT10 → FastAPI + TimescaleDB
- * Sensor: AHT10 (I2C: SDA=GPIO21, SCL=GPIO22)
- * Envía temperatura y humedad cada 30 segundos
- */
-
 #include <Wire.h>
-#include <Adafruit_AHT10.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <Adafruit_BMP085.h>
 
 // ── Configuración ─────────────────────────────────────────────
 const char* WIFI_SSID     = "WifiCasa";
@@ -18,29 +12,29 @@ const char* WIFI_PASSWORD = "a1b2c3d4";
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
 const char* API_URL       = "http://192.168.1.11:8000/medicion";
 
-const char* SENSOR_TEMP_ID = "2d79aa05-e46e-44cf-9009-d0344bb78a00";
-const char* SENSOR_HUM_ID  = "d6a8029d-a9a6-4be3-aa7b-4710d428c8de";
+const char* SENSOR_TEMP_ID  = "61ba61c5-7ce1-4d4c-b201-e596dd78d0d3";
+const char* SENSOR_PRESS_ID = "368f7462-0c85-4472-89f8-86c7eb84fc0d";
 
 const int   SEND_INTERVAL = 60000;             // ms entre envíos
 
 // ── Objetos globales ───────────────────────────────────────────
-Adafruit_AHT10 aht;
+Adafruit_BMP085 bmp;
 unsigned long lastSend = 0;
 
 // ── Setup ──────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n=== ESP32 + AHT10 ===");
+  Serial.println("\n=== ESP32 ===");
 
-  Serial.println("Iniciando prueba de AHT10...");
+  Serial.println("Iniciando módulos");
 
-  // Inicializa el sensor en los pines I2C por defecto del ESP32 (GPIO 21 y 22)
-  if (!aht.begin()) {
-    Serial.println("¡No se pudo encontrar el sensor AHT10! Verifica las conexiones.");
-    while (1) delay(10);
+  if (!bmp.begin()) {
+    Serial.println("[ERROR] BMP085 no detectado. Verifica conexiones I2C.");
+    Serial.println("  SDA → GPIO21 | SCL → GPIO22 | VCC → 3.3V | GND → GND");
+    while (1) { delay(1000); } // Detiene ejecución
   }
-  Serial.println("AHT10 detectado correctamente.");
+  Serial.println("[OK] BMP085 inicializado.");
 
   // Conectar WiFi
   conectarWiFi();
@@ -67,7 +61,6 @@ void conectarWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setSleep(false); // ← EVITA QUE EL WI-FI ENTRE EN MODO DE AHORRO DE ENERGÍA
 
-
   int intentos = 0;
   while (WiFi.status() != WL_CONNECTED && intentos < 20) {
     delay(500);
@@ -82,7 +75,7 @@ void conectarWiFi() {
   }
 }
 
-void enviarMedicion(const char* sensorId, float valor) {
+bool enviarMedicion(const char* sensorId, float valor) {
   StaticJsonDocument<256> doc;
   doc["sensor_id"] = sensorId;
   doc["value"]     = valor;
@@ -112,29 +105,21 @@ void enviarMedicion(const char* sensorId, float valor) {
 
 void leerYEnviar() {
   // Leer sensor
-  sensors_event_t humidity, temp;
-  // Obtiene los nuevos eventos del sensor con las lecturas
-  aht.getEvent(&humidity, &temp);
+  float temperatura = bmp.readTemperature();          // °C
+  float presion     = bmp.readPressure() / 100.0;    // hPa (convierte Pa → hPa)
 
-  float temperatura = temp.temperature;          // °C
-  float humedad     = humidity.relative_humidity;    // humedad
+  Serial.printf("[Sensor] Temp: %.2f °C | Presión: %.2f hPa\n", temperatura, presion);
 
-  // Muestra los resultados en el Monitor Serie
-  Serial.print("Temperatura: ");
-  Serial.print(temperatura);
-  Serial.println(" °C");
-
-  Serial.print("Humedad: ");
-  Serial.print(humedad);
-  Serial.println(" %HR");
-
-  // Validación básica de datos
-  if (isnan(temperatura) || isnan(humedad)) {
-    Serial.println("[ERROR] Lectura inválida del sensor. Saltando envío.");
-    return;
+  // Validación básica de datos y envío a la API
+  if (isnan(temperatura)) {
+    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
+  } else {
+    enviarMedicion(SENSOR_TEMP_ID, temperatura);
   }
 
-  // Enviar mediciones a la API
-  enviarMedicion(SENSOR_TEMP_ID, temperatura)
-  enviarMedicion(SENSOR_HUM_ID, humedad)
+  if(isnan(presion)) {
+    Serial.println("[ERROR] Lectura inválida del sensor presion. Saltando envío.");
+  } else {
+    enviarMedicion(SENSOR_PRESS_ID, presion);
+  }
 }

@@ -1,14 +1,8 @@
-/*
- * ESP32 + BMP085 → FastAPI + TimescaleDB
- * Sensor: BMP085 (I2C: SDA=GPIO21, SCL=GPIO22)
- * Envía temperatura y presión cada 30 segundos
- */
-
 #include <Wire.h>
-#include <Adafruit_BMP085.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <Adafruit_AHT10.h>
 
 // ── Configuración ─────────────────────────────────────────────
 const char* WIFI_SSID     = "WifiCasa";
@@ -18,28 +12,28 @@ const char* WIFI_PASSWORD = "a1b2c3d4";
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
 const char* API_URL       = "http://192.168.1.11:8000/medicion";
 
-const char* SENSOR_TEMP_ID  = "61ba61c5-7ce1-4d4c-b201-e596dd78d0d3";
-const char* SENSOR_PRESS_ID = "368f7462-0c85-4472-89f8-86c7eb84fc0d";
-// const char* DEVICE_ID     = "esp32-sala-01";   // ID único del dispositivo
+const char* SENSOR_TEMP_ID = "2d79aa05-e46e-44cf-9009-d0344bb78a00";
+const char* SENSOR_HUM_ID  = "d6a8029d-a9a6-4be3-aa7b-4710d428c8de";
+
 const int   SEND_INTERVAL = 60000;             // ms entre envíos
 
 // ── Objetos globales ───────────────────────────────────────────
-Adafruit_BMP085 bmp;
+Adafruit_AHT10 aht;
 unsigned long lastSend = 0;
 
 // ── Setup ──────────────────────────────────────────────────────
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n=== ESP32 + BMP085 ===");
+  Serial.println("\n=== ESP32 ===");
 
-  // Inicializar BMP085
-  if (!bmp.begin()) {
-    Serial.println("[ERROR] BMP085 no detectado. Verifica conexiones I2C.");
-    Serial.println("  SDA → GPIO21 | SCL → GPIO22 | VCC → 3.3V | GND → GND");
-    while (1) { delay(1000); } // Detiene ejecución
+  Serial.println("Iniciando módulos");
+
+  if (!aht.begin()) {
+    Serial.println("¡No se pudo encontrar el sensor AHT10! Verifica las conexiones.");
+    while (1) delay(10);
   }
-  Serial.println("[OK] BMP085 inicializado.");
+  Serial.println("[OK] ATH10 inicializado.");
 
   // Conectar WiFi
   conectarWiFi();
@@ -66,7 +60,6 @@ void conectarWiFi() {
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   WiFi.setSleep(false); // ← EVITA QUE EL WI-FI ENTRE EN MODO DE AHORRO DE ENERGÍA
 
-
   int intentos = 0;
   while (WiFi.status() != WL_CONNECTED && intentos < 20) {
     delay(500);
@@ -81,78 +74,56 @@ void conectarWiFi() {
   }
 }
 
-void leerYEnviar() {
-  // Leer sensor
-  float temperatura = bmp.readTemperature();          // °C
-  float presion     = bmp.readPressure() / 100.0;    // hPa (convierte Pa → hPa)
-
-  Serial.printf("[Sensor] Temp: %.2f °C | Presión: %.2f hPa\n", temperatura, presion);
-
-  // Validación básica de datos
-  if (isnan(temperatura) || isnan(presion)) {
-    Serial.println("[ERROR] Lectura inválida del sensor. Saltando envío.");
-    return;
-  }
-
-  // Construir JSON
-  // Coincide con el esquema: { device_id, temperature, pressure }
+bool enviarMedicion(const char* sensorId, float valor) {
   StaticJsonDocument<256> doc;
-  doc["sensor_id"]   = SENSOR_TEMP_ID;
-  doc["value"] = temperatura; // 2 decimales
+  doc["sensor_id"] = sensorId;
+  doc["value"]     = valor;
 
   String payload;
   serializeJson(doc, payload);
 
-  // Enviar HTTP POST
   HTTPClient http;
   http.begin(API_URL);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(10000); // 10 segundos de timeout
+  http.setTimeout(10000);
 
   int httpCode = http.POST(payload);
+  bool ok = false;
 
   if (httpCode > 0) {
     String respuesta = http.getString();
-    if (httpCode == 200 || httpCode == 201) {
-      Serial.printf("[HTTP] OK (%d): %s\n", httpCode, respuesta.c_str());
-    } else {
-      Serial.printf("[HTTP] Error %d: %s\n", httpCode, respuesta.c_str());
-    }
+    ok = (httpCode == 200 || httpCode == 201);
+    Serial.printf("[HTTP] %s (%d): %s\n", ok ? "OK" : "Error", httpCode, respuesta.c_str());
   } else {
     Serial.printf("[HTTP] Fallo de conexión: %s\n", http.errorToString(httpCode).c_str());
-    Serial.println("  → Verifica la IP del servidor y que Docker esté corriendo.");
-    Serial.println(httpCode);
   }
 
   http.end();
+  return ok;
+}
 
-  StaticJsonDocument<256> doc2;
-  doc2["sensor_id"]   = SENSOR_PRESS_ID;
-  doc2["value"] = presion; // 2 decimales
+void leerYEnviar() {
+  // Leer sensor
+  sensors_event_t humidity, temp;
+  // Obtiene los nuevos eventos del sensor con las lecturas
+  aht.getEvent(&humidity, &temp);
 
-  String payload2;
-  serializeJson(doc2, payload2);
+  float temperatura = temp.temperature;          // °C
+  float humedad     = humidity.relative_humidity;    // humedad
 
-  // Enviar HTTP POST
-  HTTPClient http2;
-  http2.begin(API_URL);
-  http2.addHeader("Content-Type", "application/json");
-  http2.setTimeout(10000); // 10 segundos de timeout
+  // Muestra los resultados en el Monitor Serie
+  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %\n", temperatura, humedad);
 
-  int httpCode2 = http2.POST(payload2);
-
-  if (httpCode2 > 0) {
-    String respuesta2 = http2.getString();
-    if (httpCode2 == 200 || httpCode2 == 201) {
-      Serial.printf("[HTTP] OK (%d): %s\n", httpCode2, respuesta2.c_str());
-    } else {
-      Serial.printf("[HTTP] Error %d: %s\n", httpCode2, respuesta2.c_str());
-    }
+  // Validación básica de datos y envío a la API
+  if (isnan(temperatura)) {
+    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
   } else {
-    Serial.printf("[HTTP] Fallo de conexión: %s\n", http.errorToString(httpCode2).c_str());
-    Serial.println("  → Verifica la IP del servidor y que Docker esté corriendo.");
-    Serial.println(httpCode2);
+    enviarMedicion(SENSOR_TEMP_ID, temperatura);
   }
 
-  http2.end();
+  if(isnan(humedad)) {
+    Serial.println("[ERROR] Lectura inválida del sensor humedad. Saltando envío.");
+  } else {
+    enviarMedicion(SENSOR_HUM_ID, humedad);
+  }
 }
