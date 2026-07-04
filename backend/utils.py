@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 
 def calcular_intervalo(desde: datetime, hasta: datetime):
@@ -26,3 +27,7 @@ def calcular_intervalo(desde: datetime, hasta: datetime):
     return "2 days"
   else:
     return "1 week"
+  
+def get_cors_origins() -> list[str]:
+  origins = os.getenv("CORS_ORIGINS", "")
+  return [origin.strip() for origin in origins.split(",") if origin.strip()]

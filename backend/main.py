@@ -1,7 +1,17 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routers import mediciones, usuarios, tipos_sensor, sensores, dispositivos
+from utils import get_cors_origins
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_cors_origins(), #Pàgina de vite,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(mediciones.router)
 app.include_router(usuarios.router, prefix="/usuarios", tags=["usuario"])
