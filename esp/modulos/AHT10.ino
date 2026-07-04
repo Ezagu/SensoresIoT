@@ -6,7 +6,7 @@ const char* SENSOR_HUM_ID  = //Replace ;
 // ── Objetos globales ───────────────────────────────────────────
 Adafruit_AHT10 aht;
 
-// Inicializar ATH10
+// Inicializar AHT10
 void setup() {
   // Inicializa el sensor en los pines I2C por defecto del ESP32 (GPIO 21 y 22)
   if (!aht.begin()) {

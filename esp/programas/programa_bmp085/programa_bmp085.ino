@@ -10,10 +10,10 @@ const char* WIFI_PASSWORD = "a1b2c3d4";
 
 // IP local de tu PC con Docker Desktop (no uses "localhost")
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
-const char* API_URL       = "http://192.168.1.11:8000/medicion";
+const char* API_URL       = "http://192.168.1.14:8000/medicion";
 
-const char* SENSOR_TEMP_ID  = "61ba61c5-7ce1-4d4c-b201-e596dd78d0d3";
-const char* SENSOR_PRESS_ID = "368f7462-0c85-4472-89f8-86c7eb84fc0d";
+const char* SENSOR_TEMP_ID  = "6b4b4bec-6ce8-4ac4-8d31-feea1e857933";
+const char* SENSOR_PRESS_ID = "17993891-3578-4523-8cda-a74d1e02a87c";
 
 const int   SEND_INTERVAL = 60000;             // ms entre envíos
 
