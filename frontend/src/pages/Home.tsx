@@ -8,7 +8,7 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
   const [hasta, setHasta] = useState()
   const [showMin, setShowMin] = useState(false)
   const [showMax, setShowMax] = useState(false)
-
+  const [tipoSensor, setTipoSensor] = useState({})
 
   const obtenerDataGrafico = async ({ sensorId } : { sensorId: string }) => {
     const intervalo = (desde || hasta) ? `?${desde ? `desde=${desde}`: ""}${hasta ? (desde ? `&`: "") + `hasta=${hasta}`:""}` : ""
@@ -16,9 +16,18 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
     setData(await req.json())
   }
 
+  const obtenerTipoSensor = async ({ sensorId } : { sensorId: string }) => {
+    const req = await fetch(`http://192.168.1.14:8000/sensores/${sensorId}/tipo-sensor`)
+    setTipoSensor(await req.json())
+  }
+
   useEffect(() => {
     obtenerDataGrafico({ sensorId })
   }, [sensorId, desde, hasta])
+
+  useEffect(() => {
+    obtenerTipoSensor({ sensorId })
+  }, [sensorId])
 
   const dataCharts = useMemo(() => {
     if(!data) return
@@ -57,7 +66,7 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
           />
           <YAxis 
             stroke="#71717a"
-            tickFormatter={(valor) => `${valor}ºC`}
+            tickFormatter={(valor) => `${valor} ${tipoSensor.unidad}`}
             tick={{fontSize: 12}}
             domain={[Math.round(data.resumen.minimo - 1), Math.round(data.resumen.maximo + 1)]}
           />
@@ -65,15 +74,15 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
             formatter={(value, name) => {
               if (Array.isArray(value)) {
                   if (name === "minimo") {
-                      return [`${value[0].toFixed(2)} °C`, "Mínimo"];
+                      return [`${value[0].toFixed(2)} ${tipoSensor.unidad}`, "Mínimo"];
                   }
 
                   if (name === "maximo") {
-                      return [`${value[1].toFixed(2)} °C`, "Máximo"];
+                      return [`${value[1].toFixed(2)} ${tipoSensor.unidad}`, "Máximo"];
                   }
               }
 
-              return [`${Number(value).toFixed(2)} °C`, "Promedio"];
+              return [`${Number(value).toFixed(2)} ${tipoSensor.unidad}`, "Promedio"];
           }}
             labelFormatter={(value) =>
               new Date(value).toLocaleTimeString("es-AR", {
