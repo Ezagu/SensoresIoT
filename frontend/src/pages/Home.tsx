@@ -31,7 +31,7 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
   if(!data) return
 
   return (
-    <ResponsiveContainer width="50%" height={300} >
+    <ResponsiveContainer width="100%" height={300} >
       <ComposedChart data={dataCharts} margin={{right: 60, bottom: 40}}>
         <CartesianGrid
           vertical={false}
@@ -59,7 +59,19 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
           domain={[data.resumen.minimo - 1, data.resumen.maximo + 1]}
         />
         <Tooltip
-          formatter={(value) => `${Number(value).toFixed(2)} °C`}
+          formatter={(value, name) => {
+            if (Array.isArray(value)) {
+                if (name === "minimo") {
+                    return [`${value[0].toFixed(2)} °C`, "Mínimo"];
+                }
+
+                if (name === "maximo") {
+                    return [`${value[1].toFixed(2)} °C`, "Máximo"];
+                }
+            }
+
+            return [`${Number(value).toFixed(2)} °C`, "Promedio"];
+        }}
           labelFormatter={(value) =>
             new Date(value).toLocaleTimeString("es-AR", {
               hour: "2-digit",
@@ -77,8 +89,8 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
           dot={false}
           type="monotone"
         />
-        <Area dataKey="minimo" fill="#00ff37"/>
-        <Area dataKey="maximo" fill="#fd0606"/>
+        <Area dataKey="minimo" fill="#00ff37" type="monotone"/>
+        <Area dataKey="maximo" fill="#fd0606" type="monotone"/>
 
       </ComposedChart>
     </ResponsiveContainer>
@@ -86,35 +98,63 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
 }
 
 export const Home = () => {
-  const [dispositivoId, setDispositivoId] = useState(null)
+  const [usuarioId, setUsuarioId] = useState(null)
+  const [dispositivos, setDispositivos] = useState([])
   const [sensores, setSensores] = useState([])
+  const [dispositivoSeleccionado, setDispositivoSeleccionado] = useState()
+
+  const buscarDispositivos = async ({ usuarioId }: { usuarioId : string }) => {
+    const request = await fetch(`http://192.168.1.14:8000/usuarios/${usuarioId}/dispositivos`)
+    const res = await request.json()
+    setDispositivos(res)
+    setDispositivoSeleccionado(res[0].id)
+  }
 
   const buscarSensores = async ({dispositivoId}: {dispositivoId: string}) => {
     const request = await fetch(`http://192.168.1.14:8000/dispositivos/${dispositivoId}/sensores`)
     setSensores(await request.json())
-  } 
+  }
 
   useEffect(() => {
-    if(dispositivoId) {
-      buscarSensores({dispositivoId})
+    if(usuarioId) {
+      buscarDispositivos({ usuarioId })
     }
-  }, [dispositivoId])
+  }, [usuarioId])
+
+  useEffect(() => {
+    if(dispositivoSeleccionado) {
+      buscarSensores({ dispositivoId: dispositivoSeleccionado })
+    }
+  }, [dispositivoSeleccionado])
 
   const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setDispositivoId(e.target.dispositivoId.value)
+    setUsuarioId(e.target.usuarioId.value)
+  }
+
+  const handleSelect = (e: SubmitEvent<HTMLFormElement>) => {
+    setDispositivoSeleccionado(e.target.value)
   }
 
   return (
     <main>
       <form onSubmit={handleSubmit}>
-        <p>Ingrese un dispositivo ID</p>
-        <input type="text" name="dispositivoId"/>
+        <p>Ingrese un usuario ID</p>
+        <input type="text" name="usuarioId"/>
         <input type="submit"/>
       </form>
       <p>
-        Dispositivo id: {dispositivoId}
+        Usuario ID: {usuarioId}
       </p>
+      <select onChange={handleSelect}>
+        {dispositivos && dispositivos.length > 0 &&
+          dispositivos.map(d => (
+            <option key={d.id} value={d.id}>
+              {d.nombre}
+            </option>
+          ))
+        }
+      </select>
       <p>
         Sensores:
       </p>
