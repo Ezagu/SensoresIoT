@@ -33,12 +33,19 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
     if(!data) return
     const newData = data.puntos.map(p => ({
       ...p,
+      bucketTs: new Date(p.bucket).getTime(),
       minimo: [p.minimo, p.promedio],
       maximo: [p.promedio, p.maximo]
     }))
     console.log(newData)
     return newData
   }, [data])
+
+  const dominioX = useMemo(() => {
+    const hastaMs = hasta ? new Date(hasta).getTime() : Date.now()
+    const desdeMs = desde ? new Date(desde).getTime() : hastaMs - 24*60*60*1000
+    return [desdeMs, hastaMs]
+  }, [desde, hasta])
 
   if(!data) return
 
@@ -52,17 +59,15 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
             strokeDasharray="3"
           />
           <XAxis
-            dataKey="bucket"
+            dataKey="bucketTs"
+            type="number"
+            domain={dominioX}
+            scale="time"
             tickFormatter={(value) =>
-              new Date(value).toLocaleTimeString("es-AR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              new Date(value).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
             }
             stroke="#71717a"
-            tick={{
-              fontSize: 12
-            }}
+            tick={{ fontSize: 12 }}
           />
           <YAxis 
             stroke="#71717a"
