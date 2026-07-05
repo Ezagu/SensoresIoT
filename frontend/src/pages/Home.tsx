@@ -4,18 +4,21 @@ import { CartesianGrid, Legend, Line, LineChart, ComposedChart, ResponsiveContai
 
 const GraficaSensor = ({sensorId}: {sensorId: string}) => {
   const [data, setData] = useState(null)
+  const [desde, setDesde] = useState()
+  const [hasta, setHasta] = useState()
+  const [showMin, setShowMin] = useState(false)
+  const [showMax, setShowMax] = useState(false)
 
-  const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const hasta = new Date().toISOString()
 
   const obtenerDataGrafico = async ({ sensorId } : { sensorId: string }) => {
-    const req = await fetch(`http://192.168.1.14:8000/sensores/${sensorId}/mediciones/grafico?desde=${desde}&hasta=${hasta}`)
+    const intervalo = (desde || hasta) ? `?${desde ? `desde=${desde}`: ""}${hasta ? (desde ? `&`: "") + `hasta=${hasta}`:""}` : ""
+    const req = await fetch(`http://192.168.1.14:8000/sensores/${sensorId}/mediciones/grafico${intervalo}`)
     setData(await req.json())
   }
 
   useEffect(() => {
     obtenerDataGrafico({ sensorId })
-  }, [sensorId])
+  }, [sensorId, desde, hasta])
 
   const dataCharts = useMemo(() => {
     if(!data) return
@@ -31,69 +34,82 @@ const GraficaSensor = ({sensorId}: {sensorId: string}) => {
   if(!data) return
 
   return (
-    <ResponsiveContainer width="100%" height={300} >
-      <ComposedChart data={dataCharts} margin={{right: 60, bottom: 40}}>
-        <CartesianGrid
-          vertical={false}
-          stroke="#c4c4c5"
-          strokeDasharray="3"
-        />
-        <XAxis
-          dataKey="bucket"
-          tickFormatter={(value) =>
-            new Date(value).toLocaleTimeString("es-AR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          }
-          stroke="#71717a"
-          tick={{
-            fontSize: 12
-          }}
-          domain={[desde, hasta]}
-        />
-        <YAxis 
-          stroke="#71717a"
-          tickFormatter={(valor) => `${valor}ºC`}
-          tick={{fontSize: 12}}
-          domain={[data.resumen.minimo - 1, data.resumen.maximo + 1]}
-        />
-        <Tooltip
-          formatter={(value, name) => {
-            if (Array.isArray(value)) {
-                if (name === "minimo") {
-                    return [`${value[0].toFixed(2)} °C`, "Mínimo"];
-                }
-
-                if (name === "maximo") {
-                    return [`${value[1].toFixed(2)} °C`, "Máximo"];
-                }
+    <div>
+      <ResponsiveContainer width="100%" height={300} >
+        <ComposedChart data={dataCharts} margin={{right: 60, bottom: 40}}>
+          <CartesianGrid
+            vertical={false}
+            stroke="#c4c4c5"
+            strokeDasharray="3"
+          />
+          <XAxis
+            dataKey="bucket"
+            tickFormatter={(value) =>
+              new Date(value).toLocaleTimeString("es-AR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             }
+            stroke="#71717a"
+            tick={{
+              fontSize: 12
+            }}
+          />
+          <YAxis 
+            stroke="#71717a"
+            tickFormatter={(valor) => `${valor}ºC`}
+            tick={{fontSize: 12}}
+            domain={[Math.round(data.resumen.minimo - 1), Math.round(data.resumen.maximo + 1)]}
+          />
+          <Tooltip
+            formatter={(value, name) => {
+              if (Array.isArray(value)) {
+                  if (name === "minimo") {
+                      return [`${value[0].toFixed(2)} °C`, "Mínimo"];
+                  }
 
-            return [`${Number(value).toFixed(2)} °C`, "Promedio"];
-        }}
-          labelFormatter={(value) =>
-            new Date(value).toLocaleTimeString("es-AR", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+                  if (name === "maximo") {
+                      return [`${value[1].toFixed(2)} °C`, "Máximo"];
+                  }
+              }
+
+              return [`${Number(value).toFixed(2)} °C`, "Promedio"];
+          }}
+            labelFormatter={(value) =>
+              new Date(value).toLocaleTimeString("es-AR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            }
+          />
+          {/* <Legend 
+            formatter={(value: string) => `${value.slice(0, 1).toUpperCase() + value.slice(1)}`}
+          /> */}
+          <Line
+            dataKey="promedio"
+            stroke="#3b82f6"
+            strokeWidth={2.5}
+            dot={false}
+            type="monotone"
+          />
+          {showMin &&
+            <Area dataKey="minimo" fill="#00ff37" type="monotone"/>
           }
-        />
-        {/* <Legend 
-          formatter={(value: string) => `${value.slice(0, 1).toUpperCase() + value.slice(1)}`}
-        /> */}
-        <Line
-          dataKey="promedio"
-          stroke="#3b82f6"
-          strokeWidth={2.5}
-          dot={false}
-          type="monotone"
-        />
-        <Area dataKey="minimo" fill="#00ff37" type="monotone"/>
-        <Area dataKey="maximo" fill="#fd0606" type="monotone"/>
+          {showMax &&
+            <Area dataKey="maximo" fill="#fd0606" type="monotone"/>
+          }
 
-      </ComposedChart>
-    </ResponsiveContainer>
+        </ComposedChart>
+      </ResponsiveContainer>
+      <button onClick={() => setDesde(new Date(Date.now() - 60 * 60 * 1000).toISOString())}>1h</button>
+      <button onClick={() => setDesde(new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString())}>6h</button>
+      <button onClick={() => setDesde(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())}>24h</button>
+      <button onClick={() => setDesde(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())}>7d</button>
+      <button onClick={() => setDesde(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())}>1m</button>
+      <button onClick={() => setShowMin(p => !p)}>{showMin ? "Ocultar mínimos" : "Mostrar mínimos"}</button>
+      <button onClick={() => setShowMax(p => !p)}>{showMin ? "Ocultar máximos" : "Mostrar máximos"}</button>
+    </div>
+    
   )
 }
 
