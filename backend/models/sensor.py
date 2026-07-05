@@ -15,3 +15,7 @@ class SensorOut(BaseModel):
   nombre: Optional[str] = None
   activo: bool
   created_at: datetime
+
+class TipoSensorOut(BaseModel):
+  nombre: str
+  unidad: str

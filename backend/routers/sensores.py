@@ -4,7 +4,7 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from utils import calcular_intervalo
-from models.sensor import SensorCreate, SensorOut
+from models.sensor import SensorCreate, SensorOut, TipoSensorOut
 from models.medicion import DatosGraficoOut
 
 from db import get_connection
@@ -84,3 +84,18 @@ def get_mediciones(
       resumen = cur.fetchone()
 
   return {"puntos": puntos, "resumen": resumen}
+
+@router.get("/{sensor_id}/tipo-sensor", response_model=TipoSensorOut)
+def get_tipo_sensor(sensor_id):
+  with get_connection() as conn:
+    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+      cur.execute(
+        """
+        SELECT ts.nombre, ts.unidad 
+        FROM sensores s
+        JOIN tipos_sensor ts ON s.tipo_sensor_id = ts.id
+        WHERE s.id = %s 
+        """,
+        (sensor_id,)
+      )
+      return cur.fetchone()
