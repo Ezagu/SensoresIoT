@@ -12,13 +12,32 @@ def create_medicion(payload: MedicionCreate):
 
     with get_connection() as conn:
         with conn.cursor() as curs:
-            # Verificar que exista el dispositivo
             curs.execute(
-                "SELECT 1 FROM dispositivos WHERE id = %s",
+                "SELECT first_connected_at FROM dispositivos WHERE id = %s",
                 (payload.dispositivo_id,)
             )
-            if curs.fetchone() is None:
+            first_connected_at = curs.fetchone()
+            
+            # Verificar que exista el dispositivo
+            if first_connected_at is None:
                 raise HTTPException(404, "Dispositivo no encontrado")
+
+            # Modificar last seen at y first connected at
+            if first_connected_at[0] is None:
+                curs.execute(
+                    """
+                    UPDATE dispositivos 
+                    SET first_connected_at = %s,
+                        last_seen_at = %s
+                    WHERE id = %s
+                    """,
+                    (timestamp, timestamp, payload.dispositivo_id)
+                )
+            else:
+                curs.execute(
+                    "UPDATE dispositivos SET last_seen_at = %s WHERE id = %s",
+                    (timestamp, payload.dispositivo_id)
+                )
 
             # Obtener sensores del dispositivo
             curs.execute(

@@ -19,14 +19,15 @@ CREATE TABLE usuarios (
 -- 2. DISPOSITIVOS (placas ESP32)
 -- ====================================================================
 CREATE TABLE dispositivos (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id      UUID REFERENCES usuarios(id) ON DELETE SET NULL,
-    nombre          TEXT NOT NULL,
-    ubicacion       TEXT,
-    descripcion     TEXT,
-    activo          BOOLEAN NOT NULL DEFAULT true,
-    last_seen_at    TIMESTAMPTZ,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id          UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    nombre              TEXT NOT NULL,
+    ubicacion           TEXT,
+    descripcion         TEXT,
+    activo              BOOLEAN NOT NULL DEFAULT true,
+    last_seen_at        TIMESTAMPTZ,
+    first_connected_at  TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 -- ====================================================================
@@ -47,7 +48,6 @@ CREATE TABLE sensores (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     dispositivo_id  UUID NOT NULL REFERENCES dispositivos(id) ON DELETE CASCADE,
     tipo_sensor_id  INT NOT NULL REFERENCES tipos_sensor(id),
-    nombre          TEXT,
     activo          BOOLEAN NOT NULL DEFAULT true,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
