@@ -2,10 +2,14 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
-class MedicionCreate(BaseModel):
+class Medicion(BaseModel):
     sensor_id: str
     value: float
+
+class MedicionCreate(BaseModel):
+    dispositivo_id: str
     time: Optional[datetime] = None
+    mediciones: list[Medicion]
 
 class MedicionOut(BaseModel):
     value: float

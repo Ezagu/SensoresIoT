@@ -17,28 +17,36 @@ void setup() {
 }
 
 // Leer sensores
-void leerYEnviar() {
+void leerATH10(JsonArray mediciones) {
   // Leer sensor
   sensors_event_t humidity, temp;
   // Obtiene los nuevos eventos del sensor con las lecturas
   aht.getEvent(&humidity, &temp);
 
-  float temperatura = temp.temperature;          // °C
-  float humedad     = humidity.relative_humidity;    // humedad
+  float temperaturaValue = temp.temperature;          // °C
+  float humedadValue = humidity.relative_humidity;    // humedad
 
   // Muestra los resultados en el Monitor Serie
-  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %\n", temperatura, humedad);
+  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %\n", temperaturaValue, humedadValue);
 
   // Validación básica de datos y envío a la API
-  if (isnan(temperatura)) {
+  if (isnan(temperaturaValue)) {
     Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
   } else {
-    enviarMedicion(SENSOR_TEMP_ID, temperatura);
+    //enviarMedicion(SENSOR_TEMP_ID, temperatura);
+    JsonObject temperatura = mediciones.add<JsonObject>();
+
+    temperatura["sensor_id"] = SENSOR_TEMP_ID;
+    temperatura["value"] = temperaturaValue;
   }
 
-  if(isnan(humedad)) {
+  if(isnan(humedadValue)) {
     Serial.println("[ERROR] Lectura inválida del sensor humedad. Saltando envío.");
   } else {
-    enviarMedicion(SENSOR_HUM_ID, humedad);
+    //enviarMedicion(SENSOR_HUM_ID, humedad);
+    JsonObject humedad = mediciones.add<JsonObject>();
+
+    humedad["sensor_id"] = SENSOR_HUM_ID;
+    humedad["value"] = humedadValue;
   }
 }

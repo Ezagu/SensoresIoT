@@ -12,8 +12,9 @@ const char* WIFI_PASSWORD = "a1b2c3d4";
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
 const char* API_URL       = "http://192.168.1.11:8000/medicion";
 
+// Replace -> ID del dispositivo
+const char* DISPOSITIVO_ID; 
 // Replace -> Sensores ID
-
 const int   SEND_INTERVAL = 60000;             // ms entre envíos
 
 // ── Objetos globales ───────────────────────────────────────────
@@ -28,13 +29,12 @@ void setup() {
 
   Serial.println("Iniciando módulos");
 
-  // Replace -> Inicialización demódulos
+  // Replace -> Inicialización de módulos
 
   // Conectar WiFi
   conectarWiFi();
 }
 
-// ── Loop ───────────────────────────────────────────────────────
 void loop() {
   // Reconectar WiFi si se perdió la conexión
   if (WiFi.status() != WL_CONNECTED) {
@@ -49,7 +49,6 @@ void loop() {
   }
 }
 
-// ── Funciones ──────────────────────────────────────────────────
 void conectarWiFi() {
   Serial.printf("[WiFi] Conectando a %s", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -69,15 +68,12 @@ void conectarWiFi() {
   }
 }
 
-bool enviarMedicion(const char* sensorId, float valor) {
-  StaticJsonDocument<256> doc;
-  doc["sensor_id"] = sensorId;
-  doc["value"]     = valor;
-
+bool enviarMedicion(JsonDocument& doc) {
   String payload;
   serializeJson(doc, payload);
 
   HTTPClient http;
+
   http.begin(API_URL);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(10000);
@@ -98,5 +94,13 @@ bool enviarMedicion(const char* sensorId, float valor) {
 }
 
 void leerYEnviar() {
-  // Replace -> Lectura de sensores
+  JsonDocument doc;
+
+  doc["dispositivo_id"] = DISPOSITIVO_ID;
+
+  JsonArray mediciones = doc["mediciones"].to<JsonArray>();
+
+  // Replace -> funciones para leer sensores, pasarle mediciones
+
+  enviarMedicion(doc);
 }
