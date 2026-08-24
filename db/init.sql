@@ -11,7 +11,7 @@ CREATE TABLE usuarios (
     nombre          TEXT NOT NULL,
     email           TEXT NOT NULL UNIQUE,
     password        TEXT NOT NULL,
-    rol             TEXT NOT NULL DEFAULT 'viewer',
+    rol             TEXT NOT NULL DEFAULT 'user',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

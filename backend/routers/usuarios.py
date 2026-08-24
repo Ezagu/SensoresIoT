@@ -3,27 +3,11 @@ import bcrypt
 from uuid import UUID
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+from models.usuario import UsuarioCreate, UsuarioOut
 from models.dispositivo import DispositivoOut
-
-
 from db import get_connection
 
 router = APIRouter()
-
-class UsuarioOut(BaseModel):
-    id: UUID
-    nombre: str
-    email: str
-    rol: str
-    created_at: datetime
-
-class UsuarioCreate(BaseModel):
-    nombre: str
-    email: str
-    password: str
-    rol: Optional[str] = "viewer"
 
 @router.get("/", response_model=list[UsuarioOut])
 def usuarios():
@@ -44,6 +28,9 @@ def usuario(usuario_id: UUID):
 
 @router.post("/", response_model=UsuarioOut)
 def create_usuario(usuario: UsuarioCreate):
+    if(usuario.password != usuario.confirm_password):
+        raise HTTPException(400, "Las contraseñas no coinciden")
+
     password_hashed = bcrypt.hashpw(
         usuario.password.encode("utf-8"),
         bcrypt.gensalt()
