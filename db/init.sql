@@ -12,6 +12,7 @@ CREATE TABLE usuarios (
     email           TEXT NOT NULL UNIQUE,
     password        TEXT NOT NULL,
     rol             TEXT NOT NULL DEFAULT 'user',
+    is_verified     BOOLEAN NOT NULL DEFAULT false,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -60,6 +61,14 @@ CREATE TABLE mediciones (
     sensor_id   UUID NOT NULL,   -- sin FK real (recomendación Timescale)
     value       DOUBLE PRECISION NOT NULL
 );
+
+CREATE TABLE verificaciones_email (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id  UUID REFERENCES usuarios(id) NOT NULL,
+    token_hash  TEXT NOT NULL,
+    expires_at  TIMESTAMPTZ NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+)
 
 SELECT create_hypertable('mediciones', 'time');
 

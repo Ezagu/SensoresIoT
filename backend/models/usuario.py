@@ -9,10 +9,10 @@ class UsuarioOut(BaseModel):
     email: str
     rol: str
     created_at: datetime
+    is_verified: bool
 
 class UsuarioCreate(BaseModel):
     nombre: str
     email: str
     password: str
     confirm_password: str
-    rol: Optional[str] = "user"
