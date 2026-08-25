@@ -4,8 +4,8 @@ from uuid import UUID
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from utils import calcular_intervalo
-from models.sensor import SensorCreate, SensorOut, TipoSensorOut
-from models.medicion import DatosGraficoOut
+from schemas.sensor import SensorCreate, SensorOut, TipoSensorOut
+from schemas.medicion import DatosGraficoOut
 
 from db import get_connection
 

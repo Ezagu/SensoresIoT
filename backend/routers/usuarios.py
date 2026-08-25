@@ -1,8 +1,8 @@
 import psycopg2.extras
 from uuid import UUID
 from fastapi import APIRouter, HTTPException
-from models.usuario import UsuarioOut
-from models.dispositivo import DispositivoOut
+from schemas.usuario import UsuarioOut
+from schemas.dispositivo import DispositivoOut
 from db import get_connection
 
 router = APIRouter()

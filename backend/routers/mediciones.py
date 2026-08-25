@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
-from models.medicion import MedicionCreate
+from schemas.medicion import MedicionCreate
 
 from db import get_connection
 

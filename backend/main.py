@@ -1,11 +1,8 @@
+import core.config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import mediciones, usuarios, tipos_sensor, sensores, dispositivos, auth
-from dotenv import load_dotenv
 from utils import get_cors_origins
-
-# Cargar variables de entorno
-load_dotenv()
 
 app = FastAPI()
 

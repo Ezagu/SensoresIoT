@@ -1,8 +1,8 @@
 import psycopg2.extras
 from fastapi import APIRouter, HTTPException
 from uuid import UUID
-from models.dispositivo import DispositivoCreate, DispositivoOut
-from models.sensor import SensorOut
+from schemas.dispositivo import DispositivoCreate, DispositivoOut
+from schemas.sensor import SensorOut
 
 from db import get_connection
 
