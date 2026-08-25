@@ -5,23 +5,26 @@ import secrets
 import hashlib
 import resend
 import psycopg2.extras
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from datetime import datetime, timezone, timedelta
 from models.usuario import UsuarioCreate, UsuarioOut
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from db import get_connection
-from utils import generate_verification_token, send_verification_email
 
 router = APIRouter()
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+limiter = Limiter(key_func=get_remote_address)
+
 class VerifyRequest(BaseModel):
     token: str
 
-class ResendVerificationRequest(BaseModel):
-    email: EmailStr
+class ResendVerifyRequest(BaseModel):
+    email: str
 
 def generate_verification_token() -> tuple[str, str]:
     token = secrets.token_urlsafe(32)
@@ -30,7 +33,6 @@ def generate_verification_token() -> tuple[str, str]:
 
 def send_verification_email(to: str, token:str):
     verify_link = f"{FRONTEND_URL}/verify?token={token}"
-
     resend.Emails.send({
         "from": "onboarding@resend.dev",
         "to": [to],
@@ -142,3 +144,26 @@ def verify_email(data: VerifyRequest):
                 (token_hash,)
             )
     return {"message": "Email verificado correctamente"}
+
+@router.post("/resend-verify")
+@limiter.limit("3/hour")
+def resend_verify_email(request: Request, data: ResendVerifyRequest):
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT id, is_verified FROM usuarios WHERE email = %s",
+                (data.email,)
+            )
+            user = cur.fetchone()
+
+            if not user or user["is_verified"]:
+                return {"message": "Si el email existe y no fue verificado, te enviamos un nuevo link"}
+
+            token = crear_y_enviar_verificacion(cur, user["id"], data.email)
+
+    try:
+        send_verification_email(to=data.email, token=token)
+    except Exception as e:
+        print(f"Error reenviando verificación a {data.email}: {e}")
+
+    return {"message": "Si el email existe y no fue verificado, te enviamos un nuevo link"}
