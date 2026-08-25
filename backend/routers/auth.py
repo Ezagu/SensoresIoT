@@ -1,12 +1,70 @@
 import bcrypt
+import hashlib
+import os
+import secrets
+import hashlib
+import resend
 import psycopg2.extras
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone, timedelta
 from models.usuario import UsuarioCreate, UsuarioOut
+from pydantic import BaseModel, EmailStr
 from db import get_connection
 from utils import generate_verification_token, send_verification_email
 
 router = APIRouter()
+
+resend.api_key = os.getenv("RESEND_API_KEY")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
+class VerifyRequest(BaseModel):
+    token: str
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+def generate_verification_token() -> tuple[str, str]:
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    return token, token_hash
+
+def send_verification_email(to: str, token:str):
+    verify_link = f"{FRONTEND_URL}/verify?token={token}"
+
+    resend.Emails.send({
+        "from": "onboarding@resend.dev",
+        "to": [to],
+        "subject": "Confirmá tu cuenta",
+        "html": f"""
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                <h2>Confirmá tu cuenta</h2>
+                <p>Hacé click en el siguiente botón para verificar tu email:</p>
+                <a href="{verify_link}"
+                    style="display:inline-block; padding:12px 24px; background:#111;
+                    color:#fff; text-decoration:none; border-radius:6px;"
+                >
+                    Verificar email
+                </a>
+                <p style="color:#666; font-size:13px; margin-top:24px;">
+                    Este link expira en 24 horas. Si no creaste esta cuenta, ignorá este mail.
+                </p>
+            </div>
+        """
+    })
+
+def crear_y_enviar_verificacion(cur, user_id: str, email: str):
+    # Invalidar tokens previos de ese usuario
+    cur.execute("DELETE FROM verificaciones_email WHERE usuario_id = %s", (user_id,))
+    # Generar y guardar el nuevo token
+    token, token_hash = generate_verification_token()
+    cur.execute(
+        """
+        INSERT INTO verificaciones_email (usuario_id, token_hash, expires_at)
+        VALUES (%s, %s, %s)
+        """,
+        (user_id, token_hash, datetime.now(timezone.utc) + timedelta(hours=24))
+    )
+    return token
 
 @router.post("/register", response_model=UsuarioOut)
 def register(usuario: UsuarioCreate):
@@ -47,23 +105,40 @@ def register(usuario: UsuarioCreate):
                 )
                 user_row = cur.fetchone()
                 user_id = user_row["id"]
-
-            # Invalidar tokens previos de ese usuario
-            cur.execute("DELETE FROM verificaciones_email WHERE usuario_id = %s", (user_id,))
-
-            # Generar y guardar el nuevo token
-            token, token_hash = generate_verification_token()
-            cur.execute(
-                """
-                INSERT INTO verificaciones_email (usuario_id, token_hash, expires_at)
-                VALUES (%s, %s, %s)
-                """,
-                (user_id, token_hash, datetime.now(timezone.utc) + timedelta(hours=24))
-            )
-
+            token = crear_y_enviar_verificacion(cur, user_id, user_row["email"])
     try:
         send_verification_email(to=usuario.email, token=token)
     except Exception as e:
         print(f"Error enviando mail de verificación a {usuario.email}: {e}")
 
     return user_row
+
+@router.post("/verify")
+def verify_email(data: VerifyRequest):
+    token_hash = hashlib.sha256(data.token.encode()).hexdigest()
+
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                "SELECT usuario_id, expires_at FROM verificaciones_email WHERE token_hash = %s",
+                (token_hash,)
+            )
+            verification = cur.fetchone()
+
+            if not verification:
+                raise HTTPException(400, "Token inválido o ya utilizado")
+
+            if verification["expires_at"] < datetime.now(timezone.utc):
+                cur.execute("DELETE FROM verificaciones_email WHERE token_hash = %s", (token_hash,))
+                raise HTTPException(400, "El token expiró, solicitá uno nuevo")
+
+            cur.execute(
+                "UPDATE usuarios SET is_verified = true WHERE id = %s",
+                (verification["usuario_id"],)
+            )
+
+            cur.execute(
+                "DELETE FROM verificaciones_email WHERE token_hash = %s",
+                (token_hash,)
+            )
+    return {"message": "Email verificado correctamente"}
