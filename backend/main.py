@@ -1,14 +1,11 @@
 from fastapi import FastAPI
-import os
-from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from routers import mediciones, usuarios, tipos_sensor, sensores, dispositivos, auth
 from dotenv import load_dotenv
 from utils import get_cors_origins
 
 # Cargar variables de entorno
-BASE_DIR = Path(__file__).resolve().parent.parent  # sube de backend/ a la raíz
-load_dotenv(BASE_DIR / ".env")
+load_dotenv()
 
 app = FastAPI()
 

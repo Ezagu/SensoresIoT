@@ -1,12 +1,9 @@
 import os
 import psycopg2
 import psycopg2.extras
-from dotenv import load_dotenv
 from contextlib import contextmanager
 
 psycopg2.extras.register_uuid()
-
-load_dotenv()
 
 DB_HOST = os.getenv("DB_HOST", "localhost")
 DB_PORT = os.getenv("DB_PORT", "5433")
