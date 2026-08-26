@@ -1,5 +1,6 @@
-import psycopg2.extras
 from datetime import datetime, timezone
+
+COLUMNAS_PUBLICAS = "id, nombre, email, rol, created_at, is_verified"
 
 def buscar_por_email(cur, email: str) -> dict | None:
     cur.execute(
@@ -8,10 +9,10 @@ def buscar_por_email(cur, email: str) -> dict | None:
     )
     return cur.fetchone()
 
-def buscar_por_id(cur, user_id: str) -> dict | None:
+def buscar_por_id(cur, usuario_id: str) -> dict | None:
     cur.execute(
-        "SELECT id, nombre, email, rol, created_at, is_verified FROM usuarios WHERE id = %s",
-        (user_id,)
+        f"SELECT {COLUMNAS_PUBLICAS} FROM usuarios WHERE id = %s",
+        (usuario_id,)
     )
     return cur.fetchone()
 
@@ -26,5 +27,9 @@ def crear(cur, nombre: str, email: str, password_hash: str) -> dict:
     )
     return cur.fetchone()
 
-def marcar_verificado(cur, user_id: str) -> None:
-    cur.execute("UPDATE usuarios SET is_verified = true WHERE id = %s", (user_id,))
+def marcar_verificado(cur, usuario_id: str) -> None:
+    cur.execute("UPDATE usuarios SET is_verified = true WHERE id = %s", (usuario_id,))
+
+def listar(cur) -> list[dict]:
+    cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM usuarios")
+    return cur.fetchall()

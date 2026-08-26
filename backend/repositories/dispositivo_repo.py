@@ -19,6 +19,10 @@ def buscar_por_id(cur, dispositivo_id) -> dict | None:
     cur.execute("SELECT * FROM dispositivos WHERE id = %s", (dispositivo_id,))
     return cur.fetchone()
 
+def buscar_por_usuario(cur, usuario_id) -> list[dict]:
+    cur.execute("SELECT * FROM dispositivos WHERE usuario_id = %s", (usuario_id,))
+    return cur.fetchall()
+
 def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
     cur.execute(
         """
