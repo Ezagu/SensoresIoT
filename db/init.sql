@@ -11,7 +11,7 @@ CREATE TABLE usuarios (
     nombre          TEXT NOT NULL,
     email           TEXT NOT NULL UNIQUE,
     password        TEXT NOT NULL,
-    rol             TEXT NOT NULL DEFAULT 'user',
+    rol             TEXT NOT NULL DEFAULT 'user' CHECK (rol IN ('user', 'admin')),
     is_verified     BOOLEAN NOT NULL DEFAULT false,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -34,10 +34,14 @@ CREATE TABLE dispositivos (
 CREATE TABLE usuario_dispositivo (
     usuario_id         UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     dispositivo_id     UUID NOT NULL REFERENCES dispositivos(id) ON DELETE CASCADE,
-    rol                TEXT NOT NULL DEFAULT 'owner',
+    rol                TEXT NOT NULL DEFAULT 'owner' CHECK (rol IN ('owner', 'viewer', 'editor')),
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (usuario_id, dispositivo_id)
 );
+
+CREATE UNIQUE INDEX idx_un_solo_owner 
+ON usuario_dispositivo (dispositivo_id) 
+WHERE rol = 'owner';
 -- ====================================================================
 -- 3. TIPOS DE SENSOR (catálogo)
 -- ====================================================================

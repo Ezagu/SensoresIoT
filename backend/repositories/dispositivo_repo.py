@@ -56,3 +56,24 @@ def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
         (timestamp, timestamp, dispositivo_id)
     )
     return cur.fetchone() is not None
+
+def crear_vinculacion(cur, usuario_id, dispositivo_id, rol):
+    cur.execute(
+        """
+        INSERT INTO usuario_dispositivo (usuario_id, dispositivo_id, rol)
+        VALUES (%s, %s, %s)
+        RETURNING *
+        """,
+        (usuario_id, dispositivo_id, rol)
+    )
+    return cur.fetchone()
+
+def buscar_owner_de_dispositivo(cur, dispositivo_id):
+    cur.execute(
+        """
+        SELECT * from usuario_dispositivo
+        WHERE dispositivo_id = %s AND rol = 'owner'
+        """,
+        (dispositivo_id,)
+    )
+    return cur.fetchone()

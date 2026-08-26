@@ -20,3 +20,7 @@ class DispositivoOut(BaseModel):
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut
   secret: str
+
+class VinculationCreate(BaseModel):
+  usuario_id: UUID
+  rol: Optional[str] = None
