@@ -18,3 +18,16 @@ def crear(cur, usuario_id, nombre: str, ubicacion: str, descripcion: str) -> dic
 def buscar_por_id(cur, dispositivo_id) -> dict | None:
     cur.execute("SELECT * FROM dispositivos WHERE id = %s", (dispositivo_id,))
     return cur.fetchone()
+
+def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
+    cur.execute(
+        """
+        UPDATE dispositivos
+        SET first_connected_at = COALESCE(first_connected_at, %s),
+            last_seen_at = %s
+        WHERE id = %s
+        RETURNING id
+        """,
+        (timestamp, timestamp, dispositivo_id)
+    )
+    return cur.fetchone() is not None

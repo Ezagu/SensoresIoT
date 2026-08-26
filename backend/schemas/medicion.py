@@ -1,13 +1,14 @@
+from uuid import UUID
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
 class Medicion(BaseModel):
-    sensor_id: str
+    sensor_id: UUID
     value: float
 
 class MedicionCreate(BaseModel):
-    dispositivo_id: str
+    dispositivo_id: UUID
     time: Optional[datetime] = None
     mediciones: list[Medicion]
 
