@@ -15,3 +15,9 @@ def generar_token_verificacion():
 
 def hashear_token(token: str):
     return hashlib.sha256(token.encode()).hexdigest()
+
+def generar_secret_dispositivo():
+    secret = secrets.token_hex(32)
+    secret_hash = hashear_token(secret)
+    return secret, secret_hash
+

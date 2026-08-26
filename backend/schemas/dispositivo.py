@@ -15,4 +15,8 @@ class DispositivoOut(BaseModel):
   descripcion: Optional[str] = None
   activo: bool
   last_seen_at: Optional[datetime]
-  created_at: datetime
+  first_connected_at: Optional[datetime]
+
+class DispositivoCreateOut(BaseModel):
+  dispositivo: DispositivoOut
+  secret: str

@@ -1,12 +1,12 @@
 from fastapi import APIRouter
 from uuid import UUID
-from schemas.dispositivo import DispositivoCreate, DispositivoOut
+from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut
 from schemas.sensor import SensorOut
 from services import dispositivo_service
 
 router = APIRouter()
 
-@router.post("/", response_model=DispositivoOut)
+@router.post("/", response_model=DispositivoCreateOut)
 def create_dispositivo(dispositivo: DispositivoCreate):
   return dispositivo_service.crear_dispositivo(dispositivo)
 

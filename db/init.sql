@@ -25,6 +25,7 @@ CREATE TABLE dispositivos (
     ubicacion           TEXT,
     descripcion         TEXT,
     activo              BOOLEAN NOT NULL DEFAULT true,
+    secret_hash         TEXT NOT NULL,
     last_seen_at        TIMESTAMPTZ,
     first_connected_at  TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
