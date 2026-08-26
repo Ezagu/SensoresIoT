@@ -21,7 +21,6 @@ CREATE TABLE usuarios (
 -- ====================================================================
 CREATE TABLE dispositivos (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id          UUID REFERENCES usuarios(id) ON DELETE SET NULL,
     nombre              TEXT NOT NULL,
     ubicacion           TEXT,
     descripcion         TEXT,
@@ -31,6 +30,13 @@ CREATE TABLE dispositivos (
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE usuario_dispositivo (
+    usuario_id         UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    dispositivo_id     UUID NOT NULL REFERENCES dispositivos(id) ON DELETE CASCADE,
+    rol                TEXT NOT NULL DEFAULT 'owner',
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (usuario_id, dispositivo_id)
+);
 -- ====================================================================
 -- 3. TIPOS DE SENSOR (catálogo)
 -- ====================================================================

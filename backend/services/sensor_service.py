@@ -35,7 +35,7 @@ def _calcular_intervalo(desde: datetime, hasta: datetime):
 def crear_sensor(sensor) -> dict:
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            sensor_repo.crear(cur, sensor.dispositivo_id, sensor.tipo_sensor_id, sensor.nombre)
+            return sensor_repo.crear(cur, sensor.dispositivo_id, sensor.tipo_sensor_id)
 
 def obtener_sensor(sensor_id) -> dict:
     with get_connection() as conn:

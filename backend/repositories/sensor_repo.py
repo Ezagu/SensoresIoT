@@ -1,15 +1,15 @@
 import psycopg2.errors
 from fastapi import HTTPException
 
-def crear(cur, dispositivo_id, tipo_sensor_id, nombre: str) -> dict:
+def crear(cur, dispositivo_id, tipo_sensor_id) -> dict:
     try:
         cur.execute(
             f"""
-            INSERT INTO sensores (dispositivo_id, tipo_sensor_id, nombre)
-            VALUES (%s, %s, %s)
+            INSERT INTO sensores (dispositivo_id, tipo_sensor_id)
+            VALUES (%s, %s)
             RETURNING *
             """,
-            (dispositivo_id, tipo_sensor_id, nombre)
+            (dispositivo_id, tipo_sensor_id)
         )
         return cur.fetchone()
     except psycopg2.errors.ForeignKeyViolation:
