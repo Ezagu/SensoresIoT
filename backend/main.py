@@ -1,20 +1,19 @@
-import core.config
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import mediciones, usuarios, tipos_sensor, sensores, dispositivos, auth
-from utils import get_cors_origins
+from core.config import get_cors_origins
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_cors_origins(), #Pàgina de vite,
+    allow_origins=get_cors_origins(), #Página de vite,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(mediciones.router)
+app.include_router(mediciones.router, prefix="/mediciones", tags=["mediciones"])
 app.include_router(usuarios.router, prefix="/usuarios", tags=["usuario"])
 app.include_router(dispositivos.router, prefix="/dispositivos", tags=["dispositivos"])
 app.include_router(sensores.router, prefix="/sensores", tags=["sensores"])

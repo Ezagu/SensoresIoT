@@ -1,8 +1,7 @@
-import os
 import resend
+from core.config import FRONTEND_URL, RESEND_API_KEY
 
-resend.api_key = os.getenv("RESEND_API_KEY")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+resend.api_key = RESEND_API_KEY
 
 def enviar_email_verificacion(to: str, token:str):
     verify_link = f"{FRONTEND_URL}/verify?token={token}"

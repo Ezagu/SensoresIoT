@@ -4,6 +4,6 @@ from schemas.medicion import MedicionCreate
 
 router = APIRouter()
 
-@router.post("/medicion")
+@router.post("/")
 def create_medicion(payload: MedicionCreate):
     return medicion_service.crear_medicion(payload)
