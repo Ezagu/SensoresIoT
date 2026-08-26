@@ -27,3 +27,9 @@ def obtener_sensores(dispositivo_id) -> list[dict]:
             if dispositivo is None:
                 raise HTTPException(404, "dispositivo no existe")
             return sensor_repo.buscar_por_dispositivo_id(cur, dispositivo_id)
+
+def regenerar_secret_dispositivo(dispositivo_id) -> dict:
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            secret = dispositivo_repo.actualizar_secret(cur, dispositivo_id)
+            return {"secret": secret}

@@ -17,3 +17,7 @@ def get_dispositivo_by_id(dispositivo_id: UUID):
 @router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
 def get_sensores(dispositivo_id: UUID):
   return dispositivo_service.obtener_sensores(dispositivo_id)
+
+@router.post("/{dispositivo_id}/regenerate-secret")
+def regenerate_secret(dispositivo_id: UUID):
+  return dispositivo_service.regenerar_secret_dispositivo(dispositivo_id)

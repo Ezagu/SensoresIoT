@@ -20,6 +20,22 @@ def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
     except psycopg2.errors.ForeignKeyViolation:
         raise HTTPException(404, "El usuario no existe")
 
+def actualizar_secret(cur, dispositivo_id) -> str:
+    secret, secret_hash = generar_secret_dispositivo()
+    cur.execute(
+        """
+        UPDATE dispositivos
+        SET secret_hash = %s
+        WHERE id = %s
+        RETURNING id
+        """,
+        (secret_hash, dispositivo_id)
+    )
+    disp = cur.fetchone()
+    if not disp:
+        raise HTTPException(404, "Dispositivo no encontrado")
+    return secret
+
 def buscar_por_id(cur, dispositivo_id) -> dict | None:
     cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM dispositivos WHERE id = %s", (dispositivo_id,))
     return cur.fetchone()
