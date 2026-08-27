@@ -4,6 +4,7 @@ import hashlib
 import jwt
 from fastapi import HTTPException
 from datetime import datetime, timedelta, timezone
+from pydantic import BaseModel
 from core.config import JWT_SECRET_KEY
 
 ALGORITHM = "HS256"
@@ -42,7 +43,14 @@ def crear_access_token(usuario_id: str, rol: str) -> str:
     }
     return jwt.encode(payload, JWT_SECRET_KEY, ALGORITHM)
 
-def verificar_access_token(token: str) -> dict:
+class JWTPayload(BaseModel):
+    sub: str
+    rol: str
+    iat: datetime
+    exp: datetime
+
+
+def verificar_access_token(token: str) -> JWTPayload:
     try:
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
     except jwt.ExpiredSignatureError:

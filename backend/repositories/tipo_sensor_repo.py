@@ -1,7 +1,7 @@
 import psycopg2.errors
 from fastapi import HTTPException
 
-def crear(cur, nombre, unidad, valor_min, valor_max):
+def crear(cur, nombre, unidad, valor_min, valor_max) -> dict:
     try:
         cur.execute(
         """
@@ -15,6 +15,17 @@ def crear(cur, nombre, unidad, valor_min, valor_max):
     except psycopg2.errors.UniqueViolation:
         raise HTTPException(status_code=409, detail="Ya existe un tipo de sensor con ese nombre")
 
-def listar(cur):
+def listar(cur) -> list[dict]:
     cur.execute("SELECT * FROM tipos_sensor")
     return cur.fetchall()
+
+def obtener_tipo_sensor_por_sensor_id(cur, sensor_id) -> dict:
+    cur.execute(
+        """
+        SELECT ts.nombre, ts.unidad FROM tipos_sensor ts
+        JOIN sensores s ON s.tipo_sensor_id = ts.id 
+        WHERE s.id = %s
+        """,
+        (sensor_id,)
+        )
+    return cur.fetchone()

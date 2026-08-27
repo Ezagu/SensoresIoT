@@ -1,17 +1,17 @@
 import psycopg2.extras
 from fastapi import HTTPException
-from repositories import dispositivo_repo, sensor_repo, usuario_repo
+from repositories import dispositivo_repo, sensor_repo
 from db import get_connection
 
 def _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol) -> dict:
     dispositivo = dispositivo_repo.buscar_por_id(cur, dispositivo_id)
     if dispositivo is None:
         raise HTTPException(404, "dispositivo no existe")
-    if not _tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
+    if not tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
         raise HTTPException(403, "No tienes acceso a este recurso")
     return dispositivo
 
-def _tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
+def tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
     es_owner = dispositivo_repo.verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id)
     es_admin = rol == "admin"
     return es_owner or es_admin
