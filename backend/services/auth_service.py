@@ -7,11 +7,23 @@ from repositories import usuario_repo, verificacion_repo, refresh_token_repo
 from core.security import hash_password, generar_secret_urlsafe, hashear_sha256, verify_password, crear_access_token, REFRESH_TOKEN_EXPIRE_DAYS
 from core.email import enviar_email_verificacion
 
-def _crear_y_guardar_token(cur, user_id: str) -> str:
+def _crear_y_guardar_token_verificacion(cur, user_id: str) -> str:
     verificacion_repo.eliminar_por_usuario(cur, user_id)
     token, token_hash = generar_secret_urlsafe()
     verificacion_repo.crear(cur, user_id, token_hash)
     return token
+
+def _crear_tokens_login(cur, usuario_id, usuario_rol):
+    access_token = crear_access_token(usuario_id, usuario_rol)
+    refresh_token, refresh_token_hash = generar_secret_urlsafe()
+
+    expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    refresh_token_repo.crear(cur, usuario_id, refresh_token_hash, expires_at)
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }
 
 def register_usuario(usuario) -> dict:
     if usuario.password != usuario.confirm_password:
@@ -34,7 +46,7 @@ def register_usuario(usuario) -> dict:
                     #Condición de carrera
                     raise HTTPException(409, "El email ya está registrado")
 
-            token = _crear_y_guardar_token(cur, user_row["id"])
+            token = _crear_y_guardar_token_verificacion(cur, user_row["id"])
 
     try:
         enviar_email_verificacion(to=usuario.email, token=token)
@@ -65,7 +77,7 @@ def reenviar_verificacion(email: str) -> None:
             user = usuario_repo.buscar_por_email(cur, email)
             if not user or user["is_verified"]:
                 return
-            token = _crear_y_guardar_token(cur, user["id"])
+            token = _crear_y_guardar_token_verificacion(cur, user["id"])
 
     try:
         enviar_email_verificacion(to=email, token=token)
@@ -79,13 +91,21 @@ def loguear(email: str, password: str):
             if usuario is None or not verify_password(password, usuario["password"]):
                 raise HTTPException(401, "Usuario o contraseña incorrectos")
 
-            access_token = crear_access_token(usuario["id"], usuario["rol"])
-            refresh_token, refresh_token_hash = generar_secret_urlsafe()
+            tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
 
-            expires_at = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-            refresh_token_repo.crear(cur, usuario["id"], refresh_token_hash, expires_at)
+    return tokens
 
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token
-    }
+def refresh(token):
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            token_hash = hashear_sha256(token)
+            registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
+
+            if registro is None or registro["revocado"] or registro["expires_at"] < datetime.now(timezone.utc):
+                raise HTTPException(401, "Sesión inválida, iniciá sesión de nuevo")
+
+            refresh_token_repo.revocar(cur, registro["id"])
+
+            usuario = usuario_repo.buscar_por_id(cur, registro["usuario_id"])
+            tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
+    return tokens
