@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi import APIRouter, Request, Response, HTTPException, Depends
 from schemas.usuario import UsuarioCreate, UsuarioOut
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from schemas.auth import VerifyRequest, ResendVerifyRequest, LoginRequest
 from services import auth_service
 from core.security import REFRESH_TOKEN_EXPIRE_DAYS
+from core.deps import get_usuario_actual
 
 router = APIRouter()
 limiter = Limiter(key_func=get_remote_address)
@@ -47,6 +48,22 @@ def refresh(request: Request, response: Response):
     if refresh_token is None:
         raise HTTPException(401, "No hay sesión")
     
-    tokens = auth_service.refresh(refresh_token)
+    tokens = auth_service.refrescar_sesion(refresh_token)
     _create_refresh_token_cookie(response, tokens["refresh_token"])
     return {"access_token": tokens["access_token"]}
+
+@router.post("/logout")
+def logout(request: Request, response: Response):
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token is not None:
+        auth_service.cerrar_sesion(refresh_token)
+
+    response.delete_cookie("refresh_token")
+    return {"detail": "Sesión cerrada"}
+
+@router.get("/me")
+def me(usuario_actual: dict = Depends(get_usuario_actual)):
+    return {
+        "usuario_id": usuario_actual["sub"],
+        "rol": usuario_actual["rol"],
+    }

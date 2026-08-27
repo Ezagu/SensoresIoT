@@ -95,10 +95,10 @@ def loguear(email: str, password: str):
 
     return tokens
 
-def refresh(token):
+def refrescar_sesion(refresh_token):
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            token_hash = hashear_sha256(token)
+            token_hash = hashear_sha256(refresh_token)
             registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
 
             if registro is None or registro["revocado"] or registro["expires_at"] < datetime.now(timezone.utc):
@@ -109,3 +109,11 @@ def refresh(token):
             usuario = usuario_repo.buscar_por_id(cur, registro["usuario_id"])
             tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
     return tokens
+
+def cerrar_sesion(refresh_token):
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            token_hash = hashear_sha256(refresh_token)
+            registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
+            if registro is not None and not registro["revocado"]:
+                refresh_token_repo.revocar(cur, registro["id"])
