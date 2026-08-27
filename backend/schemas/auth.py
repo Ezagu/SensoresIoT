@@ -5,3 +5,7 @@ class VerifyRequest(BaseModel):
 
 class ResendVerifyRequest(BaseModel):
     email: str
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str

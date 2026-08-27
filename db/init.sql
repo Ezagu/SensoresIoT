@@ -81,6 +81,16 @@ CREATE TABLE verificaciones_email (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 )
 
+CREATE TABLE refresh_token (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id  UUID REFERENCES usuarios(id) NOT NULL,
+    token_hash  TEXT NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at  TIMESTAMPTZ NOT NULL,
+    revocado    BOOLEAN NOT NULL DEFAULT false,
+    revocado_at TIMESTAMPTZ
+)
+
 SELECT create_hypertable('mediciones', 'time');
 
 CREATE INDEX idx_mediciones_sensor_time

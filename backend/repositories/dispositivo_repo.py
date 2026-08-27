@@ -1,11 +1,11 @@
 import psycopg2.errors
 from fastapi import HTTPException
-from core.security import generar_secret_dispositivo
+from core.security import generar_secret
 
 COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at"
 
 def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
-    secret, secret_hash = generar_secret_dispositivo()
+    secret, secret_hash = generar_secret()
     try:
         cur.execute(
             f"""
@@ -21,7 +21,7 @@ def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
         raise HTTPException(404, "El usuario no existe")
 
 def actualizar_secret(cur, dispositivo_id) -> str:
-    secret, secret_hash = generar_secret_dispositivo()
+    secret, secret_hash = generar_secret()
     cur.execute(
         """
         UPDATE dispositivos
