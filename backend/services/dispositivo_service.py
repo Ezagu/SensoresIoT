@@ -3,6 +3,18 @@ from fastapi import HTTPException
 from repositories import dispositivo_repo, sensor_repo, usuario_repo
 from db import get_connection
 
+def _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol) -> dict:
+    dispositivo = dispositivo_repo.buscar_por_id(cur, dispositivo_id)
+    if dispositivo is None:
+        raise HTTPException(404, "dispositivo no existe")
+    if not _tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
+        raise HTTPException(403, "No tienes acceso a este recurso")
+    return dispositivo
+
+def _tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
+    es_owner = dispositivo_repo.verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id)
+    es_admin = rol == "admin"
+    return es_owner or es_admin
 
 def crear_dispositivo(dispositivo) -> dict:
     with get_connection() as conn:
@@ -12,20 +24,15 @@ def crear_dispositivo(dispositivo) -> dict:
                 dispositivo.ubicacion, dispositivo.descripcion
             )
 
-def obtener_dispositivo(dispositivo_id) -> dict:
+def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            dispositivo = dispositivo_repo.buscar_por_id(cur, dispositivo_id)
-            if dispositivo is None:
-                raise HTTPException(404, "dispositivo no existe")
-            return dispositivo
+            return _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
 
-def obtener_sensores(dispositivo_id) -> list[dict]:
+def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            dispositivo = dispositivo_repo.buscar_por_id(cur, dispositivo_id)
-            if dispositivo is None:
-                raise HTTPException(404, "dispositivo no existe")
+            _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
             return sensor_repo.buscar_por_dispositivo_id(cur, dispositivo_id)
 
 def regenerar_secret_dispositivo(dispositivo_id) -> dict:
@@ -37,9 +44,6 @@ def regenerar_secret_dispositivo(dispositivo_id) -> dict:
 def crear_vinculacion(usuario_id, dispositivo_id, rol):
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            usuario = usuario_repo.buscar_por_id(cur, usuario_id)
-            if usuario is None:
-                raise HTTPException(404, "usuario no existe")
             dispositivo = dispositivo_repo.buscar_por_id(cur, dispositivo_id)
             if dispositivo is None:
                 raise HTTPException(404, "dispositivo no existe")

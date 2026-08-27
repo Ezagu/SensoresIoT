@@ -4,6 +4,16 @@ from core.security import generar_secret
 
 COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at"
 
+def verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id) -> bool:
+    cur.execute(
+        """
+        SELECT 1 FROM usuario_dispositivo
+        WHERE usuario_id = %s AND dispositivo_id = %s
+        """,
+        (usuario_id, dispositivo_id)
+    )
+    return cur.fetchone() is not None
+
 def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
     secret, secret_hash = generar_secret()
     try:
@@ -57,7 +67,7 @@ def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
     )
     return cur.fetchone() is not None
 
-def crear_vinculacion(cur, usuario_id, dispositivo_id, rol):
+def crear_vinculacion(cur, usuario_id, dispositivo_id, rol) -> dict:
     cur.execute(
         """
         INSERT INTO usuario_dispositivo (usuario_id, dispositivo_id, rol)
@@ -68,7 +78,7 @@ def crear_vinculacion(cur, usuario_id, dispositivo_id, rol):
     )
     return cur.fetchone()
 
-def buscar_owner_de_dispositivo(cur, dispositivo_id):
+def buscar_owner_de_dispositivo(cur, dispositivo_id) -> dict | None:
     cur.execute(
         """
         SELECT * from usuario_dispositivo
