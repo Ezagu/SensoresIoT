@@ -2,8 +2,6 @@ from fastapi import APIRouter
 from schemas.tipo_sensor import TipoSensorCreate, TipoSensorOut
 from services import tipo_sensor_service
 
-from db import get_connection
-
 router = APIRouter()
 
 @router.post("/", response_model=TipoSensorOut)

@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Request, Response, HTTPException, Depends
 from schemas.usuario import UsuarioCreate, UsuarioOut
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from schemas.auth import VerifyRequest, ResendVerifyRequest, LoginRequest
 from services import auth_service
 from core.security import REFRESH_TOKEN_EXPIRE_DAYS
 from core.deps import get_usuario_actual
+from core.limiter import limiter
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 def _create_refresh_token_cookie(response, refresh_token) -> None:
     response.set_cookie(
@@ -37,7 +35,9 @@ def resend_verify_email(request: Request, data: ResendVerifyRequest):
     return {"message": "Si el email existe y no fue verificado, te enviamos un nuevo link"}
 
 @router.post("/login")
-def login(response: Response, payload: LoginRequest):
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
+def login(request: Request, response: Response, payload: LoginRequest):
     tokens = auth_service.loguear(payload.email, payload.password)
     _create_refresh_token_cookie(response, tokens["refresh_token"])
     return {"access_token": tokens["access_token"]}

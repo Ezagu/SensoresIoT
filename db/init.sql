@@ -7,13 +7,15 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 -- 1. USUARIOS
 -- ====================================================================
 CREATE TABLE usuarios (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nombre          TEXT NOT NULL,
-    email           TEXT NOT NULL UNIQUE,
-    password        TEXT NOT NULL,
-    rol             TEXT NOT NULL DEFAULT 'user' CHECK (rol IN ('user', 'admin')),
-    is_verified     BOOLEAN NOT NULL DEFAULT false,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre           TEXT NOT NULL,
+    email            TEXT NOT NULL UNIQUE,
+    password         TEXT NOT NULL,
+    rol              TEXT NOT NULL DEFAULT 'user' CHECK (rol IN ('user', 'admin')),
+    is_verified      BOOLEAN NOT NULL DEFAULT false,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    intentos_fallido INTEGER NOT NULL DEFAULT 0,
+    bloqueado_hasta  TIMESTAMPTZ NULL
 );
 
 -- ====================================================================

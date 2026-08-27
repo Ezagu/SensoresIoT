@@ -40,3 +40,14 @@ def marcar_verificado(cur, usuario_id: str) -> None:
 def listar(cur) -> list[dict]:
     cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM usuarios")
     return cur.fetchall()
+
+def actualizar_intentos_fallidos(cur, usuario_id, nuevos_intentos, bloqueado_hasta) -> None:
+    cur.execute(
+        """
+        UPDATE usuarios
+        SET intentos_fallidos = %s,
+            bloqueado_hasta = %s
+        WHERE id = %s
+        """,
+        (nuevos_intentos, bloqueado_hasta, usuario_id),
+    )

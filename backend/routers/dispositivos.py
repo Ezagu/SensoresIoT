@@ -1,14 +1,12 @@
 from fastapi import APIRouter, Request, Depends
 from uuid import UUID
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut
 from schemas.sensor import SensorOut
 from services import dispositivo_service
 from core.deps import get_usuario_admin, get_usuario_actual
+from core.limiter import limiter
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/", response_model=DispositivoCreateOut)
 def create_dispositivo(dispositivo: DispositivoCreate, usuario_admin: dict = Depends(get_usuario_admin)):

@@ -66,6 +66,7 @@ def verificar_email(token: str) -> None:
 
             if verificacion["expires_at"] < datetime.now(timezone.utc):
                 verificacion_repo.eliminar_por_token_hash(cur, token_hash)
+                conn.commit()
                 raise HTTPException(400, "El token expiró, solicitá uno nuevo")
 
             usuario_repo.marcar_verificado(cur, verificacion["usuario_id"])
@@ -88,8 +89,26 @@ def loguear(email: str, password: str):
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             usuario = usuario_repo.buscar_por_email(cur, email)
-            if usuario is None or not verify_password(password, usuario["password"]):
+
+            if usuario is None:
                 raise HTTPException(401, "Usuario o contraseña incorrectos")
+
+            if usuario["bloqueado_hasta"] and usuario["bloqueado_hasta"] > datetime.now(timezone.utc):
+                raise HTTPException(429, "cuenta bloqueada temporalmente, reintentá más tarde")
+
+            if not verify_password(password, usuario["password"]):
+                nuevos_intentos = usuario["intentos_fallidos"] + 1
+                bloqueado_hasta = None
+                if nuevos_intentos >= 5:
+                    bloqueado_hasta = datetime.now(timezone.utc) + timedelta(minutes=15)
+                    nuevos_intentos = 0
+
+                usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], nuevos_intentos, bloqueado_hasta)
+                conn.commit()
+                raise HTTPException(401, "Usuario o contraseña incorrectos")
+
+            if usuario["intentos_fallidos"] > 0 or usuario["bloqueado_hasta"]:
+                usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], 0, None)
 
             tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
 
