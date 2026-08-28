@@ -75,6 +75,60 @@ CREATE TABLE mediciones (
     value       DOUBLE PRECISION NOT NULL
 );
 
+SELECT create_hypertable('mediciones', 'time');
+
+CREATE MATERIALIZED VIEW mediciones_por_hora
+WITH (timescaledb.continuous) AS
+SELECT
+    sensor_id,
+    time_bucket('1 hour', time) AS bucket,
+    avg(value) AS promedio,
+    min(value) AS minimo,
+    max(value) AS maximo,
+    count(*) AS cantidad
+FROM mediciones
+GROUP BY sensor_id, bucket
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW mediciones_por_dia
+WITH (timescaledb.continuous) AS
+SELECT
+    sensor_id,
+    time_bucket('1 day', time) AS bucket,
+    avg(value) AS promedio,
+    min(value) AS minimo,
+    max(value) AS maximo,
+    count(*) AS cantidad
+FROM mediciones
+GROUP BY sensor_id, bucket
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy('mediciones_por_hora',
+    start_offset => INTERVAL '3 hours',
+    end_offset => INTERVAL '30 minutes',
+    schedule_interval => INTERVAL '30 minutes');
+
+SELECT add_continuous_aggregate_policy('mediciones_por_dia',
+    start_offset => INTERVAL '3 days',
+    end_offset => INTERVAL '1 hour',
+    schedule_interval => INTERVAL '3 hours');
+
+CREATE INDEX idx_mediciones_sensor_time ON mediciones (sensor_id, time DESC);
+CREATE INDEX idx_mediciones_hora_sensor_bucket ON mediciones_por_hora (sensor_id, bucket DESC);
+CREATE INDEX idx_mediciones_dia_sensor_bucket ON mediciones_por_dia (sensor_id, bucket DESC);
+
+-- Raw: se dropea a los 90 días
+SELECT add_retention_policy('mediciones', INTERVAL '90 days', if_not_exists => true);
+
+-- Continuous aggregate horario: se dropea al año
+SELECT add_retention_policy('mediciones_por_hora', INTERVAL '1 year', if_not_exists => true);
+
+-- mediciones_por_dia: sin policy, retención indefinida
+
+-- ====================================================================
+-- 6. TOKENS
+-- ====================================================================
+
 CREATE TABLE verificaciones_email (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id  UUID REFERENCES usuarios(id) NOT NULL,
@@ -92,11 +146,6 @@ CREATE TABLE refresh_token (
     revocado    BOOLEAN NOT NULL DEFAULT false,
     revocado_at TIMESTAMPTZ
 )
-
-SELECT create_hypertable('mediciones', 'time');
-
-CREATE INDEX idx_mediciones_sensor_time
-    ON mediciones (sensor_id, time DESC);
 
 -- POBLAR LAS TABLAS
 

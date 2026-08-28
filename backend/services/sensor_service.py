@@ -9,33 +9,6 @@ from db import get_connection
 LIMITE_DEFAULT_HISTORIAL = 50
 LIMITE_MAXIMO_HISTORIAL = 200
 
-def _calcular_intervalo(desde: datetime, hasta: datetime):
-    duracion = hasta - desde
-    if duracion <= timedelta(hours=4):
-        return "1 minute"
-    elif duracion <= timedelta(hours=12):
-        return "3 minutes"
-    elif duracion <= timedelta(hours=24):
-        return "5 minutes"
-    elif duracion <= timedelta(hours=48):
-        return "10 minutes"
-    elif duracion <= timedelta(days=5):
-        return "30 minutes"
-    elif duracion <= timedelta(days=12):
-        return "1 hour"
-    elif duracion <= timedelta(weeks=4):
-        return "3 hours"
-    elif duracion <= timedelta(weeks=10):
-        return "6 hours"
-    elif duracion <= timedelta(weeks=22):
-        return "12 hours"
-    elif duracion <= timedelta(weeks=40):
-        return "1 day"
-    elif duracion <= timedelta(weeks=72):
-        return "2 days"
-    else:
-        return "1 week"
-
 def _validar_que_exista_sensor(cur, sensor_id) -> dict:
     sensor = sensor_repo.buscar_por_id(cur, sensor_id)
     if sensor is None:
@@ -64,8 +37,6 @@ def obtener_grafico(sensor_id, desde, hasta, usuario_id, rol) -> dict:
 
     if desde >= hasta:
         raise HTTPException(400, "El rango de fechas seleccionado es incorrecto")
-    
-    intervalo = _calcular_intervalo(desde, hasta)
 
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
@@ -74,7 +45,7 @@ def obtener_grafico(sensor_id, desde, hasta, usuario_id, rol) -> dict:
             if not dispositivo_service.tiene_acceso_a_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol):
                 raise HTTPException(403, "No tienes acceso a este recurso")
             
-            puntos = medicion_repo.buscar_puntos(cur, sensor_id, desde, hasta, intervalo)
+            puntos = medicion_repo.buscar_puntos(cur, sensor_id, desde, hasta)
             resumen = medicion_repo.buscar_resumen(cur, sensor_id, desde, hasta)
 
     return {"puntos": puntos, "resumen": resumen}
@@ -93,4 +64,3 @@ def obtener_historial(sensor_id, hasta, cursor, limite, usuario_id, rol) -> dict
 
     siguiente_cursor = filas[-1]["time"] if len(filas) == limite else None
     return {"mediciones": filas, "siguiente_cursor": siguiente_cursor}
-    
