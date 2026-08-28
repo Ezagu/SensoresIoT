@@ -8,12 +8,14 @@ from core.security import hash_password, generar_secret_urlsafe, hashear_sha256,
 from core.email import enviar_email_verificacion
 
 def _crear_y_guardar_token_verificacion(cur, user_id: str) -> str:
+    # Elimina tokens antiguos y crea y devuelve token para la verificación del email
     verificacion_repo.eliminar_por_usuario(cur, user_id)
     token, token_hash = generar_secret_urlsafe()
     verificacion_repo.crear(cur, user_id, token_hash)
     return token
 
 def _crear_tokens_login(cur, usuario_id, usuario_rol):
+    # Crea access y refresh tokens
     access_token = crear_access_token(usuario_id, usuario_rol)
     refresh_token, refresh_token_hash = generar_secret_urlsafe()
 
@@ -26,6 +28,7 @@ def _crear_tokens_login(cur, usuario_id, usuario_rol):
     }
 
 def register_usuario(usuario) -> dict:
+    # Registra al usuario, envía email de verificación
     if usuario.password != usuario.confirm_password:
         raise HTTPException(422, "Las contraseñas no coinciden")
 
@@ -56,6 +59,7 @@ def register_usuario(usuario) -> dict:
     return user_row
 
 def verificar_email(token: str) -> None:
+    # Verifica una cuenta para que se pueda loguear
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             token_hash = hashear_sha256(token)
@@ -73,6 +77,7 @@ def verificar_email(token: str) -> None:
             verificacion_repo.eliminar_por_token_hash(cur, token_hash)
 
 def reenviar_verificacion(email: str) -> None:
+    # Reenvia email para verificar una cuenta
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             user = usuario_repo.buscar_por_email(cur, email)
@@ -86,6 +91,7 @@ def reenviar_verificacion(email: str) -> None:
         print(f"Error reenviando verificación a {email}: {e}")
 
 def loguear(email: str, password: str):
+    # Loguea una cuenta y devuelve tokens
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             usuario = usuario_repo.buscar_por_email(cur, email)
@@ -107,6 +113,9 @@ def loguear(email: str, password: str):
                 conn.commit()
                 raise HTTPException(401, "Usuario o contraseña incorrectos")
 
+            if not usuario["is_verified"]:
+                raise HTTPException(403, "Tenés que verificar tu email antes de iniciar sesión")
+
             if usuario["intentos_fallidos"] > 0 or usuario["bloqueado_hasta"]:
                 usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], 0, None)
 
@@ -115,6 +124,7 @@ def loguear(email: str, password: str):
     return tokens
 
 def refrescar_sesion(refresh_token):
+    # Genera un nuevo access token apartir del refresh token en cookie
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             token_hash = hashear_sha256(refresh_token)
@@ -123,16 +133,23 @@ def refrescar_sesion(refresh_token):
             if registro is None or registro["revocado"] or registro["expires_at"] < datetime.now(timezone.utc):
                 raise HTTPException(401, "Sesión inválida, iniciá sesión de nuevo")
 
-            refresh_token_repo.revocar(cur, registro["id"])
+            refresh_token_repo.revocar_token(cur, registro["id"])
 
             usuario = usuario_repo.buscar_por_id(cur, registro["usuario_id"])
             tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
     return tokens
 
 def cerrar_sesion(refresh_token):
+    # Cierra sesión, revoca refresh token
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             token_hash = hashear_sha256(refresh_token)
             registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
             if registro is not None and not registro["revocado"]:
-                refresh_token_repo.revocar(cur, registro["id"])
+                refresh_token_repo.revocar_token(cur, registro["id"])
+
+def cerrar_sesion_global(usuario_id):
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            refresh_token_repo.revocar_todos_los_tokens(cur, usuario_id)
+    return {"status": "ok"}
