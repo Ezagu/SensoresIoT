@@ -23,7 +23,7 @@ def get_sensor_by_id(
 ):
     return sensor_service.obtener_sensor(sensor_id, usuario_actual["sub"], usuario_actual["rol"])
 
-@router.get("/{sensor_id}/mediciones/grafico", response_model=DatosGraficoOut)
+@router.get("/{sensor_id}/grafico", response_model=DatosGraficoOut)
 def get_mediciones(
     sensor_id: UUID, 
     desde: Optional[datetime] = None, 
@@ -31,3 +31,13 @@ def get_mediciones(
     usuario_actual = Depends(get_usuario_actual)
 ):
     return sensor_service.obtener_grafico(sensor_id, desde, hasta, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.get("/{sensor_id}/historial")
+def historial(
+    sensor_id: UUID,
+    hasta: Optional[datetime] = None,
+    cursor: Optional[datetime] = None,
+    limite: Optional[int] = 50,
+    usuario = Depends(get_usuario_actual)
+):
+    return sensor_service.obtener_historial(sensor_id, hasta, cursor, limite, usuario["sub"], usuario["rol"])

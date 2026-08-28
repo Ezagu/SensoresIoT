@@ -38,26 +38,3 @@ def buscar_por_dispositivo_id(cur, dispositivo_id) -> list[dict]:
 def ids_por_dispositivo(cur, dispositivo_id) -> set:
     cur.execute("SELECT id FROM sensores WHERE dispositivo_id = %s", (dispositivo_id,))
     return {row[0] for row in cur.fetchall()}
-
-def buscar_puntos(cur, sensor_id, desde, hasta, intervalo) -> list[dict]:
-    cur.execute(
-        """
-        SELECT time_bucket(%s, time) AS bucket,
-            AVG(value) AS promedio, MIN(value) AS minimo, MAX(value) AS maximo
-        FROM mediciones
-        WHERE sensor_id = %s AND time >= %s AND time <= %s
-        GROUP BY bucket ORDER BY bucket ASC
-        """,
-        (intervalo, sensor_id, desde, hasta)
-    )
-    return cur.fetchall()
-
-def buscar_resumen(cur, sensor_id, desde, hasta) -> dict:
-    cur.execute(
-        """
-        SELECT AVG(value) AS promedio, MIN(value) AS minimo, MAX(value) AS maximo
-        FROM mediciones WHERE sensor_id = %s AND time >= %s AND time <= %s
-        """,
-        (sensor_id, desde, hasta)
-    )
-    return cur.fetchone()

@@ -26,3 +26,24 @@ def buscar_resumen(cur, sensor_id, desde, hasta) -> dict:
         (sensor_id, desde, hasta)
     )
     return cur.fetchone()
+
+def buscar_historial(cur, sensor_id, hasta, cursor, limite):
+    condiciones = "sensor_id = %s"
+    params = [sensor_id]
+
+    tope = cursor if cursor is not None else hasta
+    if tope:
+        condiciones += " AND time < %s"
+        params.append(tope)
+    params.append(limite)
+
+    cur.execute(
+        f"""
+        SELECT time, value FROM mediciones
+        WHERE {condiciones}
+        ORDER BY time DESC
+        LIMIT %s
+        """,
+        params
+    )
+    return cur.fetchall()
