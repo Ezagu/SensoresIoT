@@ -10,12 +10,14 @@ const char* WIFI_PASSWORD = "a1b2c3d4";
 
 // IP local de tu PC con Docker Desktop (no uses "localhost")
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
-const char* API_URL       = "http://192.168.1.11:8000/medicion";
+const char* API_URL       = "http://192.168.1.3:8000/mediciones/";
 
-// Replace -> ID del dispositivo
-const char* DISPOSITIVO_ID; 
+const char* DISPOSITIVO_ID = // Replace; 
+const char* SECRET_DISPOSITIVO = // Replace;
+
 // Replace -> Sensores ID
-const int   SEND_INTERVAL = 60000;             // ms entre envíos
+
+const int   SEND_INTERVAL = 30000;             // ms entre envíos
 
 // ── Objetos globales ───────────────────────────────────────────
 // Replace -> declaración de módulos
@@ -76,6 +78,8 @@ bool enviarMedicion(JsonDocument& doc) {
 
   http.begin(API_URL);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Dispositivo-Id", DISPOSITIVO_ID);
+  http.addHeader("Authorization", String("Bearer ") + SECRET_DISPOSITIVO);
   http.setTimeout(10000);
 
   int httpCode = http.POST(payload);
@@ -95,8 +99,6 @@ bool enviarMedicion(JsonDocument& doc) {
 
 void leerYEnviar() {
   JsonDocument doc;
-
-  doc["dispositivo_id"] = DISPOSITIVO_ID;
 
   JsonArray mediciones = doc["mediciones"].to<JsonArray>();
 

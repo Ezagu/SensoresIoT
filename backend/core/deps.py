@@ -23,7 +23,7 @@ def get_dispositivo_autenticado(
 ) -> dict:
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            dispositivo = dispositivo_repo.buscar_por_id(x_dispositivo_id)
+            dispositivo = dispositivo_repo.buscar_por_id(cur, x_dispositivo_id)
             if not dispositivo:
                 raise HTTPException(401, "credenciales inválidas")
 

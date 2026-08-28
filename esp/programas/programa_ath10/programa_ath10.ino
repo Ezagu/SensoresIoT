@@ -10,12 +10,15 @@ const char* WIFI_PASSWORD = "a1b2c3d4";
 
 // IP local de tu PC con Docker Desktop (no uses "localhost")
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
-const char* API_URL       = "http://192.168.1.14:8000/medicion";
+const char* API_URL       = "http://192.168.1.3:8000/mediciones/";
 
-const char* SENSOR_TEMP_ID = "5c6ca19a-ab98-4798-b408-9f8b1e369d77";
-const char* SENSOR_HUM_ID  = "557129e9-f7bf-4347-8d66-d5eb524e8efe";
+const char* DISPOSITIVO_ID = "92a5117d-371c-4607-8983-a08096e7f288"; 
+const char* SECRET_DISPOSITIVO = "54d5903635ebc48a72aaff51276e5f735a48afce0d2177e95c060282125175a6";
 
-const int   SEND_INTERVAL = 60000;             // ms entre envíos
+const char* SENSOR_TEMP_ID = "91af44b5-657c-4349-8003-ff4d6cd7c796";
+const char* SENSOR_HUM_ID  = "250b0c4b-11c3-4d84-bd4c-0e740d21898a";
+
+const int   SEND_INTERVAL = 30000;             // ms entre envíos
 
 // ── Objetos globales ───────────────────────────────────────────
 Adafruit_AHT10 aht;
@@ -39,7 +42,6 @@ void setup() {
   conectarWiFi();
 }
 
-// ── Loop ───────────────────────────────────────────────────────
 void loop() {
   // Reconectar WiFi si se perdió la conexión
   if (WiFi.status() != WL_CONNECTED) {
@@ -54,7 +56,6 @@ void loop() {
   }
 }
 
-// ── Funciones ──────────────────────────────────────────────────
 void conectarWiFi() {
   Serial.printf("[WiFi] Conectando a %s", WIFI_SSID);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -74,17 +75,16 @@ void conectarWiFi() {
   }
 }
 
-bool enviarMedicion(const char* sensorId, float valor) {
-  StaticJsonDocument<256> doc;
-  doc["sensor_id"] = sensorId;
-  doc["value"]     = valor;
-
+bool enviarMedicion(JsonDocument& doc) {
   String payload;
   serializeJson(doc, payload);
 
   HTTPClient http;
+
   http.begin(API_URL);
   http.addHeader("Content-Type", "application/json");
+  http.addHeader("X-Dispositivo-Id", DISPOSITIVO_ID);
+  http.addHeader("Authorization", String("Bearer ") + SECRET_DISPOSITIVO);
   http.setTimeout(10000);
 
   int httpCode = http.POST(payload);
@@ -103,27 +103,45 @@ bool enviarMedicion(const char* sensorId, float valor) {
 }
 
 void leerYEnviar() {
+  JsonDocument doc;
+
+  JsonArray mediciones = doc["mediciones"].to<JsonArray>();
+
+  leerATH10(mediciones);
+
+  enviarMedicion(doc);
+}
+
+void leerATH10(JsonArray mediciones) {
   // Leer sensor
   sensors_event_t humidity, temp;
   // Obtiene los nuevos eventos del sensor con las lecturas
   aht.getEvent(&humidity, &temp);
 
-  float temperatura = temp.temperature;          // °C
-  float humedad     = humidity.relative_humidity;    // humedad
+  float temperaturaValue = temp.temperature;          // °C
+  float humedadValue = humidity.relative_humidity;    // humedad
 
   // Muestra los resultados en el Monitor Serie
-  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %\n", temperatura, humedad);
+  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %\n", temperaturaValue, humedadValue);
 
   // Validación básica de datos y envío a la API
-  if (isnan(temperatura)) {
+  if (isnan(temperaturaValue)) {
     Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
   } else {
-    enviarMedicion(SENSOR_TEMP_ID, temperatura);
+    //enviarMedicion(SENSOR_TEMP_ID, temperatura);
+    JsonObject temperatura = mediciones.add<JsonObject>();
+
+    temperatura["sensor_id"] = SENSOR_TEMP_ID;
+    temperatura["value"] = temperaturaValue;
   }
 
-  if(isnan(humedad)) {
+  if(isnan(humedadValue)) {
     Serial.println("[ERROR] Lectura inválida del sensor humedad. Saltando envío.");
   } else {
-    enviarMedicion(SENSOR_HUM_ID, humedad);
+    //enviarMedicion(SENSOR_HUM_ID, humedad);
+    JsonObject humedad = mediciones.add<JsonObject>();
+
+    humedad["sensor_id"] = SENSOR_HUM_ID;
+    humedad["value"] = humedadValue;
   }
 }

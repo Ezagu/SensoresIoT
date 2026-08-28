@@ -7,4 +7,4 @@ router = APIRouter()
 
 @router.post("/")
 def create_medicion(payload: MedicionCreate, dispositivo: dict = Depends(get_dispositivo_autenticado)):
-    return medicion_service.crear_medicion(payload["time"], payload["mediciones"], dispositivo["id"])
+    return medicion_service.crear_medicion(payload.time, payload.mediciones, dispositivo["id"])
