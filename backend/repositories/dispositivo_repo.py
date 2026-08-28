@@ -49,9 +49,13 @@ def actualizar_secret(cur, dispositivo_id) -> str:
         raise HTTPException(404, "Dispositivo no encontrado")
     return secret
 
-def buscar_por_id(cur, dispositivo_id) -> dict | None:
+def buscar_por_id_publico(cur, dispositivo_id) -> dict | None:
     # Busca un dispositivo por su id
     cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM dispositivos WHERE id = %s", (dispositivo_id,))
+    return cur.fetchone()
+
+def buscar_por_id(cur, dispositivo_id) -> dict | None:
+    cur.execute("SELECT * FROM dispositivos WHERE id = %s", (dispositivo_id,))
     return cur.fetchone()
 
 def buscar_por_usuario(cur, usuario_id) -> list[dict]:
@@ -71,7 +75,6 @@ def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
         """,
         (timestamp, timestamp, dispositivo_id)
     )
-    return cur.fetchone() is not None
 
 def crear_vinculacion(cur, usuario_id, dispositivo_id, rol) -> dict:
     # Vincula un usuario con un dispositivo

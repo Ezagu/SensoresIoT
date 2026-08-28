@@ -8,7 +8,6 @@ class Medicion(BaseModel):
     value: float
 
 class MedicionCreate(BaseModel):
-    dispositivo_id: UUID
     time: Optional[datetime] = None
     mediciones: list[Medicion]
 

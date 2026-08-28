@@ -1,4 +1,5 @@
 import bcrypt
+import hmac
 import secrets
 import hashlib
 import jwt
@@ -32,6 +33,9 @@ def generar_secret_urlsafe():
 
 def hashear_sha256(token: str):
     return hashlib.sha256(token.encode()).hexdigest()
+
+def verificar_secrets(secret_payload, secret_hash) -> bool:
+    return hmac.compare_digest(secret_payload, secret_hash)
 
 def crear_access_token(usuario_id: str, rol: str) -> str:
     ahora = datetime.now(timezone.utc)
