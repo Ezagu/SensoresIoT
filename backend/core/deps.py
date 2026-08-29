@@ -28,7 +28,18 @@ def get_dispositivo_autenticado(
                 raise HTTPException(401, "credenciales inválidas")
 
             secret_hash = hashear_sha256(credenciales.credentials)
-            if not verificar_secrets(secret_hash, dispositivo["secret_hash"]):
+            hash_anterior = dispositivo["secret_hash_anterior"]
+
+            # Durante una rotación sin confirmar valen los dos secrets: el nuevo y el
+            # anterior. Que el dispositivo llegue con el nuevo es la señal de que lo
+            # persistió en NVS, así que ahí recién se descarta el viejo.
+            if verificar_secrets(secret_hash, dispositivo["secret_hash"]):
+                if hash_anterior is not None:
+                    dispositivo_repo.confirmar_rotacion(cur, dispositivo["id"])
+                    dispositivo["secret_hash_anterior"] = None
+            elif hash_anterior is not None and verificar_secrets(secret_hash, hash_anterior):
+                pass  # rotación todavía sin confirmar, el firmware la va a reintentar
+            else:
                 raise HTTPException(401, "credenciales inválidas")
 
             if not dispositivo["activo"]:

@@ -49,6 +49,54 @@ def actualizar_secret(cur, dispositivo_id) -> str:
         raise HTTPException(404, "Dispositivo no encontrado")
     return secret
 
+def rotar_secret(cur, dispositivo_id) -> str:
+    # Rotación device-initiated: el secret actual pasa a secret_hash_anterior y sigue
+    # siendo válido hasta que el dispositivo se autentique con el nuevo. Si la respuesta
+    # se pierde en el camino, el equipo puede seguir entrando con el viejo y reintentar.
+    #
+    # El COALESCE es lo que hace seguro el reintento: si ya hay una rotación sin
+    # confirmar, se conserva el último secret que el dispositivo confirmó tener. Pisarlo
+    # con el intermedio (que el equipo nunca llegó a recibir) lo dejaría sin ningún
+    # secret válido, que es justo el brick que este diseño evita.
+    secret, secret_hash = generar_secret()
+    cur.execute(
+        """
+        UPDATE dispositivos
+        SET secret_hash = %s,
+            secret_hash_anterior = COALESCE(secret_hash_anterior, secret_hash),
+            rotacion_pendiente = false,
+            secret_rotado_at = now()
+        WHERE id = %s
+        RETURNING id
+        """,
+        (secret_hash, dispositivo_id)
+    )
+    disp = cur.fetchone()
+    if not disp:
+        raise HTTPException(404, "Dispositivo no encontrado")
+    return secret
+
+def confirmar_rotacion(cur, dispositivo_id) -> None:
+    # El dispositivo se autenticó con el secret nuevo: el viejo ya no hace falta
+    cur.execute(
+        "UPDATE dispositivos SET secret_hash_anterior = NULL WHERE id = %s",
+        (dispositivo_id,)
+    )
+
+def marcar_rotacion_pendiente(cur, dispositivo_id) -> None:
+    # Le avisa al dispositivo, en la respuesta de su próxima medición, que rote su secret
+    cur.execute(
+        """
+        UPDATE dispositivos
+        SET rotacion_pendiente = true
+        WHERE id = %s
+        RETURNING id
+        """,
+        (dispositivo_id,)
+    )
+    if not cur.fetchone():
+        raise HTTPException(404, "Dispositivo no encontrado")
+
 def buscar_por_id_publico(cur, dispositivo_id) -> dict | None:
     # Busca un dispositivo por su id
     cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM dispositivos WHERE id = %s", (dispositivo_id,))

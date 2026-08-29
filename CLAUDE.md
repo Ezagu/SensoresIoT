@@ -1,0 +1,153 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project overview
+
+SensoresIoT is an IoT sensor-monitoring platform: ESP32 boards running Arduino firmware POST sensor readings to a FastAPI backend, which stores them in TimescaleDB (Postgres). A React/Vite frontend (currently just scaffolding) will visualize the data. The system has three independent parts: `backend/` (FastAPI + Postgres/Timescale), `frontend/` (React + TS + Vite), and `esp/` (Arduino/C++ firmware).
+
+## Commands
+
+### Backend (from `backend/`)
+- Run locally (needs `venv` activated and a reachable DB): `uvicorn main:app --reload --host 0.0.0.0 --port 8000`
+- Install deps: `pip install -r requirements.txt`
+- No test suite or linter is currently configured for the backend.
+
+### Frontend (from `frontend/`)
+- Dev server: `npm run dev`
+- Build (typecheck + build): `npm run build`
+- Lint: `npm run lint`
+- Preview production build: `npm run preview`
+
+### Full stack via Docker
+- `docker-compose.yml` is the base (production-like: API built from image, DB port not exposed to host).
+- `docker-compose.override.yml` is auto-merged in dev: exposes Postgres on host port `5433`, bind-mounts `./backend` into the container, and runs uvicorn with `--reload`.
+- `docker compose up` from the repo root brings up `timescaledb` + `api` together (frontend is not containerized yet).
+- Requires a `.env` at the repo root (see `.env.example`): `POSTGRES_PASSWORD`, `CORS_ORIGINS`, `RESEND_API_KEY`, `FRONTEND_URL`, `JWT_SECRET_KEY`.
+- `db/init.sql` runs automatically only on first container creation (mounted as a Postgres init script). To re-apply schema changes, drop the `postgres_data` volume or run the SQL manually against the running container.
+
+## Backend architecture
+
+Layered structure, one module per entity, wired together in `main.py`:
+
+```
+routers/    -> FastAPI endpoints, request/response wiring, auth dependencies, rate limits
+services/   -> business logic, authorization checks, orchestrates repo calls inside a transaction
+repositories/ -> raw SQL (psycopg2), no business logic, takes a cursor as first arg
+schemas/    -> Pydantic request/response models
+core/       -> cross-cutting: config (env vars), security (JWT/hashing), deps (FastAPI Depends), limiter, email
+```
+
+- Every service function opens its own `with get_connection() as conn: with conn.cursor(...) as cur:` block (see `db.py`); the connection context manager auto-commits on success and rolls back on exception. Multi-step operations (e.g. validate device, check ownership, insert) share one cursor/transaction inside a single service function — don't split them across connections.
+- Repos are plain functions `fn(cur, ...)` that execute SQL and return rows; they never raise `HTTPException` or contain authorization logic. Services own error handling (`raise HTTPException(status, "mensaje")`) and permission checks.
+- Naming and error messages throughout the backend are in Spanish (`usuario`, `dispositivo`, `medicion`, `crear_`, `obtener_`, `buscar_`); keep new code consistent with this convention rather than mixing English.
+- Authorization pattern: a resource (`dispositivo`, `sensor`) is accessible if the requesting user owns it (via `usuario_dispositivo` link table) or has `rol == "admin"`. This check lives in the service layer (e.g. `dispositivo_service.tiene_acceso_a_dispositivo`), not in routers or repos.
+
+### Auth model
+Two separate credential systems, both defined in `core/security.py` / `core/deps.py`:
+- **Users**: bcrypt password hash + short-lived JWT access token (`ACCESS_TOKEN_EXPIRE_MINUTES = 30`) returned in the response body, plus a long-lived refresh token (`REFRESH_TOKEN_EXPIRE_DAYS = 7`) stored as an `httponly`/`secure`/`samesite=strict` cookie and persisted hashed in `refresh_token` table. `get_usuario_actual` / `get_usuario_admin` (in `core/deps.py`) gate user-facing endpoints.
+- **Devices** (ESP32 boards): a per-device secret (random token, only its SHA-256 hash stored as `secret_hash` in `dispositivos`), sent as `Authorization: Bearer <secret>` plus an `X-Dispositivo-Id` header. Verified via constant-time comparison (`hmac.compare_digest`) in `get_dispositivo_autenticado`.
+- **Device secret rotation** (`POST /dispositivos/rotate-secret`): device-initiated — the board authenticates with its current secret and gets a new one back once. During a rotation two secrets are valid at the same time: the new one in `secret_hash` and the previous one in `secret_hash_anterior`. `get_dispositivo_autenticado` accepts either, and clears `secret_hash_anterior` the first time the device authenticates with the new one (implicit commit). This is deliberate: invalidating the old secret immediately would brick any device that never received the response. An admin forces a rotation with `POST /dispositivos/{id}/marcar-rotacion`, which raises `rotacion_pendiente`; the flag then rides back to the device as `rotar_secret` in the `POST /mediciones/` response. `POST /dispositivos/{id}/regenerate-secret` still exists but requires reflashing, so it is bench/factory-only.
+- Rate limiting (`slowapi`, per-IP) is applied per-route via `@limiter.limit(...)` decorators on sensitive endpoints (login, register, resend-verify, device vinculation).
+
+### Time-series data (`mediciones`)
+This is the core domain concept and the most nuanced part of the backend:
+- `mediciones` is a TimescaleDB hypertable (raw readings, `time`/`sensor_id`/`value`), with two continuous aggregates (`mediciones_por_hora`, `mediciones_por_dia`) refreshed on a schedule and each with their own retention policy — all defined in `db/init.sql`. Raw data is dropped after 90 days, hourly aggregates after 1 year, daily aggregates kept forever.
+- `medicion_repo.py` implements a **tiered query strategy** (`FUENTES` list, finest-to-coarsest): given a requested time range, it picks the cheapest table that (a) still meets the requested resolution and (b) actually retains data that far back, falling back to a coarser table rather than returning nothing. `buscar_puntos` (chart data, targets ~200 points) and `buscar_resumen` (single aggregate stat) each choose independently since their bucket-size math differs — read the comments in that file before changing the selection logic, the reasoning is non-obvious.
+- Device writes go through `medicion_service.crear_medicion`, which enforces a minimum interval between readings per sensor (`INTERVALO_MINIMO_MEDICION`, currently a fixed 60s with a small jitter tolerance) and echoes back an `intervalo_sugerido` in the response so firmware can throttle itself. Invalid sensor IDs and readings that arrive too soon are silently rejected (reported back in the response, not as HTTP errors) rather than failing the whole batch.
+
+## Database
+- Postgres + TimescaleDB extension. Schema and seed data live in `db/init.sql` (only applied on fresh volume) and `db/seed.sql`.
+- There is no migration tool. Schema changes go in **two** places: folded into `db/init.sql` for fresh installs, and as a numbered script under `db/migrations/` to apply by hand to running databases (`docker compose exec -T timescaledb psql -U postgres -f - < db/migrations/NNN_x.sql`).
+- IDs are UUIDs (`gen_random_uuid()`) except `tipos_sensor.id` (SERIAL, small fixed catalog).
+- `mediciones.sensor_id` intentionally has no FK constraint — a Timescale recommendation for hypertables at this scale.
+
+## ESP32 firmware (`esp/`)
+- `programa_base.ino` is the template holding all the common logic (WiFi provisioning, secret in NVS, rotation, sending readings), marked with `// Replace ->` comments. The sketches under `programas/` are **generated** from it by `python esp/generar_sketches.py` — never hand-edit them, the next run overwrites the file. Common-logic changes go in the template; a new order means a new entry in that script's `SKETCHES` dict (device/sensor UUIDs, secret, sensor include/init/read function). `modulos/*.ino` are reference snippets, not compiled.
+- Compile check without hardware: `arduino-cli compile --fqbn esp32:esp32:esp32 esp/programas/<sketch>` (the Arduino IDE ships the binary under `resources/app/lib/backend/resources/`).
+- Firmware sends `POST {API_URL}` with `X-Dispositivo-Id` and `Authorization: Bearer <secret>` headers and a `{"mediciones": [{"sensor_id", "value"}, ...]}` body, matching `schemas/medicion.py` / `get_dispositivo_autenticado`. It reads back `intervalo_sugerido` from the response to adjust its own send interval at runtime.
+- WiFi is **not** hardcoded: the sketches use `WiFiManager` (SoftAP + captive portal). With no saved network the board raises the `SensoresIoT-Setup` AP and the customer loads their WiFi from a phone; credentials persist in flash. Holding the BOOT button (GPIO0) for 5 s **while the board is already running** wipes them and reopens the portal; the check lives in `loop()` (`chequearResetWifi`), and the whole loop is kept free of blocking delays so the press can actually be timed. It deliberately does **not** run at startup: GPIO0 is a bootstrap pin, so holding it during reset puts the ESP32 in bootloader mode and the sketch never runs.
+- The device secret lives in NVS (`Preferences`, namespace `dispositivo`). `SECRET_DISPOSITIVO_INICIAL` is only the factory value copied to NVS on first boot; after a rotation the NVS copy is what gets sent.
+- `API_BASE`, `DISPOSITIVO_ID`, `SECRET_DISPOSITIVO_INICIAL` and the sensor UUIDs are still hardcoded per-sketch and set at compile time, one build per order.
+- The build sits at ~91% of program storage with the default partition scheme; adding sensors or OTA will need a partition layout with more app space.
+
+## Frontend (`frontend/`)
+Standard Vite + React + TypeScript scaffold (not yet built out beyond `App.tsx`/`Home.tsx`). Uses `recharts` for charting — expect this to be the library used for any time-series visualizations of `mediciones` data.
+
+
+# Contexto del proyecto — Plataforma IoT (sensores ambientales)
+
+## Rol esperado del asistente
+
+Socio técnico y de negocio, no ejecutor pasivo. Cuestionar decisiones cuando hay riesgo, inconsistencia o mejor alternativa, con motivo explícito. No inventar objeciones si la idea es sólida. Priorizar señalar: deuda técnica, decisiones que no escalan, riesgos legales/regulatorios de hardware IoT, errores de arquitectura. Si falta info clave, preguntar antes de asumir. Responder siempre en español argentino, tono directo, sin introducciones de cortesía, sin agregar contexto no solicitado.
+
+## Negocio
+
+Vendemos un dispositivo de hardware: ESP32 con sensores ambientales integrados, que envía datos a una API propia (FastAPI + TimescaleDB). Los datos se consumen desde una aplicación web. Se planea un modelo freemium con features premium.
+
+## Stack (cerrado, no cuestionar salvo problema real)
+
+ESP32 (firmware en C++/Arduino), FastAPI (Python), TimescaleDB (Postgres + extensión time-series), psycopg2 (sin ORM).
+
+## Objetivo de frontend (pendiente, no arrancado)
+
+3 frontends: Landing Page (venta), Página de Consumo (`app.dominio`, dashboard del cliente), Panel de Administración (`admin.dominio`, gestión interna). Los CRUDs del panel de admin se van a delegar más adelante a Claude Code — no priorizar su diseño ahora.
+
+## Roadmap priorizado
+
+### Tier 3 — Crítico para poder fabricar y vender en escala (bloqueante de negocio, no solo técnico)
+
+**Nota de alcance**: no se está planeando producción en volumen por ahora. El punto 3.2 originalmente contemplaba un mecanismo de claim_code para fabricación en serie con firmware idéntico — se descartó esa parte porque el flujo real de la empresa es: cada pedido tiene una combinación de sensores distinta (librerías distintas por sensor), y el firmware se compila a mano por pedido de todas formas. El claim_code resolvía un problema de escala que no existe en este momento. Si en el futuro se decide fabricar en volumen con firmware único, retomar esa idea junto con auto-detección de sensores por dirección I2C (evita tener que saber de antemano qué sensores lleva cada unidad).
+
+**3.1 — Provisioning de WiFi**
+Hoy el SSID/password están hardcodeados en el `.ino` — inviable para vender a clientes reales. Patrón: **SoftAP + portal cautivo** (librería `WiFiManager` para ESP32). Al primer boot o si no hay red guardada, el dispositivo se convierte en su propio AP, el cliente se conecta desde el celular, carga su WiFi en un portal, el ESP32 guarda las credenciales en flash (NVS) y reinicia conectado. SoftAP preferido sobre BLE por compatibilidad (Web Bluetooth no anda en iOS Safari).
+
+**3.2 — Secret del dispositivo: alta y rotación**
+
+*Alta (flujo actual, se mantiene sin cambios):* al crear un pedido, se generan a mano en la DB el registro de `dispositivo` y sus `sensores` correspondientes según lo que pidió el cliente. El alta devuelve `dispositivo_id` (no sensible, se hardcodea en el `.ino`) y `secret` en texto plano (se hardcodea también, se compila junto con las librerías del/los sensor/es de ese pedido específico). El backend guarda solo el hash SHA256 del secret. Este flujo es aceptable porque no hay producción en volumen — no hace falta desacoplar la generación del secret del compile-time.
+
+*Rotación — problema detectado y a resolver:* existe hoy un endpoint de regeneración de secret, pero requiere acceso físico al dispositivo para reflashear con el secret nuevo devuelto. Sirve para banco de pruebas/fábrica, pero no sirve una vez que el equipo está instalado en la casa de un cliente — si un secret se filtra en producción, hoy no hay forma de rotarlo sin recuperar el equipo.
+
+**A implementar**: endpoint de rotación **device-initiated**, coherente con el principio de que el ESP32 siempre inicia la conexión, nunca escucha:
+- El dispositivo llama al endpoint autenticado con su `X-Dispositivo-Id` + `Authorization: Bearer <secret_actual>` (mismo mecanismo que ya usa para mandar mediciones).
+- El secret viejo sigue siendo válido hasta el momento exacto de la rotación (no se invalida de entrada).
+- El backend genera un secret nuevo, lo devuelve una única vez en esa respuesta, guarda el hash nuevo e invalida el viejo.
+- El firmware recibe el secret nuevo y lo reescribe en NVS.
+- Disparador de la rotación: reusar el mismo mecanismo pensado para `intervalo_sugerido` (Tier 2.3) — el backend puede devolver un flag en cualquier response normal indicando "rotá tu secret la próxima vez que te conectes" — o un timer propio del firmware (rotación cada X meses). A definir cuál.
+
+El endpoint manual existente se mantiene, pero se limita a uso de banco de pruebas/fábrica (equipo con acceso físico), no como mecanismo de producción.
+
+**Pendiente de definir, no resuelto (bloqueante antes de mandar la primera tanda real a clientes)**:
+- **Flash encryption del ESP32**: hoy se desconoce si está habilitada — probablemente no (viene deshabilitada por default en el framework). Es configuración por software pero graba la clave en eFuses de hardware: **irreversible y de una sola vez** por unidad, no se puede activar retroactivamente en equipos ya fabricados/entregados. Sin esto, el secret hardcodeado en el binario es extraíble por cualquiera con acceso físico al dispositivo (dump de flash por USB/serial), independientemente de que exista rotación o no. Verificar estado actual y decidir antes de la primera tanda que salga de fábrica hacia un cliente real — no antes de seguir desarrollando/probando.
+
+**Este tier (3.1 + 3.2) sigue siendo bloqueante real antes de vender a clientes reales** — no por volumen de fabricación (eso ya no aplica), sino porque sin WiFi provisioning no se puede configurar un equipo sin conocer la red del cliente al fabricar, y sin rotación de secret + definición de flash encryption no hay forma segura de operar el dispositivo una vez instalado fuera de tu control físico.
+
+### Tier 4 — Monetización (prerequisito de las features premium)
+
+**4.1 — Modelo de planes + integración de pago**
+Ninguna feature premium (alertas, multi-usuario, resolución de muestreo, retención extendida) se puede gatear sin que exista antes el concepto de plan/suscripción en el modelo de usuario (qué plan tiene, vigencia, qué habilita) y el cobro asociado (Stripe es el estándar, maneja renovación/cancelación vía webhooks). Hacer esto antes que cualquier feature premium puntual, para no reescribir el gate de acceso después.
+
+**4.2 — Exportar historial a CSV, XLSX (Premium?)**
+Permite exportar el historial de un sensor a un archivo csv o xlsx, resta definir si es una feature premium.
+
+**4.3 — Alertas (premium)**
+La feature funcional más barata de implementar y la que mejor aprovecha lo ya construido: evaluar `value` contra un umbral en el mismo flujo de `crear_medicion` (o job separado si se prefiere desacoplar), notificar por mail (ya hay Resend integrado). Push/SMS quedaría para más adelante con otro proveedor.
+
+**4.4 — Multi-usuario (viewer/editor) — premium**
+Requiere rediseñar el patrón central de ownership (`_tiene_acceso_a_dispositivo`), hoy binario (dueño o admin). Pasar a roles intermedios implica tocar el patrón de autorización replicado en varios endpoints — no es agregar una tabla y ya. Dejar para después de que el pricing y el patrón de ownership actual estén asentados en producción, para no tocar dos piezas grandes a la vez.
+
+**4.5 — Chat de IA — en duda, no priorizar sin validación**
+Es la feature más cara de forma recurrente (costo de tokens por request) y la más compleja de armar bien (dar contexto real de mediciones al modelo sin alucinar, manejar rangos de fechas). No queda claro qué dolor real resuelve para un comprador de sensor ambiental (que típicamente quiere ver un gráfico y recibir alertas, no chatear). Sacar del roadmap cercano salvo que aparezca demanda concreta de usuarios reales con un caso de uso específico.
+
+### Tier 5 — Frontend (después de cerrar Tier 1-3 del backend como mínimo)
+
+**5.1 — Interceptor de refresh automático (axios)**
+Pieza de infraestructura a armar antes de las pantallas de dashboard — maneja la renovación silenciosa del access token cuando expira (30 min).
+
+**5.2 — Arranque de los 3 frontends**
+Landing → Página de consumo (`app.dominio`, dashboard + gráficos + historial) → Panel de admin (`admin.dominio`, CRUDs a delegar más adelante a Claude Code).
+
+### Diferido explícitamente (no tocar salvo que cambien las condiciones)
+
+- **Google OAuth**: after Tier 5 (post-frontend), salvo compromiso externo (demo, cliente puntual) que lo adelante. Motivo: el login por password ya funciona end-to-end, OAuth reduce fricción de registro pero no es bloqueante; además obliga a definir modelo de datos de usuario (password_hash nullable, tabla de providers, account linking) justo antes de diseñar pantallas de perfil que dependen de ese mismo modelo — mejor definirlo una sola vez con todo el contexto.
+- **Riesgo legal/regulatorio** (derecho al borrado/exportación de datos personales al eliminar cuenta): usuario pidió explícitamente verlo más adelante. Queda como pendiente de definición, no resuelto — retomar antes de operar en jurisdicciones con protección de datos personal (ej. Europa) o antes de escalar la base de usuarios.

@@ -54,6 +54,21 @@ def insertar(cur, timestamp, sensor_id, value) -> None:
         (timestamp, sensor_id, value)
     )
 
+def ultima_medicion_por_sensores(cur, sensor_ids: list) -> dict:
+    if not sensor_ids:
+        return {}
+
+    cur.execute(
+        """
+        SELECT DISTINCT ON (sensor_id) sensor_id, time
+        FROM mediciones
+        WHERE sensor_id = ANY(%s)
+        ORDER BY sensor_id, time DESC
+        """,
+        (sensor_ids,)
+    )
+    return {fila[0]: fila[1] for fila in cur.fetchall()}
+
 def buscar_puntos(cur, sensor_id, desde, hasta) -> list[dict]:
     rango = hasta - desde
     bucket_objetivo = max(rango / TARGET_PUNTO, timedelta(seconds=30))

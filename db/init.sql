@@ -22,15 +22,21 @@ CREATE TABLE usuarios (
 -- 2. DISPOSITIVOS (placas ESP32)
 -- ====================================================================
 CREATE TABLE dispositivos (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    nombre              TEXT NOT NULL,
-    ubicacion           TEXT,
-    descripcion         TEXT,
-    activo              BOOLEAN NOT NULL DEFAULT true,
-    secret_hash         TEXT NOT NULL,
-    last_seen_at        TIMESTAMPTZ,
-    first_connected_at  TIMESTAMPTZ,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre                TEXT NOT NULL,
+    ubicacion             TEXT,
+    descripcion           TEXT,
+    activo                BOOLEAN NOT NULL DEFAULT true,
+    secret_hash           TEXT NOT NULL,
+    -- Durante una rotación conviven dos secrets válidos. El viejo se borra
+    -- recién cuando el dispositivo se autentica con el nuevo (commit implícito),
+    -- para que una respuesta perdida no deje el equipo sin forma de reautenticarse.
+    secret_hash_anterior  TEXT,
+    rotacion_pendiente    BOOLEAN NOT NULL DEFAULT false,
+    secret_rotado_at      TIMESTAMPTZ,
+    last_seen_at          TIMESTAMPTZ,
+    first_connected_at    TIMESTAMPTZ,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE usuario_dispositivo (
