@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime, timezone
+from psycopg2.extras import execute_values
 
 TARGET_PUNTO = 200
 
@@ -48,26 +49,45 @@ def _elegir_fuente(bucket_objetivo: timedelta, antiguedad: timedelta) -> dict:
 
     return fuente
 
-def insertar(cur, timestamp, sensor_id, value) -> None:
-    cur.execute(
-        "INSERT INTO mediciones (time, sensor_id, value) VALUES (%s, %s, %s)",
-        (timestamp, sensor_id, value)
-    )
+def insertar_muchas(cur, filas: list[tuple]) -> int:
+    # filas: [(timestamp, sensor_id, value), ...]
+    # Un solo round-trip por batch: cuando el firmware drena su buffer pueden llegar
+    # decenas de lecturas juntas.
+    #
+    # ON CONFLICT DO NOTHING contra idx_mediciones_unico (sensor_id, time): si el POST
+    # llegó pero la respuesta se perdió, el equipo reintenta el mismo chunk y no
+    # queremos duplicar el punto (inflaría los continuous aggregates).
+    if not filas:
+        return 0
 
-def ultima_medicion_por_sensores(cur, sensor_ids: list) -> dict:
+    execute_values(
+        cur,
+        "INSERT INTO mediciones (time, sensor_id, value) VALUES %s ON CONFLICT DO NOTHING",
+        filas
+    )
+    return cur.rowcount
+
+def mediciones_en_ventana(cur, sensor_ids: list, desde, hasta) -> dict:
+    # Devuelve {sensor_id: [time, ...]} ordenado, para que el servicio compare cada
+    # lectura entrante contra su vecina real y no contra la última global: un batch
+    # que drena el buffer del equipo puede traer datos más viejos que lo ya guardado.
     if not sensor_ids:
         return {}
 
     cur.execute(
         """
-        SELECT DISTINCT ON (sensor_id) sensor_id, time
+        SELECT sensor_id, time
         FROM mediciones
-        WHERE sensor_id = ANY(%s)
-        ORDER BY sensor_id, time DESC
+        WHERE sensor_id = ANY(%s) AND time >= %s AND time <= %s
+        ORDER BY sensor_id, time
         """,
-        (sensor_ids,)
+        (sensor_ids, desde, hasta)
     )
-    return {fila[0]: fila[1] for fila in cur.fetchall()}
+
+    ventana = {}
+    for sensor_id, momento in cur.fetchall():
+        ventana.setdefault(sensor_id, []).append(momento)
+    return ventana
 
 def buscar_puntos(cur, sensor_id, desde, hasta) -> list[dict]:
     rango = hasta - desde

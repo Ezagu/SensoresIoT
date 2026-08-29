@@ -6,6 +6,7 @@ from datetime import datetime
 class Medicion(BaseModel):
     sensor_id: UUID
     value: float
+    time: Optional[datetime] = None
 
 class MedicionCreate(BaseModel):
     time: Optional[datetime] = None

@@ -109,17 +109,27 @@ FROM mediciones
 GROUP BY sensor_id, bucket
 WITH NO DATA;
 
+-- start_offset holgado a propósito: el firmware bufferea lecturas mientras no tiene
+-- red y las manda con su timestamp original cuando vuelve. Si esa fila cae fuera de la
+-- ventana de refresh, Timescale registra la invalidación pero la policy nunca la
+-- procesa y el dato queda afuera del agregado PARA SIEMPRE (el raw lo tiene, pero
+-- medicion_repo._elegir_fuente manda cualquier rango > ~7 h al agregado horario).
+-- La ventana tiene que cubrir el horizonte máximo del buffer del ESP con margen.
+-- Costo: sólo se recomputan los buckets marcados como invalidados, no toda la ventana.
 SELECT add_continuous_aggregate_policy('mediciones_por_hora',
-    start_offset => INTERVAL '3 hours',
+    start_offset => INTERVAL '3 days',
     end_offset => INTERVAL '30 minutes',
     schedule_interval => INTERVAL '30 minutes');
 
 SELECT add_continuous_aggregate_policy('mediciones_por_dia',
-    start_offset => INTERVAL '3 days',
+    start_offset => INTERVAL '30 days',
     end_offset => INTERVAL '1 hour',
     schedule_interval => INTERVAL '3 hours');
 
-CREATE INDEX idx_mediciones_sensor_time ON mediciones (sensor_id, time DESC);
+-- Único: el ESP reintenta el mismo chunk del buffer si se pierde la respuesta del
+-- POST, y el insert es ON CONFLICT DO NOTHING contra este índice. Sirve además como
+-- el índice de lectura por sensor+tiempo (el UNIQUE no cambia cómo se recorre).
+CREATE UNIQUE INDEX idx_mediciones_sensor_time ON mediciones (sensor_id, time DESC);
 CREATE INDEX idx_mediciones_hora_sensor_bucket ON mediciones_por_hora (sensor_id, bucket DESC);
 CREATE INDEX idx_mediciones_dia_sensor_bucket ON mediciones_por_dia (sensor_id, bucket DESC);
 

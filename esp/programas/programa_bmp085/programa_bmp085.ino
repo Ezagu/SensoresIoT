@@ -5,6 +5,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include <time.h>
 #include <Adafruit_BMP085.h>
 
 // ── Configuración ─────────────────────────────────────────────
@@ -21,10 +22,14 @@ const char* DISPOSITIVO_ID = "6e4eb952-cdb1-4507-9194-329ccbdafa1b";
 // Secret de fábrica. Después de la primera rotación manda el que está en NVS.
 const char* SECRET_DISPOSITIVO_INICIAL = "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372";
 
-const char* SENSOR_TEMP_ID  = "3b5f7025-82f9-4a17-9338-25ad05cad3e2";
-const char* SENSOR_PRESS_ID = "a019e751-5d54-4262-b6b6-0c33dfafd40c";
+// Índices con los que el firmware bufferea; SENSOR_IDS traduce índice → UUID al enviar.
+enum SensorIdx { SENSOR_TEMP, SENSOR_PRESS, CANT_SENSORES };
+const char* SENSOR_IDS[CANT_SENSORES] = {
+  "3b5f7025-82f9-4a17-9338-25ad05cad3e2",  // temperatura
+  "a019e751-5d54-4262-b6b6-0c33dfafd40c"  // presión
+};
 
-unsigned long  sendIntervalMs = 30000;            // ms entre envíos (lo ajusta el backend)
+unsigned long  intervaloMedicionMs = 60000;       // ms entre lecturas (lo ajusta el backend)
 
 // Botón BOOT: con el equipo ya andando, mantenerlo presionado borra el WiFi guardado.
 // NO se puede chequear durante el arranque: GPIO0 es pin de bootstrap y tenerlo en LOW
@@ -39,13 +44,48 @@ const unsigned long MS_REINTENTO_WIFI = 5000;   // entre reintentos de reconexi�
 // si expira en el medio, autoConnect falla, el equipo reinicia y pierde lo cargado.
 const unsigned long MS_TIMEOUT_PORTAL = 600000;   // 10 minutos
 
+// ── Reloj ──────────────────────────────────────────────────────
+// Cada lectura viaja con su propia hora: cuando se drena el buffer las mediciones
+// llegan atrasadas y sin timestamp propio quedarían todas apiladas en el momento del
+// envío. Offset 0 = UTC, que es lo que guarda el backend (TIMESTAMPTZ).
+const uint32_t      EPOCH_MINIMO_VALIDO = 1700000000;  // 2023-11-14: antes de esto el reloj no sincronizó
+const unsigned long MS_ESPERA_NTP       = 3000;
+
+// ── Buffer de mediciones ───────────────────────────────────────
+// Las lecturas no se mandan en el acto: entran a un ring buffer en RAM y de ahí se
+// drenan. Así una caída de red (router, internet, backend en deploy) no pierde datos:
+// el equipo sigue midiendo y manda todo junto cuando vuelve la conexión.
+// Sólo RAM a propósito: sin corriente no hay lectura que guardar, y volcar a NVS cada
+// 60 s desgasta la flash.
+struct Lectura {
+  uint32_t epoch;      // segundos UTC; 0 = tomada antes de que sincronizara el reloj
+  float    value;
+  uint8_t  sensorIdx;  // índice en SENSOR_IDS, no el UUID (12 bytes por entrada vs ~48)
+};
+
+// Tope real: el linker le reserva a los arrays globales una región de RAM fija y
+// mucho más chica que la RAM total del chip (medido: ~124 KB en esta build, de los
+// cuales WiFiManager+HTTPClient+ArduinoJson ya usan ~50 KB). 6000 es prácticamente
+// el máximo que entra como array estático; para más autonomía habría que pasar el
+// buffer a heap (`malloc`), pero eso suma una reserva runtime no verificada por el
+// compilador — no vale la complejidad para esta capacidad.
+const uint16_t      CAPACIDAD_BUFFER = 6000;    // ~6 h con 4 sensores a 15 s (~72 KB)
+const uint8_t       MAX_POR_ENVIO    = 50;      // lecturas por POST al drenar
+const unsigned long MS_ENTRE_ENVIOS  = 5000;    // entre chunks, para no saturar al backend
+
 // ── Objetos globales ───────────────────────────────────────────
 Adafruit_BMP085 bmp;
 Preferences prefs;
 String        secretActual;
 bool          rotacionPendiente = false;
-unsigned long lastSend = 0;
+unsigned long ultimaLectura = 0;
+unsigned long ultimoEnvio = 0;
 unsigned long ultimoIntentoWifi = 0;
+
+Lectura  buffer[CAPACIDAD_BUFFER];
+uint16_t bufCola = 0;              // posición de la lectura más vieja sin enviar
+uint16_t bufCantidad = 0;
+uint32_t descartadasPorOverflow = 0;
 
 // ── Setup ──────────────────────────────────────────────────────
 void setup() {
@@ -62,7 +102,7 @@ void setup() {
   if (!bmp.begin()) {
     Serial.println("[ERROR] BMP085 no detectado. Verifica conexiones I2C.");
     Serial.println("  SDA → GPIO21 | SCL → GPIO22 | VCC → 3.3V | GND → GND");
-    while (1) { delay(1000); } // Detiene ejecución
+    while (1) delay(1000);
   }
   Serial.println("[OK] BMP085 inicializado.");
 
@@ -75,22 +115,40 @@ void loop() {
   // 5 s no habría forma de medir que el botón estuvo 5 s seguidos presionado
   chequearResetWifi();
 
+  unsigned long ahora = millis();
+
+  // Se lee SIEMPRE, haya red o no. Antes el loop cortaba más arriba si el WiFi estaba
+  // caído, así que durante el corte no se generaba ni el dato.
+  if (ahora - ultimaLectura >= intervaloMedicionMs) {
+    ultimaLectura = ahora;
+    leerYBufferizar();
+    // La lectura recién tomada sale en el acto: el throttle entre chunks es para el
+    // drenado de backlog, no para el ritmo normal. La resta no desborda: en aritmética
+    // sin signo el resultado es exactamente MS_ENTRE_ENVIOS.
+    ultimoEnvio = ahora - MS_ENTRE_ENVIOS;
+  }
+
   // Reconectar WiFi si se perdió la conexión.
   // A propósito NO se levanta el portal acá: un router caído un rato dejaría al
   // equipo en modo AP sin medir hasta que alguien lo atienda.
   if (WiFi.status() != WL_CONNECTED) {
-    if (millis() - ultimoIntentoWifi >= MS_REINTENTO_WIFI) {
-      ultimoIntentoWifi = millis();
-      Serial.println("[WARN] WiFi desconectado. Reconectando...");
+    if (ahora - ultimoIntentoWifi >= MS_REINTENTO_WIFI) {
+      ultimoIntentoWifi = ahora;
+      Serial.printf("[WARN] WiFi desconectado (%u lecturas en buffer). Reconectando...\n",
+                    bufCantidad);
       WiFi.reconnect();
     }
     return;
   }
 
-  unsigned long ahora = millis();
-  if (ahora - lastSend >= sendIntervalMs) {
-    lastSend = ahora;
-    leerYEnviar();
+  if (ahora - ultimoEnvio >= MS_ENTRE_ENVIOS && (bufCantidad > 0 || rotacionPendiente)) {
+    ultimoEnvio = ahora;
+
+    // Un chunk por pasada de loop: con backlog grande el botón BOOT y la reconexión
+    // se siguen atendiendo mientras se drena.
+    if (bufCantidad > 0) {
+      flushBuffer();
+    }
 
     // Se rota después de enviar: si falla, el flag queda levantado y se reintenta
     // en el próximo ciclo. El secret viejo sigue siendo válido hasta que se use
@@ -126,6 +184,41 @@ bool guardarSecret(const String& nuevo) {
   return true;
 }
 
+// ── Reloj ──────────────────────────────────────────────────────
+bool horaValida() {
+  return (uint32_t) time(nullptr) > EPOCH_MINIMO_VALIDO;
+}
+
+// Devuelve String y no const char*: ArduinoJson guarda los const char* por puntero,
+// así que un buffer static se pisaría entre las entradas del mismo documento.
+String isoUtc(uint32_t epoch) {
+  time_t    momento = (time_t) epoch;
+  struct tm partes;
+  gmtime_r(&momento, &partes);
+
+  char texto[21];
+  strftime(texto, sizeof(texto), "%Y-%m-%dT%H:%M:%SZ", &partes);
+  return String(texto);
+}
+
+void sincronizarHora() {
+  // SNTP resincroniza solo cada hora, no hay que hacer nada más después de esto.
+  configTime(0, 0, "pool.ntp.org", "time.nist.gov");
+
+  unsigned long inicio = millis();
+  while (!horaValida() && millis() - inicio < MS_ESPERA_NTP) {
+    delay(100);
+  }
+
+  if (horaValida()) {
+    Serial.printf("[NTP] Hora sincronizada: %s\n", isoUtc(time(nullptr)).c_str());
+  } else {
+    // No es fatal: esas lecturas se bufferean sin hora y el backend les pone la de
+    // recepción. Sólo afecta a las primeras del arranque.
+    Serial.println("[NTP] Sin hora todavía, se sigue igual.");
+  }
+}
+
 // ── WiFi ───────────────────────────────────────────────────────
 void conectarWiFi() {
   WiFiManager wm;
@@ -152,6 +245,8 @@ void conectarWiFi() {
   WiFi.setSleep(false); // ← EVITA QUE EL WI-FI ENTRE EN MODO DE AHORRO DE ENERGÍA
   Serial.printf("[WiFi] Conectado a %s. IP: %s\n",
                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
+
+  sincronizarHora();
 }
 
 void chequearResetWifi() {
@@ -193,6 +288,60 @@ void chequearResetWifi() {
     delay(500);
     ESP.restart();
   }
+}
+
+// ── Buffer ─────────────────────────────────────────────────────
+void bufferizar(uint8_t sensorIdx, float value) {
+  if (bufCantidad == CAPACIDAD_BUFFER) {
+    // Lleno: se pisa la más vieja. En monitoreo ambiental el dato fresco vale más que
+    // el de hace 12 h, y dejar de medir sería peor.
+    bufCola = (bufCola + 1) % CAPACIDAD_BUFFER;
+    bufCantidad--;
+    descartadasPorOverflow++;
+  }
+
+  uint16_t posicion = (bufCola + bufCantidad) % CAPACIDAD_BUFFER;
+  buffer[posicion].epoch     = horaValida() ? (uint32_t) time(nullptr) : 0;
+  buffer[posicion].value     = value;
+  buffer[posicion].sensorIdx = sensorIdx;
+  bufCantidad++;
+}
+
+bool flushBuffer() {
+  uint16_t cantidad = bufCantidad < MAX_POR_ENVIO ? bufCantidad : MAX_POR_ENVIO;
+  if (cantidad == 0) {
+    return true;
+  }
+
+  JsonDocument doc;
+  JsonArray mediciones = doc["mediciones"].to<JsonArray>();
+
+  for (uint16_t i = 0; i < cantidad; i++) {
+    Lectura& lectura = buffer[(bufCola + i) % CAPACIDAD_BUFFER];
+
+    JsonObject punto = mediciones.add<JsonObject>();
+    punto["sensor_id"] = SENSOR_IDS[lectura.sensorIdx];
+    punto["value"]     = lectura.value;
+
+    // Sin hora válida no se manda el campo y el backend le pone la de recepción
+    if (lectura.epoch != 0) {
+      punto["time"] = isoUtc(lectura.epoch);
+    }
+  }
+
+  if (!enviarMedicion(doc)) {
+    Serial.printf("[BUFFER] Envío fallido, %u pendientes. Se reintenta.\n", bufCantidad);
+    return false;
+  }
+
+  // Recién con el 2xx confirmado se sueltan las entradas. Reintentar el mismo chunk es
+  // seguro: el backend inserta con ON CONFLICT DO NOTHING sobre (sensor_id, time).
+  bufCola = (bufCola + cantidad) % CAPACIDAD_BUFFER;
+  bufCantidad -= cantidad;
+
+  Serial.printf("[BUFFER] Enviadas %u | pendientes %u | descartadas por overflow %lu\n",
+                cantidad, bufCantidad, descartadasPorOverflow);
+  return true;
 }
 
 // ── API ────────────────────────────────────────────────────────
@@ -238,9 +387,9 @@ bool enviarMedicion(JsonDocument& doc) {
         Serial.printf("[ERROR] No se pudo leer JSON: %s\n", error.c_str());
       } else {
         unsigned long intervaloSugerido = respuesta["intervalo_sugerido"] | 0;
-        if (intervaloSugerido > 0 && intervaloSugerido * 1000UL != sendIntervalMs) {
-          sendIntervalMs = intervaloSugerido * 1000UL;
-          Serial.printf("[CONFIG] Intervalo cambiado a %lu ms\n", sendIntervalMs);
+        if (intervaloSugerido > 0 && intervaloSugerido * 1000UL != intervaloMedicionMs) {
+          intervaloMedicionMs = intervaloSugerido * 1000UL;
+          Serial.printf("[CONFIG] Intervalo cambiado a %lu ms\n", intervaloMedicionMs);
         }
 
         if (respuesta["rotar_secret"] | false) {
@@ -301,39 +450,26 @@ bool rotarSecret() {
   return ok;
 }
 
-void leerYEnviar() {
-  JsonDocument doc;
-
-  JsonArray mediciones = doc["mediciones"].to<JsonArray>();
-
-  leerBMP085(mediciones);
-
-  enviarMedicion(doc);
+// ── Sensores ───────────────────────────────────────────────────
+void leerYBufferizar() {
+  leerBMP085();
 }
 
-void leerBMP085(JsonArray mediciones) {
-  // Leer sensor
+void leerBMP085() {
   float temperaturaValue = bmp.readTemperature();     // °C
-  float presionValue = bmp.readPressure() / 100.0;    // hPa (convierte Pa → hPa)
+  float presionValue     = bmp.readPressure() / 100.0;  // hPa (convierte Pa → hPa)
 
   Serial.printf("[Sensor] Temp: %.2f °C | Presión: %.2f hPa\n", temperaturaValue, presionValue);
 
-  // Validación básica de datos y envío a la API
   if (isnan(temperaturaValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
+    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Se descarta.");
   } else {
-    JsonObject temperatura = mediciones.add<JsonObject>();
-
-    temperatura["sensor_id"] = SENSOR_TEMP_ID;
-    temperatura["value"] = temperaturaValue;
+    bufferizar(SENSOR_TEMP, temperaturaValue);
   }
 
   if (isnan(presionValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor presion. Saltando envío.");
+    Serial.println("[ERROR] Lectura inválida del sensor presión. Se descarta.");
   } else {
-    JsonObject presion = mediciones.add<JsonObject>();
-
-    presion["sensor_id"] = SENSOR_PRESS_ID;
-    presion["value"] = presionValue;
+    bufferizar(SENSOR_PRESS, presionValue);
   }
 }

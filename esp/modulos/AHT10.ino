@@ -1,7 +1,13 @@
+// Snippet de referencia — no se compila. La versión que se usa está en el dict
+// SKETCHES de esp/generar_sketches.py.
 #include <Adafruit_AHT10.h>
 
-const char* SENSOR_TEMP_ID = //Replace ;
-const char* SENSOR_HUM_ID  = //Replace ;
+// Índices con los que el firmware bufferea; SENSOR_IDS traduce índice → UUID al enviar.
+enum SensorIdx { SENSOR_TEMP, SENSOR_HUM, CANT_SENSORES };
+const char* SENSOR_IDS[CANT_SENSORES] = {
+  //Replace,  // temperatura
+  //Replace   // humedad
+};
 
 // ── Objetos globales ───────────────────────────────────────────
 Adafruit_AHT10 aht;
@@ -10,43 +16,33 @@ Adafruit_AHT10 aht;
 void setup() {
   // Inicializa el sensor en los pines I2C por defecto del ESP32 (GPIO 21 y 22)
   if (!aht.begin()) {
-    Serial.println("¡No se pudo encontrar el sensor AHT10! Verifica las conexiones.");
+    Serial.println("[ERROR] AHT10 no detectado. Verifica las conexiones.");
     while (1) delay(10);
   }
-  Serial.println("[OK] ATH10 inicializado.");
+  Serial.println("[OK] AHT10 inicializado.");
 }
 
-// Leer sensores
-void leerATH10(JsonArray mediciones) {
-  // Leer sensor
-  sensors_event_t humidity, temp;
+// Leer sensores. No envía nada: mete las lecturas al buffer y el loop las drena
+// cuando hay red (ver flushBuffer en programa_base.ino).
+void leerAHT10() {
   // Obtiene los nuevos eventos del sensor con las lecturas
-  aht.getEvent(&humidity, &temp);
+  sensors_event_t humedadEvento, temperaturaEvento;
+  aht.getEvent(&humedadEvento, &temperaturaEvento);
 
-  float temperaturaValue = temp.temperature;          // °C
-  float humedadValue = humidity.relative_humidity;    // humedad
+  float temperaturaValue = temperaturaEvento.temperature;        // °C
+  float humedadValue     = humedadEvento.relative_humidity;      // %
 
-  // Muestra los resultados en el Monitor Serie
-  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %\n", temperaturaValue, humedadValue);
+  Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %%\n", temperaturaValue, humedadValue);
 
-  // Validación básica de datos y envío a la API
   if (isnan(temperaturaValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
+    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Se descarta.");
   } else {
-    //enviarMedicion(SENSOR_TEMP_ID, temperatura);
-    JsonObject temperatura = mediciones.add<JsonObject>();
-
-    temperatura["sensor_id"] = SENSOR_TEMP_ID;
-    temperatura["value"] = temperaturaValue;
+    bufferizar(SENSOR_TEMP, temperaturaValue);
   }
 
-  if(isnan(humedadValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor humedad. Saltando envío.");
+  if (isnan(humedadValue)) {
+    Serial.println("[ERROR] Lectura inválida del sensor humedad. Se descarta.");
   } else {
-    //enviarMedicion(SENSOR_HUM_ID, humedad);
-    JsonObject humedad = mediciones.add<JsonObject>();
-
-    humedad["sensor_id"] = SENSOR_HUM_ID;
-    humedad["value"] = humedadValue;
+    bufferizar(SENSOR_HUM, humedadValue);
   }
 }

@@ -1,7 +1,13 @@
+// Snippet de referencia — no se compila. La versión que se usa está en el dict
+// SKETCHES de esp/generar_sketches.py.
 #include <Adafruit_BMP085.h>
 
-const char* SENSOR_TEMP_ID  = // Replace ;
-const char* SENSOR_PRESS_ID = // Replace ;
+// Índices con los que el firmware bufferea; SENSOR_IDS traduce índice → UUID al enviar.
+enum SensorIdx { SENSOR_TEMP, SENSOR_PRESS, CANT_SENSORES };
+const char* SENSOR_IDS[CANT_SENSORES] = {
+  //Replace,  // temperatura
+  //Replace   // presión
+};
 
 // ── Objetos globales ───────────────────────────────────────────
 Adafruit_BMP085 bmp;
@@ -11,36 +17,28 @@ void setup() {
   if (!bmp.begin()) {
     Serial.println("[ERROR] BMP085 no detectado. Verifica conexiones I2C.");
     Serial.println("  SDA → GPIO21 | SCL → GPIO22 | VCC → 3.3V | GND → GND");
-    while (1) { delay(1000); } // Detiene ejecución
+    while (1) delay(1000);
   }
   Serial.println("[OK] BMP085 inicializado.");
 }
 
-void leerBMP085(JsonArray mediciones) {
-  // Leer sensor
-  float temperaturaValue = bmp.readTemperature();     // °C
-  float presionValue = bmp.readPressure() / 100.0;    // hPa (convierte Pa → hPa)
+// Leer sensores. No envía nada: mete las lecturas al buffer y el loop las drena
+// cuando hay red (ver flushBuffer en programa_base.ino).
+void leerBMP085() {
+  float temperaturaValue = bmp.readTemperature();       // °C
+  float presionValue     = bmp.readPressure() / 100.0;  // hPa (convierte Pa → hPa)
 
   Serial.printf("[Sensor] Temp: %.2f °C | Presión: %.2f hPa\n", temperaturaValue, presionValue);
 
-  // Validación básica de datos y envío a la API
   if (isnan(temperaturaValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Saltando envío.");
+    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Se descarta.");
   } else {
-    //enviarMedicion(SENSOR_TEMP_ID, temperatura);
-    JsonObject temperatura = mediciones.add<JsonObject>();
-
-    temperatura["sensor_id"] = SENSOR_TEMP_ID;
-    temperatura["value"] = temperaturaValue;
+    bufferizar(SENSOR_TEMP, temperaturaValue);
   }
 
-  if(isnan(presionValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor presion. Saltando envío.");
+  if (isnan(presionValue)) {
+    Serial.println("[ERROR] Lectura inválida del sensor presión. Se descarta.");
   } else {
-    //enviarMedicion(SENSOR_PRESS_ID, presion);
-    JsonObject presion = mediciones.add<JsonObject>();
-
-    presion["sensor_id"] = SENSOR_PRESS_ID;
-    presion["value"] = presionValue;
+    bufferizar(SENSOR_PRESS, presionValue);
   }
 }
