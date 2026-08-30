@@ -59,6 +59,18 @@ This is the core domain concept and the most nuanced part of the backend:
 - The `(sensor_id, time)` unique index is what makes a retry safe: the board re-sends a chunk whenever it does not get a 2xx, including when the insert actually succeeded and only the response was lost.
 - The continuous-aggregate policies deliberately use a much wider `start_offset` (3 days / 30 days) than their `schedule_interval`. A backfilled row outside that window gets marked as invalidated but never re-materialized, so it would vanish from any chart wide enough to be served from an aggregate. The window must stay above the firmware's maximum buffer horizon.
 
+### Planes y suscripciones
+Foundation of the freemium model. It defines where limits come from; it does **not** yet enforce any of them — no existing endpoint changed behaviour when this landed.
+- `planes` is a small fixed catalog (`free`, `premium`). Its `id` is `TEXT`, not SERIAL/UUID: the code references `'free'` as a stable literal (it is the fail-closed fallback), and a numeric id meaning free breaks on any reseed. `NULL` means *unlimited* in `dispositivos_incluidos`, `retencion_dias` and `max_alertas`.
+- **A subscription is current on dates alone**: `inicio_at <= now() AND (fin_at IS NULL OR fin_at > now())`. `estado` (`activa`/`cancelada`/`revocada`) records intent and **never** takes part in that predicate — that is what makes "cancelled on day 3 but paid through day 30" free of special cases: cancelling does not touch `fin_at`. There is deliberately no `vencida` state; expiry is derived, so no job can leave the state lying about the dates.
+- **Free is the absence of a current subscription**, not a row: nothing is inserted on signup.
+- `suscripciones` carries an `EXCLUDE USING gist (usuario_id WITH =, tstzrange(inicio_at, fin_at) WITH &&)` (hence `btree_gist`). The service's 409 is a check-then-act that two concurrent requests both pass, which would leave a user with two current subscriptions — revoking one would not downgrade them. `tstzrange` is half-open `[)`, so revoking with `fin_at = now()` and reassigning with `inicio_at = now()` do not collide.
+- **`services/plan_service.py` is the single point of truth for limits.** Every future gate (retention clamp, per-plan sampling interval, alerts, sharing, export) reads `limites_de_usuario(cur, ...)` or `limites_de_dispositivo(cur, ...)` and nothing else touches `planes`/`suscripciones`. Both take a cursor rather than opening a connection, because gates run inside transactions that are already open (`medicion_service.crear_medicion`); both return the `planes` row as-is, so adding a catalog column does not require touching the service.
+- Which helper: **device data limits come from the plan of the device's owner** (a free user with shared access sees exactly what the owner sees); **account limits** (creating alerts, sharing one's own devices) come from the requesting user's own plan.
+- Fail-closed means *indeterminate data*, not swallowed errors: no current subscription, or a missing catalog row, yields free (`LIMITES_FREE` is the hard floor). Do **not** wrap these in `try/except` to return free on a psycopg2 error — after an error the transaction is aborted and every later query on that cursor fails anyway.
+- Downgrades only ever stop reading more; nothing is deleted. Revoking sets `fin_at = now()` and keeps the row.
+
+
 ## Database
 - Postgres + TimescaleDB extension. Schema and seed data live in `db/init.sql` (only applied on fresh volume) and `db/seed.sql`.
 - There is no migration tool. Schema changes go in **two** places: folded into `db/init.sql` for fresh installs, and as a numbered script under `db/migrations/` to apply by hand to running databases (`docker compose exec -T timescaledb psql -U postgres -f - < db/migrations/NNN_x.sql`).
@@ -134,7 +146,11 @@ El endpoint manual existente se mantiene, pero se limita a uso de banco de prueb
 ### Tier 4 — Monetización (prerequisito de las features premium)
 
 **4.1 — Modelo de planes + integración de pago**
-Ninguna feature premium (alertas, multi-usuario, resolución de muestreo, retención extendida) se puede gatear sin que exista antes el concepto de plan/suscripción en el modelo de usuario (qué plan tiene, vigencia, qué habilita) y el cobro asociado (Stripe es el estándar, maneja renovación/cancelación vía webhooks). Hacer esto antes que cualquier feature premium puntual, para no reescribir el gate de acceso después.
+Ninguna feature premium (alertas, multi-usuario, resolución de muestreo, retención extendida) se puede gatear sin que exista antes el concepto de plan/suscripción en el modelo de usuario (qué plan tiene, vigencia, qué habilita) y el cobro asociado. Hacer esto antes que cualquier feature premium puntual, para no reescribir el gate de acceso después.
+
+*Medio de pago*: **Mercado Pago**, no Stripe. Stripe no soporta cuentas argentinas y el público objetivo es sólo Argentina. Para suscripciones recurrentes en ARS la API es `preapproval`, que notifica cada cobro autorizado por webhook. Los webhooks de MP se reintentan y pueden llegar duplicados o fuera de orden, así que el alta tiene que ser idempotente.
+
+*Estado*: el modelo de datos ya está implementado (tablas `planes` y `suscripciones`, `db/migrations/003_planes_suscripciones.sql`); falta sólo la integración de cobro. Ver "Planes y suscripciones" en Backend architecture.
 
 **4.2 — Exportar historial a CSV, XLSX (Premium?)**
 Permite exportar el historial de un sensor a un archivo csv o xlsx, resta definir si es una feature premium.

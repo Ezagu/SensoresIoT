@@ -2,6 +2,9 @@
 -- 0. EXTENSIÓN TIMESCALEDB (necesaria antes de poder usar create_hypertable)
 -- ====================================================================
 CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- btree_gist: GiST no indexa `=` sobre UUID por su cuenta, y lo necesita el
+-- EXCLUDE de suscripciones (sección 7).
+CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 -- ====================================================================
 -- 1. USUARIOS
@@ -151,7 +154,7 @@ CREATE TABLE verificaciones_email (
     token_hash  TEXT NOT NULL,
     expires_at  TIMESTAMPTZ NOT NULL,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
-)
+);
 
 CREATE TABLE refresh_token (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -161,34 +164,70 @@ CREATE TABLE refresh_token (
     expires_at  TIMESTAMPTZ NOT NULL,
     revocado    BOOLEAN NOT NULL DEFAULT false,
     revocado_at TIMESTAMPTZ
-)
+);
 
--- POBLAR LAS TABLAS
+-- ====================================================================
+-- 7. PLANES Y SUSCRIPCIONES
+-- ====================================================================
+-- id es TEXT y no SERIAL/UUID porque el código referencia 'free' como literal
+-- estable (es el fallback de falla cerrada); un id numérico que signifique free
+-- se rompe con cualquier reseed.
+--
+-- NULL = ilimitado en dispositivos_incluidos, retencion_dias y max_alertas.
+CREATE TABLE planes (
+    id                     TEXT PRIMARY KEY,
+    nombre                 TEXT NOT NULL,
+    dispositivos_incluidos INTEGER,
+    retencion_dias         INTEGER,
+    intervalo_minimo_seg   INTEGER NOT NULL,
+    puede_alertas          BOOLEAN NOT NULL DEFAULT false,
+    max_alertas            INTEGER,
+    puede_compartir        BOOLEAN NOT NULL DEFAULT false,
+    puede_exportar         BOOLEAN NOT NULL DEFAULT false,
+    activo                 BOOLEAN NOT NULL DEFAULT true,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
--- 1. Un tipo de sensor
-INSERT INTO tipos_sensor (nombre, unidad, valor_min, valor_max)
-VALUES ('temperatura', '°C', -10, 50);
+-- La vigencia de una suscripción es 100% temporal:
+--   inicio_at <= now() AND (fin_at IS NULL OR fin_at > now())
+-- `estado` guarda la intención y NUNCA participa de ese predicado. Así "canceló
+-- el día 3 pero pagó hasta el 30" sale gratis: cancelar sólo escribe
+-- estado = 'cancelada' y no toca fin_at. No existe estado 'vencida' porque
+-- obligaría a un job que actualice filas y abriría la posibilidad de que el
+-- estado mienta respecto de las fechas.
+--
+-- Free es la ausencia de suscripción vigente, no una fila: nadie recibe una
+-- suscripción al registrarse.
+CREATE TABLE suscripciones (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id   UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    plan_id      TEXT NOT NULL REFERENCES planes(id),
+    estado       TEXT NOT NULL DEFAULT 'activa'
+                 CHECK (estado IN ('activa', 'cancelada', 'revocada')),
+    inicio_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fin_at       TIMESTAMPTZ,
+    cancelada_at TIMESTAMPTZ,
+    origen       TEXT NOT NULL DEFAULT 'admin',
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK (fin_at IS NULL OR fin_at >= inicio_at)
+);
 
--- 2. Un usuario dueño
-INSERT INTO usuarios (nombre, email, password)
-VALUES ('Test User', 'test@test.com', 'hasheado_dummy')
-RETURNING id;
--- copiá el id que te devuelve y pegalo abajo en \gset o a mano
+-- El 409 del servicio es un check-then-act: dos requests concurrentes pueden ver
+-- "sin vigente" las dos e insertar las dos, dejando al usuario con dos premium a
+-- la vez (y revocar una no lo baja). Esto lo corta en la base.
+--
+-- tstzrange(inicio_at, fin_at) es semiabierto [): incluye el inicio, excluye el
+-- fin, y fin_at NULL es infinito. Por eso revocar con fin_at = now() y reasignar
+-- con inicio_at = now() no colisiona: los rangos se tocan pero no se solapan.
+ALTER TABLE suscripciones
+    ADD CONSTRAINT suscripciones_sin_solapamiento
+    EXCLUDE USING gist (usuario_id WITH =, tstzrange(inicio_at, fin_at) WITH &&);
 
--- 3. Un dispositivo (reemplazá el UUID del usuario)
-INSERT INTO dispositivos (usuario_id, nombre, ubicacion)
-VALUES ('67cb4055-5ca5-4718-8819-d5be28572fe1', 'Placa Lote Norte', 'Campo A')
-RETURNING id;
+CREATE INDEX idx_suscripciones_usuario ON suscripciones (usuario_id, inicio_at DESC);
 
--- 4. Un sensor en ese dispositivo (reemplazá el UUID del dispositivo)
-INSERT INTO sensores (dispositivo_id, tipo_sensor_id, nombre)
-VALUES ('9907a9d6-4378-48ac-85ce-99f34a03d106', 1, 'Sensor Temp 1')
-RETURNING id;
-
--- 5. Mediciones de prueba (reemplazá el UUID del sensor)
-INSERT INTO mediciones (time, sensor_id, value)
-SELECT
-  now() - (i || ' minutes')::interval,
-  '838de415-964b-41be-86bc-ffff51f7f070',
-  20 + 5 * sin(i / 10.0)  -- valores que oscilan, simulando temperatura real
-FROM generate_series(0, 500) AS i;
+-- Ningún plan limita cantidad de dispositivos: la diferenciación es por features.
+-- dispositivos_incluidos queda para el futuro, NULL en ambos.
+INSERT INTO planes (id, nombre, dispositivos_incluidos, retencion_dias, intervalo_minimo_seg,
+                    puede_alertas, max_alertas, puede_compartir, puede_exportar)
+VALUES ('free',    'Free',    NULL, 7,    60, false, 0,    false, false),
+       ('premium', 'Premium', NULL, NULL, 15, true,  NULL, true,  true);

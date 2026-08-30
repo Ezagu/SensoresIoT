@@ -23,12 +23,12 @@ def _create_refresh_token_cookie(response, refresh_token) -> None:
 def register(request: Request, usuario: UsuarioCreate):
     return auth_service.register_usuario(usuario)
 
-@router.post("/verify")
+@router.post("/verify-email")
 def verify_email(data: VerifyRequest):
     auth_service.verificar_email(data.token)
     return {"message": "Email verificado correctamente"}
 
-@router.post("/resend-verify")
+@router.post("/resend-verify-email")
 @limiter.limit("3/hour")
 def resend_verify_email(request: Request, data: ResendVerifyRequest):
     auth_service.reenviar_verificacion(data.email)
