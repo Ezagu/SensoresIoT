@@ -39,7 +39,13 @@ CREATE TABLE dispositivos (
     secret_rotado_at      TIMESTAMPTZ,
     last_seen_at          TIMESTAMPTZ,
     first_connected_at    TIMESTAMPTZ,
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- NULL = automático: usa el piso del plan del owner vigente en cada momento.
+    -- Un valor propio nunca se pisa por un downgrade de plan, sólo deja de cumplirse
+    -- hasta que el owner vuelva a subir (el clamp se aplica en tiempo de request,
+    -- ver medicion_service._obtener_intervalo_minimo).
+    intervalo_configurado_seg INTEGER
+        CHECK (intervalo_configurado_seg IS NULL OR intervalo_configurado_seg > 0)
 );
 
 CREATE TABLE usuario_dispositivo (

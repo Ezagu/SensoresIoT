@@ -12,11 +12,15 @@ TOLERANCIA_JITTER = timedelta(seconds=2)  # margen por drift de reloj / latencia
 # así el historial aparece entero si algún día contrata.
 ANTIGUEDAD_MAXIMA = timedelta(days=90)
 
-def _obtener_intervalo_minimo(cur, dispositivo_id) -> timedelta:
-    # Sale del plan del dueño del dispositivo; uno sin owner, o cuyo dueño no tiene
-    # suscripción vigente, cae en free.
-    limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
-    return timedelta(seconds=limites["intervalo_minimo_seg"])
+def _obtener_intervalo_minimo(cur, dispositivo_id, intervalo_configurado_seg) -> timedelta:
+    # El piso sale del plan del dueño (uno sin owner, o cuyo dueño no tiene
+    # suscripción vigente, cae en free); el dueño puede pedir algo más lento por
+    # autonomía de batería/buffer, nunca más rápido que el piso. El clamp se
+    # aplica acá, en cada request, así un downgrade nunca pisa lo que el dueño
+    # configuró — sólo deja de cumplirse hasta que vuelva a subir de plan.
+    piso = plan_service.limites_de_dispositivo(cur, dispositivo_id)["intervalo_minimo_seg"]
+    efectivo = max(intervalo_configurado_seg, piso) if intervalo_configurado_seg is not None else piso
+    return timedelta(seconds=efectivo)
 
 def _clasificar(existentes: list, timestamp, umbral) -> str | None:
     """
@@ -38,7 +42,7 @@ def _clasificar(existentes: list, timestamp, umbral) -> str | None:
 
     return None
 
-def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False) -> dict:
+def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, intervalo_configurado_seg=None) -> dict:
     ahora = datetime.now(timezone.utc)
     timestamp_batch = time or ahora
 
@@ -47,7 +51,7 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False) -
         # porque ids_por_dispositivo y mediciones_en_ventana desempaquetan por
         # posición. Misma conexión y misma transacción.
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur_plan:
-            intervalo_minimo = _obtener_intervalo_minimo(cur_plan, dispositivo_id)
+            intervalo_minimo = _obtener_intervalo_minimo(cur_plan, dispositivo_id, intervalo_configurado_seg)
         umbral = intervalo_minimo - TOLERANCIA_JITTER
 
         with conn.cursor() as cur:

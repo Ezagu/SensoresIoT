@@ -1,7 +1,10 @@
 import psycopg2.extras
 from fastapi import HTTPException
 from repositories import dispositivo_repo, sensor_repo
+from services import plan_service
 from db import get_connection
+
+INTERVALO_MAXIMO_SEG = 24 * 60 * 60
 
 def _validar_que_exista_dispositivo(cur, dispositivo_id) -> dict:
     # Valida que exista el dispositivo, tira error o devuelve el dispositivo
@@ -65,6 +68,27 @@ def rotar_secret_dispositivo(dispositivo_id) -> dict:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             secret = dispositivo_repo.rotar_secret(cur, dispositivo_id)
             return {"secret": secret}
+
+def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict:
+    # El piso del plan sólo se valida al configurar, no se guarda ya clampeado: si
+    # el owner baja de plan después, el valor elegido queda intacto y sólo deja de
+    # cumplirse hasta que vuelva a subir (medicion_service aplica el clamp real).
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
+
+            piso = plan_service.limites_de_dispositivo(cur, dispositivo_id)["intervalo_minimo_seg"]
+
+            if intervalo_seg is not None:
+                if intervalo_seg > INTERVALO_MAXIMO_SEG:
+                    raise HTTPException(400, "El intervalo máximo permitido es 24 horas")
+                if intervalo_seg < piso:
+                    raise HTTPException(400, f"Tu plan actual permite un mínimo de {piso}s")
+
+            dispositivo_repo.actualizar_intervalo(cur, dispositivo_id, intervalo_seg)
+            efectivo = max(intervalo_seg, piso) if intervalo_seg is not None else piso
+
+    return {"intervalo_configurado_seg": intervalo_seg, "intervalo_efectivo_seg": efectivo}
 
 def marcar_rotacion_pendiente(dispositivo_id) -> dict:
     # Uso interno/admin: fuerza a que el dispositivo rote su secret en la próxima conexión

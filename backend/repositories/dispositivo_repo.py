@@ -2,7 +2,7 @@ import psycopg2.errors
 from fastapi import HTTPException
 from core.security import generar_secret
 
-COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at"
+COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at, intervalo_configurado_seg"
 
 def verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id) -> bool:
     # Verifica si un usuario esta asociado al dispositivo
@@ -93,6 +93,15 @@ def marcar_rotacion_pendiente(cur, dispositivo_id) -> None:
         RETURNING id
         """,
         (dispositivo_id,)
+    )
+    if not cur.fetchone():
+        raise HTTPException(404, "Dispositivo no encontrado")
+
+def actualizar_intervalo(cur, dispositivo_id, intervalo_seg) -> None:
+    # intervalo_seg None = automático, usa el piso del plan vigente en cada momento
+    cur.execute(
+        "UPDATE dispositivos SET intervalo_configurado_seg = %s WHERE id = %s RETURNING id",
+        (intervalo_seg, dispositivo_id)
     )
     if not cur.fetchone():
         raise HTTPException(404, "Dispositivo no encontrado")

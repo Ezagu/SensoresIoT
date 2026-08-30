@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends
 from uuid import UUID
-from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut
+from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut, IntervaloUpdate
 from schemas.sensor import SensorOut
 from services import dispositivo_service
 from core.deps import get_usuario_admin, get_usuario_actual, get_dispositivo_autenticado
@@ -38,6 +38,14 @@ def marcar_rotacion(dispositivo_id: UUID, usuario_admin: dict = Depends(get_usua
     # Fuerza la rotación ante un secret filtrado: el flag viaja en la respuesta de la
     # próxima medición y el dispositivo rota solo, sin acceso físico
     return dispositivo_service.marcar_rotacion_pendiente(dispositivo_id)
+
+@router.patch("/{dispositivo_id}/intervalo")
+def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
+    # El piso del plan se valida acá; el dispositivo lo aplica solo con la
+    # próxima respuesta a POST /mediciones/ (intervalo_sugerido)
+    return dispositivo_service.configurar_intervalo(
+        dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], payload.intervalo_seg
+    )
 
 @router.post("/{dispositivo_id}/vinculate")
 @limiter.limit("5/10minutes")

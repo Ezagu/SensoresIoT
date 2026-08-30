@@ -16,7 +16,13 @@ class DispositivoOut(BaseModel):
   activo: bool
   last_seen_at: Optional[datetime]
   first_connected_at: Optional[datetime]
+  # None = automático, usa el piso del plan vigente en cada momento
+  intervalo_configurado_seg: Optional[int] = None
 
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut
   secret: str
+
+class IntervaloUpdate(BaseModel):
+  # None = automático (resetea a "usar el piso del plan vigente")
+  intervalo_seg: Optional[int] = None
