@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-SensoresIoT is an IoT sensor-monitoring platform: ESP32 boards running Arduino firmware POST sensor readings to a FastAPI backend, which stores them in TimescaleDB (Postgres). A React/Vite frontend (currently just scaffolding) will visualize the data. The system has three independent parts: `backend/` (FastAPI + Postgres/Timescale), `frontend/` (React + TS + Vite), and `esp/` (Arduino/C++ firmware).
+SensoresIoT is an IoT sensor-monitoring platform: ESP32 boards running Arduino firmware POST sensor readings to a FastAPI backend, which stores them in TimescaleDB (Postgres). The data is meant to be consumed from a web app that has not been started yet. The repo has two parts: `backend/` (FastAPI + Postgres/Timescale) and `esp/` (Arduino/C++ firmware).
 
 ## Commands
 
@@ -13,16 +13,10 @@ SensoresIoT is an IoT sensor-monitoring platform: ESP32 boards running Arduino f
 - Install deps: `pip install -r requirements.txt`
 - No test suite or linter is currently configured for the backend.
 
-### Frontend (from `frontend/`)
-- Dev server: `npm run dev`
-- Build (typecheck + build): `npm run build`
-- Lint: `npm run lint`
-- Preview production build: `npm run preview`
-
 ### Full stack via Docker
 - `docker-compose.yml` is the base (production-like: API built from image, DB port not exposed to host).
 - `docker-compose.override.yml` is auto-merged in dev: exposes Postgres on host port `5433`, bind-mounts `./backend` into the container, and runs uvicorn with `--reload`.
-- `docker compose up` from the repo root brings up `timescaledb` + `api` together (frontend is not containerized yet).
+- `docker compose up` from the repo root brings up `timescaledb` + `api` together.
 - Requires a `.env` at the repo root (see `.env.example`): `POSTGRES_PASSWORD`, `CORS_ORIGINS`, `RESEND_API_KEY`, `FRONTEND_URL`, `JWT_SECRET_KEY`.
 - `db/init.sql` runs automatically only on first container creation (mounted as a Postgres init script). To re-apply schema changes, drop the `postgres_data` volume or run the SQL manually against the running container.
 
@@ -99,8 +93,8 @@ Foundation of the freemium model. Two limits are enforced today (query retention
 - **The measurement buffer is capped at `CAPACIDAD_BUFFER = 6000` entries by a linker limit, not a design choice.** The ESP32 linker reserves a fixed, much-smaller-than-total region (`dram0_0_seg`, ~124 KB measured on this build) for global/static arrays like `Lectura buffer[N]`; `WiFiManager` + `HTTPClient` + `ArduinoJson` alone already use ~50 KB of it, so ~6150 entries is roughly the hard ceiling regardless of the chip's 320 KB of RAM — independent of the flash partition scheme above. 6000 was chosen deliberately understaying that ceiling rather than heap-allocating the buffer (`malloc` in `setup()` would lift the cap, since the heap is a separate, larger pool) — heap allocation moves a compile-time-verified limit to a runtime one (a failed `malloc` has to be handled explicitly, and a successful compile no longer proves the buffer fits), which was judged not worth it for the capacity gain. If a future order needs more autonomy than `CAPACIDAD_BUFFER` allows at its reading interval, that's a real trade-off to bring back for a decision, not something to just bump.
 
 
-## Frontend (`frontend/`)
-Standard Vite + React + TypeScript scaffold (not yet built out beyond `App.tsx`/`Home.tsx`). Uses `recharts` for charting — expect this to be the library used for any time-series visualizations of `mediciones` data.
+## Frontend
+There is none in this repo. A throwaway Vite/React scaffold used to eyeball the chart endpoints was deleted once it had served its purpose (recoverable from git history if ever needed). The real frontends are Tier 5 of the roadmap and have not been started — do not assume any client code exists.
 
 
 # Contexto del proyecto — Plataforma IoT (sensores ambientales)
