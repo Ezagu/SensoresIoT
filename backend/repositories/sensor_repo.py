@@ -35,6 +35,21 @@ def buscar_por_dispositivo_id(cur, dispositivo_id) -> list[dict]:
     cur.execute("SELECT * FROM sensores WHERE dispositivo_id = %s", (dispositivo_id,))
     return cur.fetchall()
 
+def buscar_con_tipo_por_dispositivo(cur, dispositivo_id) -> list[dict]:
+    # Sin filtrar por `activo`: un sensor desactivado sigue teniendo mediciones
+    # históricas válidas para exportar. Orden estable por nombre+created_at.
+    cur.execute(
+        """
+        SELECT s.id, ts.nombre, ts.unidad
+        FROM sensores s
+        JOIN tipos_sensor ts ON s.tipo_sensor_id = ts.id
+        WHERE s.dispositivo_id = %s
+        ORDER BY ts.nombre, s.created_at
+        """,
+        (dispositivo_id,)
+    )
+    return cur.fetchall()
+
 def ids_por_dispositivo(cur, dispositivo_id) -> set:
     cur.execute("SELECT id FROM sensores WHERE dispositivo_id = %s", (dispositivo_id,))
     return {row[0] for row in cur.fetchall()}

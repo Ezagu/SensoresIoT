@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Request, Depends
+from fastapi.responses import StreamingResponse
 from uuid import UUID
+from datetime import datetime
+from typing import Optional
 from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut, IntervaloUpdate
 from schemas.sensor import SensorOut
-from services import dispositivo_service
+from services import dispositivo_service, exportacion_service
 from core.deps import get_usuario_admin, get_usuario_actual, get_dispositivo_autenticado
 from core.limiter import limiter
 
@@ -28,6 +31,45 @@ def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(g
 @router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
 def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.obtener_sensores(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.get("/{dispositivo_id}/exportar")
+@limiter.limit("20/hour")
+def exportar_historial(
+    request: Request,
+    dispositivo_id: UUID,
+    desde: Optional[datetime] = None,
+    hasta: Optional[datetime] = None,
+    intervalo_seg: Optional[int] = None,
+    excel: bool = False,
+    usuario_actual: dict = Depends(get_usuario_actual)
+):
+    # Sin tope de plan: exportar no es premium, lo único que lo limita es la
+    # misma ventana de retención que ya recorta /grafico y /historial.
+    #
+    # Sin `desde` se exporta el historial completo del dispositivo; sin
+    # `intervalo_seg` se exporta cada medición guardada, sin agregar.
+    export = exportacion_service.preparar_export_dispositivo(
+        dispositivo_id, desde, hasta, usuario_actual["sub"], usuario_actual["rol"], excel, intervalo_seg
+    )
+    headers = {
+        "Content-Disposition": f'attachment; filename="{export["nombre_archivo"]}"',
+        "X-Resolucion": export["resolucion"],
+        "X-Fuente": export["fuente"],
+        "X-Desde-Efectivo": export["desde_efectivo"].isoformat(),
+        "X-Recortado": str(export["recortado"]).lower(),
+    }
+    # Los opcionales se omiten en vez de mandarse vacíos: retencion_dias None =
+    # plan sin límite, intervalo_seg None = export sin agregar.
+    if export["retencion_dias"] is not None:
+        headers["X-Retencion-Dias"] = str(export["retencion_dias"])
+    if export["intervalo_seg"] is not None:
+        headers["X-Intervalo-Seg"] = str(export["intervalo_seg"])
+
+    return StreamingResponse(
+        export["filas"],
+        media_type="text/csv; charset=utf-8",
+        headers=headers,
+    )
 
 @router.post("/{dispositivo_id}/regenerate-secret")
 def regenerate_secret(dispositivo_id: UUID, usuario_admin: dict = Depends(get_usuario_admin)):

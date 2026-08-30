@@ -17,6 +17,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition", "X-Resolucion", "X-Fuente", "X-Intervalo-Seg",
+                    "X-Desde-Efectivo", "X-Recortado", "X-Retencion-Dias"],
 )
 
 app.include_router(mediciones.router, prefix="/mediciones", tags=["mediciones"])

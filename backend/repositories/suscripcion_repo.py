@@ -1,12 +1,9 @@
-# Una suscripción está vigente sólo por fechas. `estado` no participa: guarda la
-# intención ('cancelada' sigue vigente hasta fin_at porque el usuario pagó el
-# período; 'revocada' viene siempre con fin_at = now()). Un único predicado
-# temporal hace imposible olvidarse de un estado al escribir un gate nuevo.
+# Vigencia sólo por fechas; `estado` guarda intención pero no participa acá
+# ('cancelada' sigue vigente hasta fin_at, 'revocada' ya viene con fin_at = now()).
 # Todas las queries aliasan suscripciones como `s` para poder interpolarlo.
 VIGENTE = "s.inicio_at <= now() AND (s.fin_at IS NULL OR s.fin_at > now())"
 
 def buscar_vigente(cur, usuario_id) -> dict | None:
-    # La suscripción vigente del usuario, o None si es free
     cur.execute(
         f"""
         SELECT s.* FROM suscripciones s
@@ -19,7 +16,6 @@ def buscar_vigente(cur, usuario_id) -> dict | None:
     return cur.fetchone()
 
 def buscar_plan_vigente_por_usuario(cur, usuario_id) -> dict | None:
-    # Devuelve la fila de planes del usuario, o None si no tiene suscripción vigente
     cur.execute(
         f"""
         SELECT p.* FROM suscripciones s
@@ -33,13 +29,8 @@ def buscar_plan_vigente_por_usuario(cur, usuario_id) -> dict | None:
     return cur.fetchone()
 
 def buscar_plan_vigente_por_dispositivo(cur, dispositivo_id) -> dict | None:
-    # Los límites de datos de un dispositivo salen del plan de su owner, no del
-    # usuario que consulta: un free con acceso compartido ve lo mismo que el owner.
-    #
-    # Una sola query en vez de componer buscar_owner_de_dispositivo + lookup del
-    # plan: esto va a correr en el camino caliente de POST /mediciones/ cuando se
-    # implemente el intervalo por plan, y dos round-trips por POST de cada placa
-    # no se justifican para reusar dos líneas.
+    # Una sola query (no buscar_owner_de_dispositivo + lookup aparte): corre en
+    # el camino caliente de POST /mediciones/, no se justifican dos round-trips.
     cur.execute(
         f"""
         SELECT p.* FROM usuario_dispositivo ud

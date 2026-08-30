@@ -18,7 +18,7 @@ LIMITES_FREE = {
     "puede_alertas": False,
     "max_alertas": 0,
     "puede_compartir": False,
-    "puede_exportar": False,
+    "puede_exportar": True,
 }
 
 MENSAJE_YA_TIENE = "El usuario ya tiene una suscripción vigente, revocala primero"

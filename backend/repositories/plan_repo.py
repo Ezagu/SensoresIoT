@@ -4,7 +4,6 @@ COLUMNAS = """
 """
 
 def listar_activos(cur) -> list[dict]:
-    # Catálogo público de planes
     cur.execute(f"SELECT {COLUMNAS} FROM planes WHERE activo = true ORDER BY id")
     return cur.fetchall()
 

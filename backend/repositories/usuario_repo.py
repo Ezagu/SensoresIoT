@@ -2,13 +2,6 @@ from datetime import datetime, timezone
 
 COLUMNAS_PUBLICAS = "id, nombre, email, rol, created_at, is_verified"
 
-def buscar_por_email(cur, email: str) -> dict | None:
-    cur.execute(
-        "SELECT id, is_verified FROM usuarios WHERE email = %s",
-        (email,)
-    )
-    return cur.fetchone()
-
 def buscar_por_id(cur, usuario_id: str) -> dict | None:
     cur.execute(
         f"SELECT {COLUMNAS_PUBLICAS} FROM usuarios WHERE id = %s",

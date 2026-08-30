@@ -235,5 +235,5 @@ CREATE INDEX idx_suscripciones_usuario ON suscripciones (usuario_id, inicio_at D
 -- dispositivos_incluidos queda para el futuro, NULL en ambos.
 INSERT INTO planes (id, nombre, dispositivos_incluidos, retencion_dias, intervalo_minimo_seg,
                     puede_alertas, max_alertas, puede_compartir, puede_exportar)
-VALUES ('free',    'Free',    NULL, 7,    60, false, 0,    false, false),
+VALUES ('free',    'Free',    NULL, 7,    60, false, 0,    false, true),
        ('premium', 'Premium', NULL, NULL, 15, true,  NULL, true,  true);

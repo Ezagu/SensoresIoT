@@ -35,3 +35,15 @@ def get_cursor():
     with get_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             yield cur
+
+@contextmanager
+def get_cursor_streaming(nombre: str, itersize: int = 2000):
+    # Cursor server-side (DECLARE ... CURSOR): Postgres manda las filas de a
+    # `itersize` en vez del resultado entero. Pensado para generadores que se
+    # consumen fuera de la request (StreamingResponse) y necesitan la conexión
+    # viva mientras se itera, no para el uso normal de un service.
+    # `nombre` tiene que ser único por request (no reusar cursores server-side).
+    with get_connection() as conn:
+        with conn.cursor(name=nombre, cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.itersize = itersize
+            yield cur
