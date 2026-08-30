@@ -30,3 +30,8 @@ class MedicionAgregadaOut(BaseModel):
 class DatosGraficoOut(BaseModel):
     puntos: list[MedicionAgregadaOut]
     resumen: ResumenOut
+    # Rango realmente consultado: si el plan del dueño no llega tan atrás como se
+    # pidió, desde_efectivo es el piso aplicado y recortado queda en true.
+    desde_efectivo: datetime
+    recortado: bool
+    retencion_dias: Optional[int] = None

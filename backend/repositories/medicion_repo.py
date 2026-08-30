@@ -150,7 +150,7 @@ def buscar_resumen(cur, sensor_id, desde, hasta) -> dict:
     )
     return cur.fetchone()
 
-def buscar_historial(cur, sensor_id, hasta, cursor, limite):
+def buscar_historial(cur, sensor_id, hasta, cursor, limite, desde=None):
     condiciones = "sensor_id = %s"
     params = [sensor_id]
 
@@ -158,6 +158,13 @@ def buscar_historial(cur, sensor_id, hasta, cursor, limite):
     if tope:
         condiciones += " AND time < %s"
         params.append(tope)
+
+    # Piso de la ventana que permite el plan del dueño: al llegar a la frontera
+    # vuelven menos filas que `limite` y el servicio deja de emitir cursor.
+    if desde is not None:
+        condiciones += " AND time >= %s"
+        params.append(desde)
+
     params.append(limite)
 
     cur.execute(

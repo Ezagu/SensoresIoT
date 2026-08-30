@@ -1,6 +1,6 @@
 import psycopg2.errors
 import psycopg2.extras
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from repositories import plan_repo, suscripcion_repo, usuario_repo
 from db import get_connection
@@ -58,6 +58,27 @@ def limites_de_dispositivo(cur, dispositivo_id) -> dict:
     # usuario que consulta. Un free con acceso compartido a un dispositivo de un
     # owner premium ve todo lo que ve el owner.
     return suscripcion_repo.buscar_plan_vigente_por_dispositivo(cur, dispositivo_id) or _plan_free(cur)
+
+def ventana_de_consulta(cur, dispositivo_id, rol) -> dict:
+    """
+    Hasta dónde atrás puede consultar quien mira este dispositivo:
+      piso           -> momento más antiguo consultable, None = sin límite
+      retencion_dias -> el valor del plan, para que el cliente sepa por qué se recortó
+
+    Devuelve los dos juntos porque el llamador necesita el piso para clampear y los
+    días para la respuesta: resolverlos por separado costaría dos consultas del plan.
+
+    El admin queda fuera del clamp: es staff haciendo soporte y tiene que poder ver
+    lo que un cliente reporta de hace semanas. El control de acceso real lo sigue
+    haciendo dispositivo_service.tiene_acceso_a_dispositivo, esto es un límite
+    comercial y no de seguridad.
+    """
+    if rol == "admin":
+        return {"piso": None, "retencion_dias": None}
+
+    dias = limites_de_dispositivo(cur, dispositivo_id)["retencion_dias"]
+    piso = None if dias is None else datetime.now(timezone.utc) - timedelta(days=dias)
+    return {"piso": piso, "retencion_dias": dias}
 
 # --------------------------------------------------------------------------
 # Endpoints

@@ -1,18 +1,22 @@
 import bisect
+import psycopg2.extras
 from datetime import datetime, timezone, timedelta
 from db import get_connection
 from repositories import dispositivo_repo, sensor_repo, medicion_repo
+from services import plan_service
 
-INTERVALO_MINIMO_MEDICION = timedelta(seconds=60)
 TOLERANCIA_JITTER = timedelta(seconds=2)  # margen por drift de reloj / latencia de red
 # Igual a la retention policy del raw (db/init.sql): insertar algo más viejo crea
-# un chunk que la policy dropea acto seguido, no sirve de nada.
+# un chunk que la policy dropea acto seguido, no sirve de nada. No depende del plan:
+# el free escribe con la misma profundidad que el premium y sólo ve menos al leer,
+# así el historial aparece entero si algún día contrata.
 ANTIGUEDAD_MAXIMA = timedelta(days=90)
 
-def _obtener_intervalo_minimo(dispositivo_id) -> timedelta:
-    # hoy es fijo para todos los dispositivos; cuando exista el modelo de
-    # plan (Tier 4.1), acá se resuelve según el plan del dueño del dispositivo
-    return INTERVALO_MINIMO_MEDICION
+def _obtener_intervalo_minimo(cur, dispositivo_id) -> timedelta:
+    # Sale del plan del dueño del dispositivo; uno sin owner, o cuyo dueño no tiene
+    # suscripción vigente, cae en free.
+    limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
+    return timedelta(seconds=limites["intervalo_minimo_seg"])
 
 def _clasificar(existentes: list, timestamp, umbral) -> str | None:
     """
@@ -37,10 +41,15 @@ def _clasificar(existentes: list, timestamp, umbral) -> str | None:
 def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False) -> dict:
     ahora = datetime.now(timezone.utc)
     timestamp_batch = time or ahora
-    intervalo_minimo = _obtener_intervalo_minimo(dispositivo_id)
-    umbral = intervalo_minimo - TOLERANCIA_JITTER
 
     with get_connection() as conn:
+        # Cursor dict aparte sólo para leer el plan: el de abajo devuelve tuplas
+        # porque ids_por_dispositivo y mediciones_en_ventana desempaquetan por
+        # posición. Misma conexión y misma transacción.
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur_plan:
+            intervalo_minimo = _obtener_intervalo_minimo(cur_plan, dispositivo_id)
+        umbral = intervalo_minimo - TOLERANCIA_JITTER
+
         with conn.cursor() as cur:
             # last_seen_at es "cuándo habló el equipo", no la hora del dato: un flush
             # del buffer trae lecturas viejas y lo dejaría figurando como desconectado
