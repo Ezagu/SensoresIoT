@@ -4,22 +4,16 @@ from datetime import datetime, timezone, timedelta
 from db import get_connection
 from repositories import dispositivo_repo, sensor_repo, medicion_repo
 from services import plan_service
+from core.tiempo import a_utc
 
 TOLERANCIA_JITTER = timedelta(seconds=2)  # margen por drift de reloj / latencia de red
-# Igual a la retention policy del raw (db/init.sql): insertar algo más viejo crea
-# un chunk que la policy dropea acto seguido, no sirve de nada. No depende del plan:
-# el free escribe con la misma profundidad que el premium y sólo ve menos al leer,
-# así el historial aparece entero si algún día contrata.
+# No depende del plan: el free escribe con la misma profundidad que el premium y
+# sólo ve menos al leer, así el historial aparece entero si algún día contrata.
 ANTIGUEDAD_MAXIMA = timedelta(days=90)
 
 def _obtener_intervalo_minimo(cur, dispositivo_id, intervalo_configurado_seg) -> timedelta:
-    # El piso sale del plan del dueño (uno sin owner, o cuyo dueño no tiene
-    # suscripción vigente, cae en free); el dueño puede pedir algo más lento por
-    # autonomía de batería/buffer, nunca más rápido que el piso. El clamp se
-    # aplica acá, en cada request, así un downgrade nunca pisa lo que el dueño
-    # configuró — sólo deja de cumplirse hasta que vuelva a subir de plan.
     piso = plan_service.limites_de_dispositivo(cur, dispositivo_id)["intervalo_minimo_seg"]
-    efectivo = max(intervalo_configurado_seg, piso) if intervalo_configurado_seg is not None else piso
+    efectivo = plan_service.intervalo_efectivo_seg(intervalo_configurado_seg, piso)
     return timedelta(seconds=efectivo)
 
 def _clasificar(existentes: list, timestamp, umbral) -> str | None:
@@ -48,8 +42,7 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
 
     with get_connection() as conn:
         # Cursor dict aparte sólo para leer el plan: el de abajo devuelve tuplas
-        # porque ids_por_dispositivo y mediciones_en_ventana desempaquetan por
-        # posición. Misma conexión y misma transacción.
+        # porque los repos que siguen desempaquetan por posición.
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur_plan:
             intervalo_minimo = _obtener_intervalo_minimo(cur_plan, dispositivo_id, intervalo_configurado_seg)
         umbral = intervalo_minimo - TOLERANCIA_JITTER
@@ -72,9 +65,7 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
                     invalidas.append(str(medicion.sensor_id))
                     continue
 
-                timestamp = medicion.time or timestamp_batch
-                if timestamp.tzinfo is None:
-                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+                timestamp = a_utc(medicion.time) or timestamp_batch
 
                 # Fuera de rango: del futuro (reloj del equipo mal sincronizado) o más
                 # vieja que lo que retenemos.

@@ -14,9 +14,9 @@ DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
 @contextmanager
 def get_connection():
     conn = psycopg2.connect(
-        dbname=DB_NAME, 
-        user=DB_USER, 
-        password=DB_PASSWORD, 
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
         port=DB_PORT,
         host=DB_HOST
     )
@@ -28,3 +28,10 @@ def get_connection():
         raise
     finally:
         conn.close()
+
+@contextmanager
+def get_cursor():
+    # Conexión + cursor dict: el caso normal de cualquier servicio.
+    with get_connection() as conn:
+        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            yield cur

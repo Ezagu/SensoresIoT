@@ -1,21 +1,18 @@
-import psycopg2.extras
 import psycopg2.errors
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
-from db import get_connection
+from db import get_cursor
 from repositories import usuario_repo, verificacion_repo, refresh_token_repo
 from core.security import hash_password, generar_secret_urlsafe, hashear_sha256, verify_password, crear_access_token, REFRESH_TOKEN_EXPIRE_DAYS
 from core.email import enviar_email_verificacion
 
 def _crear_y_guardar_token_verificacion(cur, user_id: str) -> str:
-    # Elimina tokens antiguos y crea y devuelve token para la verificación del email
     verificacion_repo.eliminar_por_usuario(cur, user_id)
     token, token_hash = generar_secret_urlsafe()
     verificacion_repo.crear(cur, user_id, token_hash)
     return token
 
 def _crear_tokens_login(cur, usuario_id, usuario_rol):
-    # Crea access y refresh tokens
     access_token = crear_access_token(usuario_id, usuario_rol)
     refresh_token, refresh_token_hash = generar_secret_urlsafe()
 
@@ -28,28 +25,25 @@ def _crear_tokens_login(cur, usuario_id, usuario_rol):
     }
 
 def register_usuario(usuario) -> dict:
-    # Registra al usuario, envía email de verificación
     if usuario.password != usuario.confirm_password:
         raise HTTPException(422, "Las contraseñas no coinciden")
 
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            existing = usuario_repo.buscar_por_email(cur, usuario.email)
+    with get_cursor() as cur:
+        existing = usuario_repo.buscar_por_email(cur, usuario.email)
 
-            if existing and existing["is_verified"]:
-                raise HTTPException(409, "El email ya está registrado")
+        if existing and existing["is_verified"]:
+            raise HTTPException(409, "El email ya está registrado")
 
-            if existing and not existing["is_verified"]:
-                user_row = usuario_repo.buscar_por_id(cur, existing["id"])
-            else:
-                try:
-                    password_hashed = hash_password(usuario.password)
-                    user_row = usuario_repo.crear(cur, usuario.nombre, usuario.email, password_hashed)
-                except psycopg2.errors.UniqueViolation:
-                    #Condición de carrera
-                    raise HTTPException(409, "El email ya está registrado")
+        if existing and not existing["is_verified"]:
+            user_row = usuario_repo.buscar_por_id(cur, existing["id"])
+        else:
+            try:
+                password_hashed = hash_password(usuario.password)
+                user_row = usuario_repo.crear(cur, usuario.nombre, usuario.email, password_hashed)
+            except psycopg2.errors.UniqueViolation:
+                raise HTTPException(409, "El email ya está registrado")  # condición de carrera
 
-            token = _crear_y_guardar_token_verificacion(cur, user_row["id"])
+        token = _crear_y_guardar_token_verificacion(cur, user_row["id"])
 
     try:
         enviar_email_verificacion(to=usuario.email, token=token)
@@ -59,31 +53,27 @@ def register_usuario(usuario) -> dict:
     return user_row
 
 def verificar_email(token: str) -> None:
-    # Verifica una cuenta para que se pueda loguear
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            token_hash = hashear_sha256(token)
-            verificacion = verificacion_repo.buscar_por_token_hash(cur, token_hash)
+    with get_cursor() as cur:
+        token_hash = hashear_sha256(token)
+        verificacion = verificacion_repo.buscar_por_token_hash(cur, token_hash)
 
-            if not verificacion:
-                raise HTTPException(400, "Token inválido o ya utilizado")
+        if not verificacion:
+            raise HTTPException(400, "Token inválido o ya utilizado")
 
-            if verificacion["expires_at"] < datetime.now(timezone.utc):
-                verificacion_repo.eliminar_por_token_hash(cur, token_hash)
-                conn.commit()
-                raise HTTPException(400, "El token expiró, solicitá uno nuevo")
-
-            usuario_repo.marcar_verificado(cur, verificacion["usuario_id"])
+        if verificacion["expires_at"] < datetime.now(timezone.utc):
             verificacion_repo.eliminar_por_token_hash(cur, token_hash)
+            cur.connection.commit()  # si no, el raise hace rollback y el token queda vivo
+            raise HTTPException(400, "El token expiró, solicitá uno nuevo")
+
+        usuario_repo.marcar_verificado(cur, verificacion["usuario_id"])
+        verificacion_repo.eliminar_por_token_hash(cur, token_hash)
 
 def reenviar_verificacion(email: str) -> None:
-    # Reenvia email para verificar una cuenta
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            user = usuario_repo.buscar_por_email(cur, email)
-            if not user or user["is_verified"]:
-                return
-            token = _crear_y_guardar_token_verificacion(cur, user["id"])
+    with get_cursor() as cur:
+        user = usuario_repo.buscar_por_email(cur, email)
+        if not user or user["is_verified"]:
+            return
+        token = _crear_y_guardar_token_verificacion(cur, user["id"])
 
     try:
         enviar_email_verificacion(to=email, token=token)
@@ -91,65 +81,58 @@ def reenviar_verificacion(email: str) -> None:
         print(f"Error reenviando verificación a {email}: {e}")
 
 def loguear(email: str, password: str):
-    # Loguea una cuenta y devuelve tokens
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            usuario = usuario_repo.buscar_por_email(cur, email)
+    with get_cursor() as cur:
+        usuario = usuario_repo.buscar_por_email(cur, email)
 
-            if usuario is None:
-                raise HTTPException(401, "Usuario o contraseña incorrectos")
+        if usuario is None:
+            raise HTTPException(401, "Usuario o contraseña incorrectos")
 
-            if usuario["bloqueado_hasta"] and usuario["bloqueado_hasta"] > datetime.now(timezone.utc):
-                raise HTTPException(429, "cuenta bloqueada temporalmente, reintentá más tarde")
+        if usuario["bloqueado_hasta"] and usuario["bloqueado_hasta"] > datetime.now(timezone.utc):
+            raise HTTPException(429, "cuenta bloqueada temporalmente, reintentá más tarde")
 
-            if not verify_password(password, usuario["password"]):
-                nuevos_intentos = usuario["intentos_fallidos"] + 1
-                bloqueado_hasta = None
-                if nuevos_intentos >= 5:
-                    bloqueado_hasta = datetime.now(timezone.utc) + timedelta(minutes=15)
-                    nuevos_intentos = 0
+        if not verify_password(password, usuario["password"]):
+            nuevos_intentos = usuario["intentos_fallidos"] + 1
+            bloqueado_hasta = None
+            if nuevos_intentos >= 5:
+                bloqueado_hasta = datetime.now(timezone.utc) + timedelta(minutes=15)
+                nuevos_intentos = 0
 
-                usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], nuevos_intentos, bloqueado_hasta)
-                conn.commit()
-                raise HTTPException(401, "Usuario o contraseña incorrectos")
+            usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], nuevos_intentos, bloqueado_hasta)
+            cur.connection.commit()  # si no, el raise hace rollback y el contador no avanza
+            raise HTTPException(401, "Usuario o contraseña incorrectos")
 
-            if not usuario["is_verified"]:
-                raise HTTPException(403, "Tenés que verificar tu email antes de iniciar sesión")
+        if not usuario["is_verified"]:
+            raise HTTPException(403, "Tenés que verificar tu email antes de iniciar sesión")
 
-            if usuario["intentos_fallidos"] > 0 or usuario["bloqueado_hasta"]:
-                usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], 0, None)
+        if usuario["intentos_fallidos"] > 0 or usuario["bloqueado_hasta"]:
+            usuario_repo.actualizar_intentos_fallidos(cur, usuario["id"], 0, None)
 
-            tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
+        tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
 
     return tokens
 
 def refrescar_sesion(refresh_token):
-    # Genera un nuevo access token apartir del refresh token en cookie
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            token_hash = hashear_sha256(refresh_token)
-            registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
+    with get_cursor() as cur:
+        token_hash = hashear_sha256(refresh_token)
+        registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
 
-            if registro is None or registro["revocado"] or registro["expires_at"] < datetime.now(timezone.utc):
-                raise HTTPException(401, "Sesión inválida, iniciá sesión de nuevo")
+        if registro is None or registro["revocado"] or registro["expires_at"] < datetime.now(timezone.utc):
+            raise HTTPException(401, "Sesión inválida, iniciá sesión de nuevo")
 
-            refresh_token_repo.revocar_token(cur, registro["id"])
+        refresh_token_repo.revocar_token(cur, registro["id"])
 
-            usuario = usuario_repo.buscar_por_id(cur, registro["usuario_id"])
-            tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
+        usuario = usuario_repo.buscar_por_id(cur, registro["usuario_id"])
+        tokens = _crear_tokens_login(cur, usuario["id"], usuario["rol"])
     return tokens
 
 def cerrar_sesion(refresh_token):
-    # Cierra sesión, revoca refresh token
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            token_hash = hashear_sha256(refresh_token)
-            registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
-            if registro is not None and not registro["revocado"]:
-                refresh_token_repo.revocar_token(cur, registro["id"])
+    with get_cursor() as cur:
+        token_hash = hashear_sha256(refresh_token)
+        registro = refresh_token_repo.buscar_por_token_hash(cur, token_hash)
+        if registro is not None and not registro["revocado"]:
+            refresh_token_repo.revocar_token(cur, registro["id"])
 
 def cerrar_sesion_global(usuario_id):
-    with get_connection() as conn:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            refresh_token_repo.revocar_todos_los_tokens(cur, usuario_id)
+    with get_cursor() as cur:
+        refresh_token_repo.revocar_todos_los_tokens(cur, usuario_id)
     return {"status": "ok"}
