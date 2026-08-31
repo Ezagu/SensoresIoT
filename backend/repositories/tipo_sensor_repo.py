@@ -1,15 +1,15 @@
 import psycopg2.errors
 from fastapi import HTTPException
 
-def crear(cur, nombre, unidad, valor_min, valor_max) -> dict:
+def crear(cur, nombre, unidad) -> dict:
     try:
         cur.execute(
         """
-        INSERT INTO tipos_sensor (nombre, unidad, valor_min, valor_max)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO tipos_sensor (nombre, unidad)
+        VALUES (%s, %s)
         RETURNING *
         """,
-        (nombre, unidad, valor_min, valor_max)
+        (nombre, unidad)
         )
         return cur.fetchone()
     except psycopg2.errors.UniqueViolation:

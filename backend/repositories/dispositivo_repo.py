@@ -4,6 +4,14 @@ from core.security import generar_secret
 
 COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at, intervalo_configurado_seg"
 
+def buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id) -> str | None:
+    cur.execute(
+        "SELECT rol FROM usuario_dispositivo WHERE dispositivo_id = %s AND usuario_id = %s",
+        (dispositivo_id, usuario_id)
+    )
+    fila = cur.fetchone()
+    return fila["rol"] if fila else None
+
 def verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id) -> bool:
     cur.execute(
         """

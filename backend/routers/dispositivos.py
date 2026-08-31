@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Optional
 from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut, IntervaloUpdate
 from schemas.sensor import SensorOut
-from services import dispositivo_service, exportacion_service
+from schemas.alerta import AlertaConNotificarOut, AlertaEventosConContextoOut
+from services import dispositivo_service, exportacion_service, alerta_service
 from core.deps import get_usuario_admin, get_usuario_actual, get_dispositivo_autenticado
 from core.limiter import limiter
 
@@ -31,6 +32,23 @@ def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(g
 @router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
 def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.obtener_sensores(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.get("/{dispositivo_id}/alertas", response_model=list[AlertaConNotificarOut])
+def get_alertas(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    return alerta_service.listar_por_dispositivo(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.get("/{dispositivo_id}/alertas/eventos", response_model=AlertaEventosConContextoOut)
+def get_alertas_eventos(
+    dispositivo_id: UUID,
+    hasta: Optional[datetime] = None,
+    cursor: Optional[datetime] = None,
+    limite: Optional[int] = 50,
+    usuario_actual: dict = Depends(get_usuario_actual)
+):
+    # Historial de todas las alertas del equipo, no de una sola.
+    return alerta_service.eventos_por_dispositivo(
+        dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], hasta, cursor, limite
+    )
 
 @router.get("/{dispositivo_id}/exportar")
 @limiter.limit("20/hour")

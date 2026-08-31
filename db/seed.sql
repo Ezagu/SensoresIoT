@@ -1,6 +1,6 @@
 -- 1. Un tipo de sensor
-INSERT INTO tipos_sensor (nombre, unidad, valor_min, valor_max)
-VALUES ('temperatura', '°C', -10, 50);
+INSERT INTO tipos_sensor (nombre, unidad)
+VALUES ('temperatura', '°C');
 
 -- 2. Un usuario dueño
 INSERT INTO usuarios (nombre, email, password)

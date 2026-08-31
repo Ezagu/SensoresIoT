@@ -8,14 +8,14 @@ from db import get_cursor
 LIMITE_DEFAULT_HISTORIAL = 50
 LIMITE_MAXIMO_HISTORIAL = 200
 
-def _validar_que_exista_sensor(cur, sensor_id) -> dict:
+def validar_que_exista_sensor(cur, sensor_id) -> dict:
     sensor = sensor_repo.buscar_por_id(cur, sensor_id)
     if sensor is None:
         raise HTTPException(404, "El sensor no existe")
     return sensor
 
 def _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol) -> dict:
-    sensor = _validar_que_exista_sensor(cur, sensor_id)
+    sensor = validar_que_exista_sensor(cur, sensor_id)
     if not dispositivo_service.tiene_acceso_a_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol):
         raise HTTPException(403, "No tienes acceso a este recurso")
     return sensor

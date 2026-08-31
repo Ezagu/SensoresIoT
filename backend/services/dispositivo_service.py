@@ -4,6 +4,7 @@ from services import plan_service
 from db import get_cursor
 
 INTERVALO_MAXIMO_SEG = 24 * 60 * 60
+ROLES_EDICION = ("admin", "owner", "editor")
 
 def _validar_que_exista_dispositivo(cur, dispositivo_id) -> dict:
     dispositivo = dispositivo_repo.buscar_por_id_publico(cur, dispositivo_id)
@@ -21,6 +22,13 @@ def tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
     es_owner = dispositivo_repo.verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id)
     es_admin = rol == "admin"
     return es_owner or es_admin
+
+def rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> str | None:
+    # 'admin' | 'owner' | 'editor' | 'viewer' | None (sin acceso). Admin
+    # primero: es soporte, no pasa por usuario_dispositivo.
+    if rol == "admin":
+        return "admin"
+    return dispositivo_repo.buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id)
 
 def crear_dispositivo(dispositivo) -> dict:
     with get_cursor() as cur:

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import mediciones, usuarios, tipos_sensor, sensores, dispositivos, auth, planes
+from routers import mediciones, usuarios, tipos_sensor, sensores, dispositivos, auth, planes, alertas
 from core.config import get_cors_origins
 from core.limiter import limiter
 from slowapi.errors import RateLimitExceeded
@@ -28,3 +28,4 @@ app.include_router(sensores.router, prefix="/sensores", tags=["sensores"])
 app.include_router(tipos_sensor.router, prefix="/tipos-sensor", tags=["tipos_sensor"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(planes.router, prefix="/planes", tags=["planes"])
+app.include_router(alertas.router, prefix="/alertas", tags=["alertas"])

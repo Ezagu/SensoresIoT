@@ -65,9 +65,7 @@ WHERE rol = 'owner';
 CREATE TABLE tipos_sensor (
     id                  SERIAL PRIMARY KEY,
     nombre              TEXT NOT NULL UNIQUE,
-    unidad              TEXT NOT NULL,
-    valor_min           NUMERIC,
-    valor_max           NUMERIC
+    unidad              TEXT NOT NULL
 );
 
 -- ====================================================================
@@ -237,3 +235,65 @@ INSERT INTO planes (id, nombre, dispositivos_incluidos, retencion_dias, interval
                     puede_alertas, max_alertas, puede_compartir, puede_exportar)
 VALUES ('free',    'Free',    NULL, 7,    60, false, 0,    false, true),
        ('premium', 'Premium', NULL, NULL, 15, true,  NULL, true,  true);
+
+-- ====================================================================
+-- 8. ALERTAS POR UMBRAL (Tier 4.3) — la regla pertenece al DISPOSITIVO, no a
+-- quien la creó: un equipo se comparte entre varias personas (owner/editor la
+-- administran, viewer sólo ve — ver dispositivo_service.rol_en_dispositivo).
+-- ====================================================================
+CREATE TABLE alertas (
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sensor_id             UUID NOT NULL REFERENCES sensores(id) ON DELETE CASCADE,
+    -- Sólo informativo (quién la armó); ON DELETE SET NULL porque borrar a esa
+    -- persona no puede borrar una alerta que protege el equipo de otra.
+    creado_por            UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    nombre                TEXT,
+    condicion             TEXT NOT NULL CHECK (condicion IN ('mayor', 'menor')),
+    umbral                DOUBLE PRECISION NOT NULL,
+    histeresis            DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (histeresis >= 0),
+    activa                BOOLEAN NOT NULL DEFAULT true,
+    -- Estado de la máquina normal/disparada: la evaluación es stateless por
+    -- request, así que la transición sólo se puede detectar si se persiste.
+    estado                TEXT NOT NULL DEFAULT 'normal' CHECK (estado IN ('normal', 'disparada')),
+    estado_desde          TIMESTAMPTZ,
+    ultimo_valor          DOUBLE PRECISION,
+    -- `time` de la última lectura evaluada (no now()): evita reevaluar una
+    -- lectura dos veces y evita que un lote desordenado retroceda el estado.
+    ultima_evaluacion_at  TIMESTAMPTZ,
+    ultima_notificacion_at TIMESTAMPTZ,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Parcial (WHERE activa): sirve al hot path de evaluación en crear_medicion.
+CREATE INDEX idx_alertas_sensor_activa ON alertas (sensor_id) WHERE activa;
+-- Completo: sirve a los listados por dispositivo, que también muestran inactivas.
+CREATE INDEX idx_alertas_sensor ON alertas (sensor_id);
+
+-- Preferencia de notificación por usuario. Sin fila = notificar (opt-out): si
+-- se insertara una fila por usuario al crear la alerta, alguien a quien le
+-- comparten el equipo después no recibiría nada hasta un backfill manual.
+CREATE TABLE alerta_preferencias (
+    alerta_id  UUID NOT NULL REFERENCES alertas(id) ON DELETE CASCADE,
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    notificar  BOOLEAN NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (alerta_id, usuario_id)
+);
+
+CREATE TABLE alerta_eventos (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    alerta_id     UUID NOT NULL REFERENCES alertas(id) ON DELETE CASCADE,
+    tipo          TEXT NOT NULL CHECK (tipo IN ('disparada', 'normalizada')),
+    valor         DOUBLE PRECISION NOT NULL,
+    medicion_at   TIMESTAMPTZ NOT NULL,  -- `time` de la lectura que causó la transición
+    detectado_at  TIMESTAMPTZ NOT NULL,  -- cuándo la evaluó el backend
+    tardio        BOOLEAN NOT NULL DEFAULT false,
+    -- Varios destinatarios posibles (todos los que tienen acceso al equipo,
+    -- menos quien se dio de baja): un booleano no alcanza para saber si el
+    -- envío falló para alguno.
+    destinatarios INTEGER NOT NULL DEFAULT 0,
+    notificados   INTEGER NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_alerta_eventos_alerta ON alerta_eventos (alerta_id, medicion_at DESC);
