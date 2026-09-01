@@ -11,6 +11,7 @@ import { Vincular } from '@/features/dispositivo/Vincular'
 import { Alertas } from '@/features/alertas/Alertas'
 import { PlanPagina } from '@/features/plan/PlanPagina'
 import { Ajustes } from '@/features/cuenta/Ajustes'
+import { Cuenta } from '@/features/cuenta/Cuenta'
 
 function Guardia() {
   const { estado } = useSesion()
@@ -63,6 +64,9 @@ export default function App() {
             </Route>
             <Route element={<Layout titulo="Ajustes" />}>
               <Route path="/ajustes" element={<Ajustes />} />
+            </Route>
+            <Route element={<Layout titulo="Mi cuenta" />}>
+              <Route path="/cuenta" element={<Cuenta />} />
             </Route>
           </Route>
 

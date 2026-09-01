@@ -108,6 +108,22 @@ def loguear(email: str, password: str):
 
     return tokens
 
+def obtener_sesion(usuario_id, rol) -> dict:
+    with get_cursor() as cur:
+        usuario = usuario_repo.buscar_por_id(cur, usuario_id)
+        if usuario is None:
+            raise HTTPException(401, "Sesión inválida, iniciá sesión de nuevo")
+
+    # El rol sale del token y no de la fila: es el que rige en las dependencias
+    # de autorización hasta que el access token expire, así que devolver otro
+    # haría que la UI y los permisos reales no coincidan.
+    return {
+        "usuario_id": usuario["id"],
+        "nombre": usuario["nombre"],
+        "email": usuario["email"],
+        "rol": rol,
+    }
+
 def refrescar_sesion(refresh_token):
     with get_cursor() as cur:
         token_hash = hashear_sha256(refresh_token)

@@ -25,17 +25,18 @@ ENCABEZADO = "// GENERADO por esp/generar_sketches.py desde programa_base.ino �
 # índice con el que el firmware bufferea la lectura y con el que después resuelve el UUID.
 SKETCHES = {
     "programa_ath10": {
-        "dispositivo_id": "92a5117d-371c-4607-8983-a08096e7f288",
-        "secret": "54d5903635ebc48a72aaff51276e5f735a48afce0d2177e95c060282125175a6",
+        "dispositivo_id": "5e97ef75-0c52-49de-a4c7-457a4320db0e",
+        "secret": "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a",
         "sensores": [
-            ("SENSOR_TEMP", "91af44b5-657c-4349-8003-ff4d6cd7c796", "temperatura"),
-            ("SENSOR_HUM", "250b0c4b-11c3-4d84-bd4c-0e740d21898a", "humedad"),
+            ("SENSOR_TEMP", "e06eebf0-20ae-41fc-b3d8-59c405d60984", "temperatura"),
+            ("SENSOR_HUM", "85907302-7ee1-4011-9224-0886c733c534", "humedad"),
         ],
         "include": "#include <Adafruit_AHT10.h>",
         "declaracion": "Adafruit_AHT10 aht;",
-        "init": """if (!aht.begin()) {
+        # El &Wire es el bus que abrió el template con los pines de la placa.
+        "init": """if (!aht.begin(&Wire)) {
   Serial.println("[ERROR] AHT10 no detectado. Verifica las conexiones.");
-  while (1) delay(10);
+  while (1) delay(50);
 }
 Serial.println("[OK] AHT10 inicializado.");""",
         "lectura": "leerAHT10();",
@@ -71,9 +72,10 @@ Serial.println("[OK] AHT10 inicializado.");""",
         ],
         "include": "#include <Adafruit_BMP085.h>",
         "declaracion": "Adafruit_BMP085 bmp;",
-        "init": """if (!bmp.begin()) {
+        # Mismo bus que el AHT10: los pines los fija PIN_SDA/PIN_SCL del template.
+        "init": """if (!bmp.begin(BMP085_ULTRAHIGHRES, &Wire)) {
   Serial.println("[ERROR] BMP085 no detectado. Verifica conexiones I2C.");
-  Serial.println("  SDA → GPIO21 | SCL → GPIO22 | VCC → 3.3V | GND → GND");
+  Serial.printf("  SDA -> GPIO%d | SCL -> GPIO%d | VCC -> 3.3V | GND -> GND\\n", PIN_SDA, PIN_SCL);
   while (1) delay(1000);
 }
 Serial.println("[OK] BMP085 inicializado.");""",

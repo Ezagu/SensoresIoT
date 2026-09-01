@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useSesion } from '@/lib/auth'
 import {
   IconoAjustes,
   IconoAlerta,
   IconoCerrar,
-  IconoCuenta,
   IconoEquipo,
   IconoMenu,
   IconoPanel,
@@ -12,6 +12,17 @@ import {
 } from './iconos'
 
 const ESCRITORIO = '(min-width: 1024px)'
+
+/* Iniciales para el avatar: dos como máximo, y el fallback es una interrogación
+   porque el nombre puede no haber llegado todavía. */
+function iniciales(nombre?: string) {
+  const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return '?'
+  return partes
+    .slice(0, 2)
+    .map((p) => p[0].toUpperCase())
+    .join('')
+}
 
 const NAV = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel, grupo: 'Monitoreo' },
@@ -25,10 +36,11 @@ const NAV_INFERIOR = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
   { a: '/equipos', etiqueta: 'Equipos', Icono: IconoEquipo },
   { a: '/alertas', etiqueta: 'Alertas', Icono: IconoAlerta },
-  { a: '/ajustes', etiqueta: 'Cuenta', Icono: IconoCuenta },
+  { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
 
 export function Layout({ titulo }: { titulo: string }) {
+  const { sesion, plan } = useSesion()
   const [abierto, setAbierto] = useState(false)
   const [esEscritorio, setEsEscritorio] = useState(() => window.matchMedia(ESCRITORIO).matches)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -153,14 +165,32 @@ export function Layout({ titulo }: { titulo: string }) {
             ))}
           </nav>
 
-          <div className="mt-auto flex items-center gap-2.5 border-t border-border px-2 py-2.5">
-            <div className="flex size-7.5 shrink-0 items-center justify-center rounded-[8px] bg-linear-to-br from-[#4C7DFF] to-[#8B5CF6] font-display text-[12.5px] font-bold text-white">
-              ?
-            </div>
-            <div className="flex min-w-0 flex-col">
-              <strong className="truncate text-[12.5px] font-medium text-text">Mi cuenta</strong>
-              <small className="text-[11px] text-text-faint">Sesión iniciada</small>
-            </div>
+          <div className="mt-auto border-t border-border pt-2.5">
+            <NavLink
+              to="/cuenta"
+              className={({ isActive }) =>
+                `flex items-center gap-2.5 rounded-[8px] px-2 py-2 transition-colors duration-150 ${
+                  isActive ? 'bg-accent-soft' : 'hover:bg-surface-2'
+                }`
+              }
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-7.5 shrink-0 items-center justify-center rounded-[8px] bg-linear-to-br from-[#4C7DFF] to-[#8B5CF6] font-display text-[12.5px] font-bold text-white"
+              >
+                {iniciales(sesion?.nombre)}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <strong className="truncate text-[12.5px] font-medium text-text">
+                  {sesion?.nombre ?? 'Mi cuenta'}
+                </strong>
+                {/* El espacio duro reserva el renglón mientras carga el plan,
+                    para que el bloque no crezca después de montar. */}
+                <small className="truncate text-[11px] text-text-faint">
+                {plan ? `Plan ${plan.plan.nombre}` : ' '}
+                </small>
+              </span>
+            </NavLink>
           </div>
         </aside>
 

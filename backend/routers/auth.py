@@ -67,10 +67,7 @@ def logout(request: Request, response: Response):
 
 @router.get("/me")
 def me(usuario_actual: dict = Depends(get_usuario_actual)):
-    return {
-        "usuario_id": usuario_actual["sub"],
-        "rol": usuario_actual["rol"],
-    }
+    return auth_service.obtener_sesion(usuario_actual["sub"], usuario_actual["rol"])
 
 @router.post("/global-logout")
 def logout_all(usuario_actual: dict = Depends(get_usuario_actual)):

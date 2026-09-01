@@ -16,17 +16,22 @@ const char* AP_PASSWORD   = "sensores2024";       // mínimo 8 caracteres
 
 // IP local de tu PC con Docker Desktop (no uses "localhost")
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
-const char* API_BASE      = "http://192.168.1.3:8000";
+const char* API_BASE      = "http://192.168.1.4:8000";
 
-const char* DISPOSITIVO_ID = "92a5117d-371c-4607-8983-a08096e7f288";
+// Pines del bus I2C según cómo está cableada la placa. El default del ESP32 es
+// 21/22, así que sin esto las librerías abren el bus en los pines equivocados.
+const int  PIN_SDA = 22;
+const int  PIN_SCL = 23;
+
+const char* DISPOSITIVO_ID = "5e97ef75-0c52-49de-a4c7-457a4320db0e";
 // Secret de fábrica. Después de la primera rotación manda el que está en NVS.
-const char* SECRET_DISPOSITIVO_INICIAL = "54d5903635ebc48a72aaff51276e5f735a48afce0d2177e95c060282125175a6";
+const char* SECRET_DISPOSITIVO_INICIAL = "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a";
 
 // Índices con los que el firmware bufferea; SENSOR_IDS traduce índice → UUID al enviar.
 enum SensorIdx { SENSOR_TEMP, SENSOR_HUM, CANT_SENSORES };
 const char* SENSOR_IDS[CANT_SENSORES] = {
-  "91af44b5-657c-4349-8003-ff4d6cd7c796",  // temperatura
-  "250b0c4b-11c3-4d84-bd4c-0e740d21898a"  // humedad
+  "e06eebf0-20ae-41fc-b3d8-59c405d60984",  // temperatura
+  "85907302-7ee1-4011-9224-0886c733c534"  // humedad
 };
 
 unsigned long  intervaloMedicionMs = 60000;       // ms entre lecturas (lo ajusta el backend)
@@ -99,9 +104,15 @@ void setup() {
 
   Serial.println("Iniciando módulos");
 
-  if (!aht.begin()) {
+  // El bus se abre una sola vez acá y no dentro de cada librería: todos los
+  // sensores lo comparten. La pausa le da tiempo al sensor a levantar antes
+  // del primer handshake, que si no falla y el equipo queda colgado.
+  Wire.begin(PIN_SDA, PIN_SCL);
+  delay(100);
+
+  if (!aht.begin(&Wire)) {
     Serial.println("[ERROR] AHT10 no detectado. Verifica las conexiones.");
-    while (1) delay(10);
+    while (1) delay(50);
   }
   Serial.println("[OK] AHT10 inicializado.");
 

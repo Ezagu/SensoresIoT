@@ -15,7 +15,12 @@ const char* AP_PASSWORD   = "sensores2024";       // mínimo 8 caracteres
 
 // IP local de tu PC con Docker Desktop (no uses "localhost")
 // Ejecuta `ipconfig` en Windows y usa la IP de tu adaptador WiFi/Ethernet
-const char* API_BASE      = "http://192.168.1.3:8000";
+const char* API_BASE      = "http://192.168.1.4:8000";
+
+// Pines del bus I2C según cómo está cableada la placa. El default del ESP32 es
+// 21/22, así que sin esto las librerías abren el bus en los pines equivocados.
+const int  PIN_SDA = 22;
+const int  PIN_SCL = 23;
 
 const char* DISPOSITIVO_ID = // Replace;
 // Secret de fábrica. Después de la primera rotación manda el que está en NVS.
@@ -92,6 +97,12 @@ void setup() {
   cargarSecret();
 
   Serial.println("Iniciando módulos");
+
+  // El bus se abre una sola vez acá y no dentro de cada librería: todos los
+  // sensores lo comparten. La pausa le da tiempo al sensor a levantar antes
+  // del primer handshake, que si no falla y el equipo queda colgado.
+  Wire.begin(PIN_SDA, PIN_SCL);
+  delay(100);
 
   // Replace -> Inicialización de módulos
 

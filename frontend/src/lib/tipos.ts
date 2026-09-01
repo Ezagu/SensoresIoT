@@ -13,10 +13,12 @@ export type Usuario = {
   is_verified: boolean
 }
 
-/* GET /auth/me sólo devuelve esto: sale del JWT, no de la DB.
-   No hay ningún endpoint no-admin que devuelva nombre ni email. */
+/* GET /auth/me. nombre y email salen de la fila; rol sale del JWT, que es el
+   que efectivamente rige en la autorización hasta que expire el access token. */
 export type SesionActual = {
   usuario_id: string
+  nombre: string
+  email: string
   rol: Rol
 }
 
