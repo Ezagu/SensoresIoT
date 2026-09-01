@@ -4,7 +4,8 @@ import { useId } from 'react'
    - Un hueco (null) corta el trazo en tramos separados, nunca se interpola:
      el silencio de un equipo tiene que verse, y hoy no existe alerta de
      "dejó de reportar" que lo cubra.
-   - Los tramos que superan el umbral se remarcan en danger encima del trazo.
+   - Los tramos que violan el umbral se remarcan en danger encima del trazo;
+     de qué lado se viola lo decide `condicion`, igual que la regla de alerta.
    El viewBox es fijo y escala solo por CSS, así que no hace falta medir ancho
    ni recalcular en resize. */
 
@@ -17,12 +18,13 @@ type Props = {
   valores: (number | null)[]
   color: string
   umbral?: number | null
+  condicion?: 'mayor' | 'menor' | null
   className?: string
 }
 
 type Punto = { i: number; v: number }
 
-export function Tira({ valores, color, umbral, className = '' }: Props) {
+export function Tira({ valores, color, umbral, condicion = 'mayor', className = '' }: Props) {
   const uid = useId().replace(/:/g, '')
   const finitos = valores.filter((v): v is number => v !== null)
   if (finitos.length === 0) return <div className={className} />
@@ -49,7 +51,9 @@ export function Tira({ valores, color, umbral, className = '' }: Props) {
     actual.push({ i, v })
   })
 
-  const hayUmbral = umbral !== undefined && umbral !== null
+  const limite = umbral ?? null
+  const viola = (v: number) =>
+    limite !== null && (condicion === 'menor' ? v < limite : v > limite)
   const baseY = H - PAD_BOTTOM
 
   return (
@@ -66,12 +70,12 @@ export function Tira({ valores, color, umbral, className = '' }: Props) {
         </linearGradient>
       </defs>
 
-      {hayUmbral && umbral > min && umbral < max && (
+      {limite !== null && limite > min && limite < max && (
         <line
           x1="0"
-          y1={y(umbral)}
+          y1={y(limite)}
           x2={W}
-          y2={y(umbral)}
+          y2={y(limite)}
           stroke="var(--color-danger)"
           strokeOpacity={0.35}
           strokeWidth={1}
@@ -90,12 +94,12 @@ export function Tira({ valores, color, umbral, className = '' }: Props) {
         const primero = tramo[0]
         const ultimo = tramo[tramo.length - 1]
 
-        /* Sub-tramos por encima del umbral, para remarcarlos sin repintar todo */
+        /* Sub-tramos del lado malo del umbral, para remarcarlos sin repintar todo */
         const excedidos: Punto[][] = []
-        if (hayUmbral) {
+        if (limite !== null) {
           let run: Punto[] | null = null
           for (const p of tramo) {
-            if (p.v > umbral) {
+            if (viola(p.v)) {
               if (!run) {
                 run = []
                 excedidos.push(run)

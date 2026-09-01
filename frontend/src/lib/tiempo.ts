@@ -33,9 +33,10 @@ export type EstadoDispositivo = 'nunca' | 'en-linea' | 'retraso' | 'sin-reportar
 export function estadoDispositivo(
   lastSeenAt: string | null,
   intervaloSeg: number,
+  ahora: number = Date.now(),
 ): EstadoDispositivo {
   if (!lastSeenAt) return 'nunca'
-  const transcurrido = (Date.now() - new Date(lastSeenAt).getTime()) / 1000
+  const transcurrido = (ahora - new Date(lastSeenAt).getTime()) / 1000
   if (transcurrido < intervaloSeg * 3) return 'en-linea'
   if (transcurrido < intervaloSeg * 12) return 'retraso'
   return 'sin-reportar'
