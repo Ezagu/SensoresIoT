@@ -28,6 +28,7 @@ services:
     environment:
       DB_HOST: timescaledb
       DB_PORT: "5432"
+      ENTORNO: development
     depends_on:
       timescaledb:
         condition: service_healthy

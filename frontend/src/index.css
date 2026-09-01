@@ -1,0 +1,183 @@
+@import 'tailwindcss';
+
+/* Los tokens se declaran en @theme para que Tailwind genere utilidades
+   (bg-surface, text-text-muted, border-border…) y además queden como custom
+   properties reasignables por tema más abajo. Los valores acá son el tema
+   oscuro: el diseño es dark-first. */
+@theme {
+  --color-bg: #0b0d12;
+  --color-surface: #12151d;
+  --color-surface-2: #191d27;
+  --color-sidebar: #07080c;
+  --color-border: #242a36;
+  --color-border-strong: #333b4a;
+
+  --color-text: #e8ebf0;
+  --color-text-muted: #8d96a8;
+  --color-text-faint: #5c6577;
+
+  /* accent es el tono claro para texto/íconos/foco; accent-strong el relleno
+     sólido donde va texto blanco encima (el claro no llega a 4.5:1 con blanco). */
+  --color-accent: #6c93ff;
+  --color-accent-strong: #3d68e6;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(108, 147, 255, 0.16);
+
+  --color-ok: #29c07a;
+  --color-ok-soft: rgba(41, 192, 122, 0.14);
+  --color-warn: #f0a62b;
+  --color-warn-soft: rgba(240, 166, 43, 0.14);
+  --color-danger: #f2544b;
+  --color-danger-soft: rgba(242, 84, 75, 0.14);
+
+  /* Hue fijo por tipo de sensor: el mismo tipo lleva el mismo color en toda la
+     app, y ningún sensor usa el hue del chrome. Ver lib/sensores.ts */
+  --color-sensor-temperatura: #f97316;
+  --color-sensor-humedad: #22c6e0;
+  --color-sensor-presion: #94a3b8;
+  --color-sensor-co2: #a78bfa;
+  --color-sensor-luz: #eab308;
+  --color-sensor-ruido: #f472b6;
+
+  --font-display: 'Space Grotesk', ui-sans-serif, sans-serif;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --radius-card: 12px;
+  --radius-control: 8px;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+/* Tema claro: explícito por atributo, y por preferencia del sistema cuando no
+   hay elección guardada. Sólo se reasignan tokens, nunca reglas de componente. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-bg: #f4f6fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #edf0f6;
+  --color-sidebar: #ffffff;
+  --color-border: #e1e6ee;
+  --color-border-strong: #c9d1de;
+
+  --color-text: #131720;
+  --color-text-muted: #5b6577;
+  --color-text-faint: #8a93a3;
+
+  --color-accent: #2b5ce6;
+  --color-accent-strong: #2b5ce6;
+  --color-accent-ink: #ffffff;
+  --color-accent-soft: rgba(43, 92, 230, 0.1);
+
+  --color-ok: #1b9c64;
+  --color-ok-soft: rgba(27, 156, 100, 0.1);
+  --color-warn: #b57712;
+  --color-warn-soft: rgba(181, 119, 18, 0.1);
+  --color-danger: #d53f37;
+  --color-danger-soft: rgba(213, 63, 55, 0.1);
+
+  --color-sensor-temperatura: #ea6a0a;
+  --color-sensor-humedad: #0891b2;
+  --color-sensor-presion: #64748b;
+  --color-sensor-co2: #7c3aed;
+  --color-sensor-luz: #ca8a04;
+  --color-sensor-ruido: #db2777;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    color-scheme: light;
+    --color-bg: #f4f6fa;
+    --color-surface: #ffffff;
+    --color-surface-2: #edf0f6;
+    --color-sidebar: #ffffff;
+    --color-border: #e1e6ee;
+    --color-border-strong: #c9d1de;
+
+    --color-text: #131720;
+    --color-text-muted: #5b6577;
+    --color-text-faint: #8a93a3;
+
+    --color-accent: #2b5ce6;
+    --color-accent-strong: #2b5ce6;
+    --color-accent-ink: #ffffff;
+    --color-accent-soft: rgba(43, 92, 230, 0.1);
+
+    --color-ok: #1b9c64;
+    --color-ok-soft: rgba(27, 156, 100, 0.1);
+    --color-warn: #b57712;
+    --color-warn-soft: rgba(181, 119, 18, 0.1);
+    --color-danger: #d53f37;
+    --color-danger-soft: rgba(213, 63, 55, 0.1);
+
+    --color-sensor-temperatura: #ea6a0a;
+    --color-sensor-humedad: #0891b2;
+    --color-sensor-presion: #64748b;
+    --color-sensor-co2: #7c3aed;
+    --color-sensor-luz: #ca8a04;
+    --color-sensor-ruido: #db2777;
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  /* Sin delay de doble-tap y sin el flash gris nativo, que no respeta
+     nuestros propios estados de :active */
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+  }
+
+  /* Toda cifra alineada en columna o comparable entre sí */
+  .num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

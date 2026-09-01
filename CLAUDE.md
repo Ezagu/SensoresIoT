@@ -120,8 +120,21 @@ Threshold rules on a single sensor (`mayor`/`menor`, with `histeresis`), evaluat
 - **The measurement buffer is capped at `CAPACIDAD_BUFFER = 6000` entries by a linker limit, not a design choice.** The ESP32 linker reserves a fixed, much-smaller-than-total region (`dram0_0_seg`, ~124 KB measured on this build) for global/static arrays like `Lectura buffer[N]`; `WiFiManager` + `HTTPClient` + `ArduinoJson` alone already use ~50 KB of it, so ~6150 entries is roughly the hard ceiling regardless of the chip's 320 KB of RAM — independent of the flash partition scheme above. 6000 was chosen deliberately understaying that ceiling rather than heap-allocating the buffer (`malloc` in `setup()` would lift the cap, since the heap is a separate, larger pool) — heap allocation moves a compile-time-verified limit to a runtime one (a failed `malloc` has to be handled explicitly, and a successful compile no longer proves the buffer fits), which was judged not worth it for the capacity gain. If a future order needs more autonomy than `CAPACIDAD_BUFFER` allows at its reading interval, that's a real trade-off to bring back for a decision, not something to just bump.
 
 
-## Frontend
-There is none in this repo. A throwaway Vite/React scaffold used to eyeball the chart endpoints was deleted once it had served its purpose (recoverable from git history if ever needed). The real frontends are Tier 5 of the roadmap and have not been started — do not assume any client code exists.
+## Frontend (`frontend/`) — página de consumo, Tier 5.2
+
+React 19 + Vite + TypeScript + Tailwind v4. Es **sólo la app de cliente** (`app.dominio`): la landing y el panel de admin siguen sin arrancar. El diseño está aprobado y congelado en un mockup estático previo; este código lo porta.
+
+- **Comandos** (desde `frontend/`): `npm run dev` (:5173), `npm run build`, `npx tsc --noEmit -p tsconfig.app.json`. Sin tests todavía.
+- **El proxy de Vite (`/api` → `:8000`) no es una comodidad, es un requisito**: la cookie de refresh es `httponly` + `samesite`, así que cross-origin no viaja. En dev el front tiene que quedar same-origin. `VITE_API_URL` lo sobreescribe para otros entornos.
+- **Tokens de color en `src/index.css`, dentro de `@theme`** (Tailwind v4 es CSS-first, no hay `tailwind.config.js`). Eso genera las utilidades semánticas (`bg-surface`, `text-text-muted`, `border-border`…). El tema oscuro es el default en `:root`; el claro se reasigna en `[data-theme="light"]` y bajo `prefers-color-scheme`. **Nunca poner un color literal en un componente** — si falta un tono, agregar el token.
+- **`--accent` vs `--accent-strong`**: el primero es el tono claro para texto/íconos/foco; el segundo el relleno sólido donde va texto blanco encima. No son intercambiables: el claro no llega a 4.5:1 con blanco.
+- **Un hue fijo por tipo de sensor** (`src/lib/sensores.ts`), mapeado por nombre normalizado — el casing no es confiable (`seed.sql` guarda `temperatura`, el alta por API hace `.capitalize()`). Ningún sensor usa el hue del chrome, para que el color siga significando algo.
+- **`components/graficos/Tira.tsx`** es el elemento distintivo: línea + área degradada en SVG con `viewBox` fijo (escala por CSS, no mide ancho ni escucha resize). Un hueco corta el trazo en tramos en vez de interpolar — el silencio de un equipo tiene que verse, porque no existe alerta de "dejó de reportar".
+- **`lib/api.ts`** tiene el interceptor de refresh con un solo POST en vuelo compartido: si varias requests expiran juntas, todas esperan el mismo refresh en vez de rotar el token N veces invalidándose entre sí.
+- **`lib/tiempo.ts:estadoDispositivo`** deriva online/offline, que el backend no expone. Tres estados y no un booleano (`en-linea` / `retraso` / `sin-reportar`), porque estos equipos pierden WiFi, bufferean y se ponen al día: "con retraso" casi nunca es una falla.
+- **`lib/tipos.ts` espeja `backend/schemas/`** con los nombres de campo tal cual (español, snake_case). No renombrar al importar: así un cambio de contrato salta en el type-check.
+- El drawer mobile usa `inert` en los dos sentidos (sidebar cerrada / fondo cuando está abierta) en vez de un focus trap a mano.
+- Estado actual: andamiaje + auth (login/registro/verificación) funcionando; el resto de las pantallas son estructura vacía a cablear.
 
 
 # Contexto del proyecto — Plataforma IoT (sensores ambientales)

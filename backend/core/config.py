@@ -6,6 +6,7 @@ load_dotenv()
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ENTORNO = os.getenv("ENTORNO", "production")
 
 def get_cors_origins() -> list[str]:
   origins = os.getenv("CORS_ORIGINS", "")

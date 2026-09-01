@@ -18,7 +18,7 @@ def usuario(usuario_id: UUID, usuario_admin = Depends(get_usuario_admin)):
 
 @router.get("/{usuario_id}/dispositivos", response_model=list[DispositivoOut])
 def get_dispositivos(usuario_id: UUID, usuario_actual = Depends(get_usuario_actual)):
-    if usuario_id != usuario_actual["sub"] and usuario_actual["rol"] != "admin":
+    if str(usuario_id) != usuario_actual["sub"] and usuario_actual["rol"] != "admin":
         raise HTTPException(403, "No tienes acceso a este recurso")
     return usuario_service.obtener_dispositivos_de_usuario(usuario_id)
 

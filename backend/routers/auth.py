@@ -5,16 +5,20 @@ from services import auth_service
 from core.security import REFRESH_TOKEN_EXPIRE_DAYS
 from core.deps import get_usuario_actual
 from core.limiter import limiter
+from core.config import ENTORNO
 
 router = APIRouter()
 
 def _create_refresh_token_cookie(response, refresh_token) -> None:
+    # En dev el front corre sobre http://localhost: secure=True descartaría la
+    # cookie sin avisar. samesite=lax alcanza igual porque el fetch es same-site.
+    es_dev = ENTORNO == "development"
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=True,
-        samesite="strict",
+        secure=not es_dev,
+        samesite="lax" if es_dev else "strict",
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 

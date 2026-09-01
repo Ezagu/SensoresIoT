@@ -8,3 +8,9 @@ venv/
 
 # Editor
 .vscode/
+
+# Skills instaladas localmente (npx skills add sin -g)
+.agents/skills/*
+.claude/skills/*
+!.agents/skills/refactor-plan/
+!.claude/skills/refactor-plan/
