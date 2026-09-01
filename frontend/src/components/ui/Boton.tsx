@@ -8,16 +8,16 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-[8px] font-semibold whitespace-nowrap cursor-pointer ' +
+  'inline-flex items-center justify-center gap-1.5 rounded-control font-semibold whitespace-nowrap cursor-pointer ' +
   'transition-[filter,background-color,color] duration-150 disabled:opacity-50 disabled:cursor-not-allowed'
 
 const VARIANTES: Record<Variante, string> = {
   primario:
-    'bg-accent-strong text-accent-ink text-[12.5px] min-h-9 px-3.5 shadow-sm hover:brightness-110 active:translate-y-px',
+    'bg-accent-strong text-accent-ink text-label-lg min-h-9 px-3.5 shadow-sm hover:brightness-110 active:translate-y-px',
   sutil:
-    'bg-accent-soft text-accent text-[11.5px] min-h-9 px-3.5 hover:bg-border',
+    'bg-accent-soft text-accent text-note-lg min-h-9 px-3.5 hover:bg-border',
   fantasma:
-    'bg-transparent text-text-muted text-[12.5px] min-h-9 px-3 border border-border hover:text-text hover:border-border-strong',
+    'bg-transparent text-text-muted text-label-lg min-h-9 px-3 border border-border hover:text-text hover:border-border-strong',
 }
 
 export function Boton({ variante = 'primario', className = '', children, ...props }: Props) {

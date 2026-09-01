@@ -2,7 +2,7 @@ import { useId } from 'react'
 
 /* La tira: línea continua + área degradada del mismo color.
    - Un hueco (null) corta el trazo en tramos separados, nunca se interpola:
-     el silencio de un equipo tiene que verse, y hoy no existe alerta de
+     el silencio de un dispositivo tiene que verse, y hoy no existe alerta de
      "dejó de reportar" que lo cubra.
    - Los tramos que violan el umbral se remarcan en danger encima del trazo;
      de qué lado se viola lo decide `condicion`, igual que la regla de alerta.

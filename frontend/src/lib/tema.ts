@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useMediaQuery } from './medios'
 
 export type Tema = 'sistema' | 'claro' | 'oscuro'
 
 const CLAVE = 'bitacora-tema'
+const CLARO_DEL_SISTEMA = '(prefers-color-scheme: light)'
 
-function aplicar(tema: Tema) {
-  const root = document.documentElement
-  if (tema === 'sistema') root.removeAttribute('data-theme')
-  else root.setAttribute('data-theme', tema === 'claro' ? 'light' : 'dark')
+/* data-theme queda siempre puesto con un tema concreto: así el CSS define la
+   paleta clara en un solo lugar, sin duplicarla en un @media. El stamp previo
+   al primer paint lo hace el script inline de index.html. */
+function aplicar(tema: Tema, claroDelSistema: boolean) {
+  const claro = tema === 'claro' || (tema === 'sistema' && claroDelSistema)
+  document.documentElement.dataset.theme = claro ? 'light' : 'dark'
 }
 
 function guardado(): Tema {
@@ -22,9 +26,14 @@ function guardado(): Tema {
 
 export function useTema() {
   const [tema, setTema] = useState<Tema>(guardado)
+  /* Con "sistema" el seguimiento del SO ya no lo hace el CSS, hay que leerlo */
+  const claroDelSistema = useMediaQuery(CLARO_DEL_SISTEMA)
 
   useEffect(() => {
-    aplicar(tema)
+    aplicar(tema, claroDelSistema)
+  }, [tema, claroDelSistema])
+
+  useEffect(() => {
     try {
       localStorage.setItem(CLAVE, tema)
     } catch {
@@ -33,9 +42,4 @@ export function useTema() {
   }, [tema])
 
   return { tema, cambiarTema: useCallback((t: Tema) => setTema(t), []) }
-}
-
-/* Se aplica antes del primer render para no pintar un flash del tema opuesto */
-export function aplicarTemaGuardado() {
-  aplicar(guardado())
 }

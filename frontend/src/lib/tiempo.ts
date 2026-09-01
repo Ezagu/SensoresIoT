@@ -1,6 +1,13 @@
 const rtf = new Intl.RelativeTimeFormat('es-AR', { numeric: 'auto', style: 'narrow' })
 const fmtFecha = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', year: 'numeric' })
-const fmtHora = new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit' })
+const fmtFechaCorta = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short' })
+/* hourCycle h23 y no el default de es-AR: son datos de instrumental, y "02:35"
+   sin am/pm no se puede confundir con las 14:35 al leer un eje o un evento. */
+const fmtHora = new Intl.DateTimeFormat('es-AR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+})
 
 export function haceCuanto(iso: string | null): string {
   if (!iso) return 'nunca'
@@ -20,13 +27,25 @@ export function fechaHora(iso: string): string {
   return `${fmtFecha.format(d)} ${fmtHora.format(d)}`
 }
 
+/* Sólo la hora, para el eje X del gráfico en el rango de 24 h (la fecha ahí es
+   ruido: todo el rango cae en el mismo día o el anterior). */
+export function hora(ms: number): string {
+  return fmtHora.format(new Date(ms))
+}
+
+/* Sólo día y mes, para el eje X en 7 d / 30 d (mismo criterio: la hora y el
+   año son ruido cuando cada tick representa un día entero). */
+export function fechaCorta(ms: number): string {
+  return fmtFechaCorta.format(new Date(ms))
+}
+
 export type EstadoDispositivo = 'nunca' | 'en-linea' | 'retraso' | 'sin-reportar'
 
 /* No existe online/offline en el backend: se deriva de last_seen_at, que es el
    now() del servidor en cada POST aceptado (nunca el time de la lectura, para
-   que un flush de datos viejos no marque como caído a un equipo que acaba de
+   que un flush de datos viejos no marque como caído a un dispositivo que acaba de
    reportar).
-   Tres estados y no un booleano porque así fallan estos equipos: pierden WiFi,
+   Tres estados y no un booleano porque así fallan estos dispositivos: pierden WiFi,
    bufferean y se ponen al día — "con retraso" casi nunca es una falla real.
    El piso real sale del plan del DUEÑO y no se expone, así que intervaloSeg es
    una aproximación; hoy es exacta porque todo vínculo es 'owner'. */

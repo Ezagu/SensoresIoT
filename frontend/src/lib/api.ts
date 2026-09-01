@@ -84,6 +84,33 @@ export function mensajeDeError(error: unknown, porDefecto = 'Algo falló. Probá
   return porDefecto
 }
 
+export function estadoHttp(error: unknown): number | undefined {
+  return axios.isAxiosError(error) ? error.response?.status : undefined
+}
+
+/* Con `responseType: 'blob'` (export CSV) el cuerpo de un error también llega
+   como Blob: mensajeDeError no encuentra `detail` ahí y devuelve el texto por
+   default. El endpoint tiene rate limit (20/hora), así que perder el mensaje
+   real hace indistinguible un 429 de un fallo genérico. */
+export async function mensajeDeErrorBlob(
+  error: unknown,
+  porDefecto = 'Algo falló. Probá de nuevo.',
+): Promise<string> {
+  if (!axios.isAxiosError(error)) return porDefecto
+  if (!error.response) return 'No se pudo conectar con el servidor.'
+
+  const datos = error.response.data as unknown
+  if (!(datos instanceof Blob)) return mensajeDeError(error, porDefecto)
+
+  try {
+    const texto = await datos.text()
+    const detail = (JSON.parse(texto) as { detail?: unknown })?.detail
+    return typeof detail === 'string' ? detail : porDefecto
+  } catch {
+    return porDefecto
+  }
+}
+
 /* El 429 del lockout de login no viene de slowapi sino del service, y se
    distingue sólo por el texto — el de slowapi es un rate limit por IP. */
 export function esCuentaBloqueada(error: unknown): boolean {

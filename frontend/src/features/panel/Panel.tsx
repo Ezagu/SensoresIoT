@@ -5,16 +5,16 @@ import { Boton } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { IconoAlerta, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
-import { intervaloEfectivo, useEquipos } from '@/lib/equipos'
+import { intervaloEfectivo, useDispositivos, type DispositivoPanel } from '@/lib/dispositivos'
 import { useAhora } from '@/lib/usarCarga'
-import { estadoDispositivo, haceCuanto } from '@/lib/tiempo'
+import { estadoDispositivo, haceCuanto, type EstadoDispositivo } from '@/lib/tiempo'
 import { useSesion } from '@/lib/auth'
-import { TarjetaEquipo } from './TarjetaEquipo'
+import { TarjetaDispositivo } from './TarjetaDispositivo'
 import type { ReactNode } from 'react'
 
-/* Los datos se piden una vez al montar; lo único que se refresca solo es lo que
-   se deriva de la hora (estado de conexión y "hace X"), que si no envejece
-   mintiendo con la pestaña abierta. */
+/* Los datos hacen poll solos (ver POLL_PANEL_MS en lib/dispositivos.ts); este tic es
+   más fino, sólo para lo que se deriva de la hora (estado de conexión y
+   "hace X"), que si no envejece mintiendo entre un poll y el siguiente. */
 const TIC_MS = 30_000
 
 /* Los 3 indicadores del resumen. Nada de deltas porcentuales: un +5% sobre una
@@ -33,20 +33,20 @@ function Kpi({
   const color = tono ? { ok: 'text-ok', warn: 'text-warn', danger: 'text-danger' }[tono] : ''
   return (
     <Card className="flex min-w-0 flex-col gap-1.5 p-3 md:flex-row md:items-center md:gap-3 md:p-3.5">
-      <span className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] bg-surface-2 text-text-muted">
+      <span className="flex size-6.5 shrink-0 items-center justify-center rounded-tile bg-surface-2 text-text-muted">
         {icono}
       </span>
-      <span className="min-w-0 truncate text-[11px] text-text-muted md:flex-1 md:whitespace-normal">
+      <span className="min-w-0 truncate text-note text-text-muted md:flex-1 md:whitespace-normal">
         {etiqueta}
       </span>
-      <span className={`num max-w-full truncate text-[21px] leading-tight font-semibold md:text-right ${color}`}>
+      <span className={`num max-w-full truncate text-metric leading-tight font-semibold md:text-right ${color}`}>
         {valor}
       </span>
     </Card>
   )
 }
 
-function EsqueletoEquipo() {
+function EsqueletoDispositivo() {
   return (
     <Card className="flex flex-col gap-3 p-3.5">
       <div className="flex items-start justify-between gap-2.5">
@@ -59,22 +59,41 @@ function EsqueletoEquipo() {
   )
 }
 
+type Fila = { datos: DispositivoPanel; estado: EstadoDispositivo; intervaloSeg: number }
+
+function Grilla({ filas, ahora }: { filas: Fila[]; ahora: number }) {
+  return (
+    <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {filas.map(({ datos, estado, intervaloSeg }) => (
+        <li key={datos.dispositivo.id} className="min-w-0">
+          <TarjetaDispositivo
+            datos={datos}
+            estado={estado}
+            intervaloSeg={intervaloSeg}
+            ahora={ahora}
+          />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function Panel() {
   const { plan } = useSesion()
-  const { datos: equipos, cargando, error, reintentar } = useEquipos()
+  const { datos: dispositivos, cargando, refrescando, error, refrescar } = useDispositivos()
   const ahora = useAhora(TIC_MS)
   const pisoPlan = plan?.plan.intervalo_minimo_seg
 
   const resumen = useMemo(() => {
-    const lista = equipos ?? []
-    const estados = lista.map((e) => ({
-      equipo: e,
-      estado: estadoDispositivo(
-        e.dispositivo.last_seen_at,
-        intervaloEfectivo(e.dispositivo, pisoPlan),
-        ahora,
-      ),
-    }))
+    const lista = dispositivos ?? []
+    const estados = lista.map((e) => {
+      const intervaloSeg = intervaloEfectivo(e.dispositivo, pisoPlan)
+      return {
+        datos: e,
+        intervaloSeg,
+        estado: estadoDispositivo(e.dispositivo.last_seen_at, intervaloSeg, ahora),
+      }
+    })
 
     const ultimoReporte = lista.reduce<string | null>((max, e) => {
       const visto = e.dispositivo.last_seen_at
@@ -83,15 +102,19 @@ export function Panel() {
     }, null)
 
     return {
-      estados,
+      /* El rol del vínculo es lo único que separa un dispositivo propio de uno
+         que alguien compartió: 'owner' es dueño, editor y viewer son invitados. */
+      propios: estados.filter((e) => e.datos.dispositivo.rol === 'owner'),
+      compartidos: estados.filter((e) => e.datos.dispositivo.rol !== 'owner'),
+      total: estados.length,
       alertas: lista.reduce((total, e) => total + e.alertasDisparadas, 0),
       // "Con problemas" es sólo conectividad: las alertas ya tienen su propio KPI
       conProblemas: estados.filter(
-        (e) => e.equipo.dispositivo.activo && e.estado === 'sin-reportar',
+        (e) => e.datos.dispositivo.activo && e.estado === 'sin-reportar',
       ).length,
       ultimoReporte,
     }
-  }, [equipos, ahora, pisoPlan])
+  }, [dispositivos, ahora, pisoPlan])
 
   return (
     <div className="flex flex-col gap-7">
@@ -113,7 +136,7 @@ export function Panel() {
             icono={<IconoReloj className="size-3.5" />}
             etiqueta="Última actualización"
             valor={
-              <span className="text-[15px]">
+              <span className="text-heading-lg">
                 {cargando ? '—' : haceCuanto(resumen.ultimoReporte)}
               </span>
             }
@@ -121,59 +144,82 @@ export function Panel() {
         </div>
       </section>
 
-      <section aria-label="Equipos">
+      <section aria-label="Tus dispositivos">
         <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="text-[15px]">Tus equipos</h2>
+          <h2 className="flex items-baseline gap-2 text-heading-lg">
+            Tus dispositivos
+            {refrescando && <span className="text-note font-normal text-text-faint">actualizando…</span>}
+          </h2>
           <Link to="/vincular">
             <Boton>
               <IconoMas className="size-4" />
-              Vincular equipo
+              Vincular dispositivo
             </Boton>
           </Link>
         </div>
 
+        {/* Un fallo de poll con datos ya en pantalla es un aviso al costado, no
+            un reemplazo: la última foto buena sigue siendo útil. */}
+        {error && dispositivos && (
+          <p role="alert" className="mb-3 text-label text-danger">
+            No pudimos actualizar: {error}
+          </p>
+        )}
+
         {cargando ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <EsqueletoEquipo />
-            <EsqueletoEquipo />
+            <EsqueletoDispositivo />
+            <EsqueletoDispositivo />
           </div>
-        ) : error ? (
+        ) : error && !dispositivos ? (
           <Card>
             <Vacio
-              titulo="No pudimos cargar tus equipos"
+              titulo="No pudimos cargar tus dispositivos"
               detalle={error}
               accion={
-                <Boton variante="sutil" onClick={reintentar}>
+                <Boton variante="sutil" onClick={refrescar}>
                   Reintentar
                 </Boton>
               }
             />
           </Card>
-        ) : resumen.estados.length === 0 ? (
+        ) : resumen.propios.length === 0 ? (
           <Card>
             <Vacio
-              titulo="Todavía no tenés equipos"
-              detalle="Vinculá tu primer equipo con el código impreso en su base y empezá a ver sus lecturas acá."
+              titulo={
+                resumen.total === 0
+                  ? 'Todavía no tenés dispositivos'
+                  : 'Todavía no vinculaste uno propio'
+              }
+              detalle="Vinculá tu primer dispositivo con el código impreso en su base y empezá a ver sus lecturas acá."
               accion={
                 <Link to="/vincular">
                   <Boton>
                     <IconoMas className="size-4" />
-                    Vincular equipo
+                    Vincular dispositivo
                   </Boton>
                 </Link>
               }
             />
           </Card>
         ) : (
-          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {resumen.estados.map(({ equipo, estado }) => (
-              <li key={equipo.dispositivo.id} className="min-w-0">
-                <TarjetaEquipo equipo={equipo} estado={estado} />
-              </li>
-            ))}
-          </ul>
+          <Grilla filas={resumen.propios} ahora={ahora} />
         )}
       </section>
+
+      {/* Sin compartidos no se anuncia la sección: hoy nada en la app crea
+          vínculos que no sean 'owner', así que para la mayoría no existe. */}
+      {resumen.compartidos.length > 0 && (
+        <section aria-label="Dispositivos compartidos">
+          <div className="mb-3 flex flex-col gap-0.5">
+            <h2 className="text-heading-lg">Dispositivos compartidos</h2>
+            <p className="text-note text-text-faint">
+              De otras cuentas, con acceso de lectura o edición.
+            </p>
+          </div>
+          <Grilla filas={resumen.compartidos} ahora={ahora} />
+        </section>
+      )}
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ProveedorSesion, useSesion } from '@/lib/auth'
 import { Layout } from '@/components/layout/Layout'
@@ -5,13 +6,18 @@ import { Login } from '@/features/auth/Login'
 import { Registro } from '@/features/auth/Registro'
 import { Verificar } from '@/features/auth/Verificar'
 import { Panel } from '@/features/panel/Panel'
-import { Equipos } from '@/features/dispositivo/Equipos'
-import { DetalleEquipo } from '@/features/dispositivo/DetalleEquipo'
+import { Dispositivos } from '@/features/dispositivo/Dispositivos'
 import { Vincular } from '@/features/dispositivo/Vincular'
 import { Alertas } from '@/features/alertas/Alertas'
 import { PlanPagina } from '@/features/plan/PlanPagina'
 import { Ajustes } from '@/features/cuenta/Ajustes'
 import { Cuenta } from '@/features/cuenta/Cuenta'
+
+/* Recharts pesa ~100 kB gz y sólo lo usa esta pantalla: el panel y el resto de
+   la app no tienen por qué cargarlo. */
+const DetalleDispositivo = lazy(() =>
+  import('@/features/dispositivo/DetalleDispositivo').then((m) => ({ default: m.DetalleDispositivo })),
+)
 
 function Guardia() {
   const { estado } = useSesion()
@@ -51,9 +57,16 @@ export default function App() {
             <Route element={<Layout titulo="Panel" />}>
               <Route index element={<Panel />} />
             </Route>
-            <Route element={<Layout titulo="Equipos" />}>
-              <Route path="/equipos" element={<Equipos />} />
-              <Route path="/equipos/:id" element={<DetalleEquipo />} />
+            <Route element={<Layout titulo="Dispositivos" />}>
+              <Route path="/dispositivos" element={<Dispositivos />} />
+              <Route
+                path="/dispositivos/:id"
+                element={
+                  <Suspense fallback={<div className="grid min-h-40 place-items-center text-text-faint">Cargando…</div>}>
+                    <DetalleDispositivo />
+                  </Suspense>
+                }
+              />
               <Route path="/vincular" element={<Vincular />} />
             </Route>
             <Route element={<Layout titulo="Alertas" />}>

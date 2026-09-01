@@ -1,10 +1,10 @@
 import { Card } from '@/components/ui/Card'
 import { Vacio } from '@/components/ui/Vacio'
 
-export function Equipos() {
+export function Dispositivos() {
   return (
     <Card>
-      <Vacio titulo="Equipos" detalle="Listado completo con su estado y sus sensores." />
+      <Vacio titulo="Dispositivos" detalle="Listado completo con su estado y sus sensores." />
     </Card>
   )
 }

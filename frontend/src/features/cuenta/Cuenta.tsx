@@ -8,10 +8,10 @@ export function Cuenta() {
   return (
     <div className="flex max-w-140 flex-col gap-3">
       <Card className="p-4">
-        <h2 className="text-[14px]">{sesion?.nombre}</h2>
-        <p className="mt-1 text-[12px] text-text-faint">{sesion?.email}</p>
+        <h2 className="text-heading">{sesion?.nombre}</h2>
+        <p className="mt-1 text-label text-text-faint">{sesion?.email}</p>
         {plan && (
-          <p className="mt-3 text-[12px] text-text-muted">
+          <p className="mt-3 text-label text-text-muted">
             Plan <strong className="font-medium text-text">{plan.plan.nombre}</strong>
           </p>
         )}

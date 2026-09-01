@@ -117,7 +117,9 @@ def buscar_por_id(cur, dispositivo_id) -> dict | None:
     return cur.fetchone()
 
 def buscar_por_usuario(cur, usuario_id) -> list[dict]:
-    cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM dispositivos d JOIN usuario_dispositivo ud ON ud.dispositivo_id = d.id WHERE ud.usuario_id = %s", (usuario_id,))
+    # Devuelve tambien el rol del vinculo: es lo unico que distingue un
+    # dispositivo propio de uno que le compartieron a este usuario.
+    cur.execute(f"SELECT {COLUMNAS_PUBLICAS}, ud.rol FROM dispositivos d JOIN usuario_dispositivo ud ON ud.dispositivo_id = d.id WHERE ud.usuario_id = %s", (usuario_id,))
     return cur.fetchall()
 
 def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:

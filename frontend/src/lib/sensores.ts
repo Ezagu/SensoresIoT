@@ -60,7 +60,7 @@ export function colorDeTipo(nombre: string): string {
 }
 
 /* El sensor no tiene nombre propio en el modelo: se lo identifica por tipo +
-   unidad, desambiguando con índice cuando el equipo repite tipo. Mismo criterio
+   unidad, desambiguando con índice cuando el dispositivo repite tipo. Mismo criterio
    que ya usa el export CSV del backend. */
 export function etiquetarSensores(
   sensores: { id: string; tipo_sensor_id: number }[],

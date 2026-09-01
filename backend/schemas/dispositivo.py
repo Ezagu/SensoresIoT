@@ -19,6 +19,11 @@ class DispositivoOut(BaseModel):
   # None = automático, usa el piso del plan vigente en cada momento
   intervalo_configurado_seg: Optional[int] = None
 
+class DispositivoConRolOut(DispositivoOut):
+  # Solo el listado por usuario: el rol sale de usuario_dispositivo, no del
+  # dispositivo, asi que el resto de los endpoints no tiene de donde sacarlo.
+  rol: str
+
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut
   secret: str

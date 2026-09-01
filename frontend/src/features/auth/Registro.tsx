@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, mensajeDeError } from '@/lib/api'
 import { esquemaRegistro, useFormulario } from '@/lib/formularios'
@@ -15,7 +15,7 @@ export function Registro() {
   const [enviadoA, setEnviadoA] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  async function enviar(e: FormEvent) {
+  async function enviar(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
 
@@ -36,13 +36,13 @@ export function Registro() {
   if (enviadoA) {
     return (
       <MarcoAuth titulo="Revisá tu correo">
-        <p className="text-[12.5px] text-text-muted">
+        <p className="text-label-lg text-text-muted">
           Te mandamos un link de verificación a <strong className="text-text">{enviadoA}</strong>.
           Verificá la cuenta y después iniciá sesión.
         </p>
         <Link
           to="/login"
-          className="mt-4 inline-block text-[12.5px] font-medium text-accent hover:underline"
+          className="mt-4 inline-block text-label-lg font-medium text-accent hover:underline"
         >
           Ir a iniciar sesión
         </Link>
@@ -51,7 +51,7 @@ export function Registro() {
   }
 
   return (
-    <MarcoAuth titulo="Crear cuenta" subtitulo="Necesitás una para vincular tus equipos.">
+    <MarcoAuth titulo="Crear cuenta" subtitulo="Necesitás una para vincular tus dispositivos.">
       <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
         <Campo etiqueta="Nombre" autoComplete="name" {...campo('nombre')} />
         <Campo
@@ -69,7 +69,7 @@ export function Registro() {
         />
 
         {error && (
-          <p role="alert" className="text-[12px] text-danger">
+          <p role="alert" className="text-label text-danger">
             {error}
           </p>
         )}
@@ -79,7 +79,7 @@ export function Registro() {
         </Boton>
       </form>
 
-      <p className="mt-4 text-center text-[12.5px] text-text-muted">
+      <p className="mt-4 text-center text-label-lg text-text-muted">
         ¿Ya tenés cuenta?{' '}
         <Link to="/login" className="font-medium text-accent hover:underline">
           Entrar

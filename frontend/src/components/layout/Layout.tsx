@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSesion } from '@/lib/auth'
+import { useMediaQuery } from '@/lib/medios'
+import { Logo } from './Logo'
 import {
   IconoAjustes,
   IconoAlerta,
   IconoCerrar,
-  IconoEquipo,
+  IconoDispositivo,
   IconoMenu,
   IconoPanel,
   IconoPlan,
@@ -26,7 +28,7 @@ function iniciales(nombre?: string) {
 
 const NAV = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel, grupo: 'Monitoreo' },
-  { a: '/equipos', etiqueta: 'Equipos', Icono: IconoEquipo, grupo: 'Monitoreo' },
+  { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo, grupo: 'Monitoreo' },
   { a: '/alertas', etiqueta: 'Alertas', Icono: IconoAlerta, grupo: 'Monitoreo' },
   { a: '/plan', etiqueta: 'Plan', Icono: IconoPlan, grupo: 'Cuenta' },
   { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes, grupo: 'Cuenta' },
@@ -34,36 +36,30 @@ const NAV = [
 
 const NAV_INFERIOR = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
-  { a: '/equipos', etiqueta: 'Equipos', Icono: IconoEquipo },
+  { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
   { a: '/alertas', etiqueta: 'Alertas', Icono: IconoAlerta },
   { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
 
 export function Layout({ titulo }: { titulo: string }) {
   const { sesion, plan } = useSesion()
-  const [abierto, setAbierto] = useState(false)
-  const [esEscritorio, setEsEscritorio] = useState(() => window.matchMedia(ESCRITORIO).matches)
+  const location = useLocation()
   const trigger = useRef<HTMLButtonElement>(null)
   const cerrar = useRef<HTMLButtonElement>(null)
-  const location = useLocation()
 
-  useEffect(() => {
-    const mq = window.matchMedia(ESCRITORIO)
-    const alCambiar = () => {
-      setEsEscritorio(mq.matches)
-      if (mq.matches) setAbierto(false)
-    }
-    mq.addEventListener('change', alCambiar)
-    return () => mq.removeEventListener('change', alCambiar)
-  }, [])
+  /* Bajo 1024px la sidebar es un overlay; arriba es una columna fija. */
+  const overlay = !useMediaQuery(ESCRITORIO)
 
-  // Navegar cierra el drawer: si no, queda tapando la pantalla a la que fuiste
-  useEffect(() => setAbierto(false), [location.pathname])
+  /* Se guarda en qué ruta se abrió el drawer y "abierto" se deriva de ahí, en
+     vez de cerrarlo desde un efecto: navegar a otra pantalla (que si no queda
+     tapada) y pasar a escritorio lo cierran solos, sin un render de más. */
+  const [abiertoEn, setAbiertoEn] = useState<string | null>(null)
+  const abierto = overlay && abiertoEn === location.pathname
 
   useEffect(() => {
     if (!abierto) return
     const alTeclear = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAbierto(false)
+      if (e.key === 'Escape') setAbiertoEn(null)
     }
     document.addEventListener('keydown', alTeclear)
     return () => document.removeEventListener('keydown', alTeclear)
@@ -81,10 +77,9 @@ export function Layout({ titulo }: { titulo: string }) {
     else trigger.current?.focus({ preventScroll: true })
   }, [abierto])
 
-  /* Bajo 1024px la sidebar es un overlay: cerrada, sus botones seguirían siendo
-     focusables fuera de pantalla; abierta, el fondo seguiría siendo tabulable.
-     `inert` apaga el lado que no corresponde en cada estado. */
-  const overlay = !esEscritorio
+  /* Cerrada, los botones de la sidebar seguirían siendo focusables fuera de
+     pantalla; abierta, el fondo seguiría siendo tabulable. `inert` apaga el
+     lado que no corresponde en cada estado. */
   const sidebarInerte = overlay && !abierto
   const fondoInerte = overlay && abierto
 
@@ -92,14 +87,14 @@ export function Layout({ titulo }: { titulo: string }) {
     <>
       <a
         href="#contenido"
-        className="fixed left-2 z-100 -top-12 focus-visible:top-2 rounded-[8px] bg-accent-strong px-4 py-2 text-[12.5px] font-semibold text-accent-ink transition-[top] duration-150"
+        className="fixed top-2 left-2 z-100 -translate-y-16 focus-visible:translate-y-0 rounded-control bg-accent-strong px-4 py-2 text-label-lg font-semibold text-accent-ink transition-transform duration-150"
       >
         Saltar al contenido
       </a>
 
       <div
-        onClick={() => setAbierto(false)}
-        className={`fixed inset-0 z-40 bg-black/55 transition-opacity duration-200 lg:hidden ${
+        onClick={() => setAbiertoEn(null)}
+        className={`fixed inset-0 z-40 bg-overlay transition-opacity duration-200 lg:hidden ${
           abierto ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
@@ -113,35 +108,21 @@ export function Layout({ titulo }: { titulo: string }) {
         >
           <button
             ref={cerrar}
-            onClick={() => setAbierto(false)}
+            onClick={() => setAbiertoEn(null)}
             aria-label="Cerrar menú"
-            className="-mt-1.5 -mr-1 -mb-3 flex size-7.5 items-center justify-center self-end rounded-[8px] border border-border text-text-muted lg:hidden cursor-pointer"
+            className="-mt-1.5 -mr-1 -mb-3 flex size-7.5 items-center justify-center self-end rounded-control border border-border text-text-muted lg:hidden cursor-pointer"
           >
             <IconoCerrar className="size-4" />
           </button>
 
-          <div className="flex items-center gap-2.5 px-2">
-            <span className="flex size-6.5 shrink-0 items-center justify-center rounded-[7px] bg-accent-strong">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#fff"
-                strokeWidth={2.2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="size-4"
-              >
-                <path d="M3 17l5-6 4 4 5-8 4 5" />
-              </svg>
-            </span>
-            <span className="font-display text-base font-bold tracking-tight text-text">Bitácora</span>
+          <div className="px-2">
+            <Logo />
           </div>
 
           <nav className="flex flex-col gap-0.5">
             {['Monitoreo', 'Cuenta'].map((grupo) => (
               <div key={grupo} className="flex flex-col gap-0.5">
-                <span className="px-3 pt-3 pb-1.5 text-[10.5px] font-medium tracking-[0.08em] text-text-faint uppercase">
+                <span className="px-3 pt-3 pb-1.5 text-tag font-medium tracking-[0.08em] text-text-faint uppercase">
                   {grupo}
                 </span>
                 {NAV.filter((i) => i.grupo === grupo).map(({ a, etiqueta, Icono }) => (
@@ -150,7 +131,7 @@ export function Layout({ titulo }: { titulo: string }) {
                     to={a}
                     end={a === '/'}
                     className={({ isActive }) =>
-                      `flex items-center gap-2.5 rounded-[8px] px-3 py-2 text-[13px] font-medium transition-colors duration-150 ${
+                      `flex items-center gap-2.5 rounded-control px-3 py-2 text-body font-medium transition-colors duration-150 ${
                         isActive
                           ? 'bg-accent-soft text-text'
                           : 'text-text-muted hover:bg-surface-2 hover:text-text'
@@ -169,24 +150,24 @@ export function Layout({ titulo }: { titulo: string }) {
             <NavLink
               to="/cuenta"
               className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-[8px] px-2 py-2 transition-colors duration-150 ${
+                `flex items-center gap-2.5 rounded-control px-2 py-2 transition-colors duration-150 ${
                   isActive ? 'bg-accent-soft' : 'hover:bg-surface-2'
                 }`
               }
             >
               <span
                 aria-hidden="true"
-                className="flex size-7.5 shrink-0 items-center justify-center rounded-[8px] bg-linear-to-br from-[#4C7DFF] to-[#8B5CF6] font-display text-[12.5px] font-bold text-white"
+                className="flex size-7.5 shrink-0 items-center justify-center rounded-control bg-linear-to-br from-avatar-from to-avatar-to font-display text-label-lg font-bold text-accent-ink"
               >
                 {iniciales(sesion?.nombre)}
               </span>
               <span className="flex min-w-0 flex-col">
-                <strong className="truncate text-[12.5px] font-medium text-text">
+                <strong className="truncate text-label-lg font-medium text-text">
                   {sesion?.nombre ?? 'Mi cuenta'}
                 </strong>
                 {/* El espacio duro reserva el renglón mientras carga el plan,
                     para que el bloque no crezca después de montar. */}
-                <small className="truncate text-[11px] text-text-faint">
+                <small className="truncate text-note text-text-faint">
                 {plan ? `Plan ${plan.plan.nombre}` : ' '}
                 </small>
               </span>
@@ -198,14 +179,14 @@ export function Layout({ titulo }: { titulo: string }) {
           <div className="sticky top-0 z-5 flex min-h-13 items-center gap-2.5 border-b border-border bg-bg px-4 md:min-h-14 md:gap-3.5 md:px-5.5">
             <button
               ref={trigger}
-              onClick={() => setAbierto(true)}
+              onClick={() => setAbiertoEn(location.pathname)}
               aria-label="Abrir menú"
               aria-expanded={abierto}
-              className="flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-text-muted lg:hidden cursor-pointer"
+              className="flex size-9 shrink-0 items-center justify-center rounded-group border border-border bg-surface text-text-muted lg:hidden cursor-pointer"
             >
               <IconoMenu className="size-4.25" />
             </button>
-            <h1 className="text-[17px] md:text-[19px]">{titulo}</h1>
+            <h1 className="text-page md:text-page-lg">{titulo}</h1>
           </div>
 
           <div className="mx-auto w-full max-w-340 px-4 pt-4.5 pb-24 md:px-5.5 md:pt-5.5 lg:pb-16">
@@ -225,7 +206,7 @@ export function Layout({ titulo }: { titulo: string }) {
             to={a}
             end={a === '/'}
             className={({ isActive }) =>
-              `flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10.5px] font-medium ${
+              `flex min-h-14 flex-col items-center justify-center gap-0.5 px-1 py-2 text-tag font-medium ${
                 isActive ? 'text-accent' : 'text-text-faint'
               }`
             }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type SubmitEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSesion } from '@/lib/auth'
 import { esCuentaBloqueada, mensajeDeError } from '@/lib/api'
@@ -14,7 +14,7 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  async function enviar(e: FormEvent) {
+  async function enviar(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
 
@@ -38,7 +38,7 @@ export function Login() {
   }
 
   return (
-    <MarcoAuth titulo="Entrar a Bitácora" subtitulo="Monitoreá tus equipos y sus alertas.">
+    <MarcoAuth titulo="Entrar a Bitácora" subtitulo="Monitoreá tus dispositivos y sus alertas.">
       <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
         <Campo
           etiqueta="Email"
@@ -54,7 +54,7 @@ export function Login() {
         />
 
         {error && (
-          <p role="alert" className="text-[12px] text-danger">
+          <p role="alert" className="text-label text-danger">
             {error}
           </p>
         )}
@@ -64,7 +64,7 @@ export function Login() {
         </Boton>
       </form>
 
-      <p className="mt-4 text-[12.5px] text-text-muted text-center">
+      <p className="mt-4 text-label-lg text-text-muted text-center">
         ¿No tenés cuenta?{' '}
         <Link to="/registro" className="font-medium text-accent hover:underline">
           Crear una

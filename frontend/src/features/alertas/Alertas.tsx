@@ -4,7 +4,7 @@ import { Vacio } from '@/components/ui/Vacio'
 export function Alertas() {
   return (
     <Card>
-      <Vacio titulo="Alertas" detalle="Reglas por equipo y el log global de eventos." />
+      <Vacio titulo="Alertas" detalle="Reglas por dispositivo y el log global de eventos." />
     </Card>
   )
 }

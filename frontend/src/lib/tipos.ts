@@ -34,6 +34,22 @@ export type Dispositivo = {
   intervalo_configurado_seg: number | null
 }
 
+export type RolDispositivo = 'owner' | 'editor' | 'viewer'
+
+/* GET /usuarios/{id}/dispositivos. El rol sale de usuario_dispositivo y no del
+   dispositivo, así que es el único endpoint que lo devuelve: el resto responde
+   un DispositivoOut pelado. */
+export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }
+
+/* PATCH /dispositivos/{id}/intervalo. No es un DispositivoOut: el dispositivo
+   recién aplica el cambio en su próxima conexión (viaja como
+   intervalo_sugerido en la respuesta de POST /mediciones/), así que la
+   respuesta trae el valor pedido y el que rige mientras tanto por separado. */
+export type IntervaloActualizado = {
+  intervalo_configurado_seg: number | null
+  intervalo_efectivo_seg: number
+}
+
 export type TipoSensor = {
   id: number
   nombre: string
@@ -105,6 +121,25 @@ export type Alerta = {
 /* El listado por dispositivo agrega la preferencia del que consulta */
 export type AlertaConNotificar = Alerta & { notificar: boolean }
 
+export type AlertaCreatePayload = {
+  sensor_id: string
+  nombre?: string | null
+  condicion: CondicionAlerta
+  umbral: number
+  histeresis?: number
+}
+
+/* Sensor y condición no son editables en el contrato: para cambiarlos hay que
+   crear otra regla. */
+export type AlertaUpdatePayload = {
+  nombre?: string | null
+  umbral?: number
+  histeresis?: number
+  activa?: boolean
+}
+
+export type PreferenciaUpdatePayload = { notificar: boolean }
+
 export type TipoEvento = 'disparada' | 'normalizada'
 
 export type EventoAlerta = {
@@ -114,7 +149,7 @@ export type EventoAlerta = {
   valor: number
   medicion_at: string
   detectado_at: string
-  /* la lectura llegó >5 min tarde (flush del buffer del equipo) */
+  /* la lectura llegó >5 min tarde (flush del buffer del dispositivo) */
   tardio: boolean
   /* destinatarios = 0 significa "no se intentó enviar" (es historia de un lote
      tardío), no un fallo. El fallo parcial es notificados < destinatarios. */

@@ -8,6 +8,9 @@
   --color-bg: #0b0d12;
   --color-surface: #12151d;
   --color-surface-2: #191d27;
+  /* Campo deshabilitado: más hundido que surface, para que el "pozo" del campo
+     activo (surface-2) no se lea como editable. Ver components/ui/Campo.tsx */
+  --color-surface-inert: #101319;
   --color-sidebar: #07080c;
   --color-border: #242a36;
   --color-border-strong: #333b4a;
@@ -21,14 +24,24 @@
   --color-accent: #6c93ff;
   --color-accent-strong: #3d68e6;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: rgba(108, 147, 255, 0.16);
 
   --color-ok: #29c07a;
-  --color-ok-soft: rgba(41, 192, 122, 0.14);
   --color-warn: #f0a62b;
-  --color-warn-soft: rgba(240, 166, 43, 0.14);
   --color-danger: #f2544b;
-  --color-danger-soft: rgba(242, 84, 75, 0.14);
+
+  /* Los tonos -soft se derivan del base para que el hue tenga una sola fuente
+     de verdad: cambiar --color-ok arrastra su fondo. El porcentaje sí varía por
+     tema (el claro necesita menos velo). */
+  --color-accent-soft: color-mix(in oklab, var(--color-accent) 16%, transparent);
+  --color-ok-soft: color-mix(in oklab, var(--color-ok) 14%, transparent);
+  --color-warn-soft: color-mix(in oklab, var(--color-warn) 14%, transparent);
+  --color-danger-soft: color-mix(in oklab, var(--color-danger) 14%, transparent);
+
+  /* Velo del drawer mobile y del ::backdrop del modal */
+  --color-overlay: rgba(0, 0, 0, 0.55);
+
+  --color-avatar-from: #4c7dff;
+  --color-avatar-to: #8b5cf6;
 
   /* Hue fijo por tipo de sensor: el mismo tipo lleva el mismo color en toda la
      app, y ningún sensor usa el hue del chrome. Ver lib/sensores.ts */
@@ -43,21 +56,48 @@
   --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
+  /* Se borra la escala default (text-xs, text-lg…) para que no haya tamaño sin
+     token. Los pares -lg son los tres saltos de medio píxel del diseño: quedan
+     a la vista en el nombre en vez de escondidos en un valor arbitrario.
+     Ninguno declara su --text-*--line-height: el interlineado lo hereda del
+     body (1.5), como cuando eran valores arbitrarios. */
+  --text-*: initial;
+  --text-tag: 10.5px;
+  --text-note: 11px;
+  --text-note-lg: 11.5px;
+  --text-label: 12px;
+  --text-label-lg: 12.5px;
+  --text-body: 13px;
+  --text-body-lg: 13.5px;
+  --text-heading: 14px;
+  --text-heading-lg: 15px;
+  --text-brand: 16px;
+  --text-page: 17px;
+  --text-page-lg: 19px;
+  --text-metric: 21px;
+  --text-hero: 22px;
+
   --radius-card: 12px;
   --radius-control: 8px;
+  /* tile: cuadrado chico (ícono, ítem de segmentado, mini-botón).
+     group: contenedor de un grupo de controles, un escalón por encima. */
+  --radius-tile: 7px;
+  --radius-group: 9px;
 }
 
+/* Tema claro: sólo se reasignan tokens, nunca reglas de componente. El atributo
+   está siempre puesto — lib/tema.ts resuelve "sistema" a light/dark antes de
+   pintar, así que no hace falta duplicar esta paleta en un @media. */
 :root {
   color-scheme: dark;
 }
 
-/* Tema claro: explícito por atributo, y por preferencia del sistema cuando no
-   hay elección guardada. Sólo se reasignan tokens, nunca reglas de componente. */
 :root[data-theme='light'] {
   color-scheme: light;
   --color-bg: #f4f6fa;
   --color-surface: #ffffff;
   --color-surface-2: #edf0f6;
+  --color-surface-inert: #f2f4f8;
   --color-sidebar: #ffffff;
   --color-border: #e1e6ee;
   --color-border-strong: #c9d1de;
@@ -69,14 +109,15 @@
   --color-accent: #2b5ce6;
   --color-accent-strong: #2b5ce6;
   --color-accent-ink: #ffffff;
-  --color-accent-soft: rgba(43, 92, 230, 0.1);
 
   --color-ok: #1b9c64;
-  --color-ok-soft: rgba(27, 156, 100, 0.1);
   --color-warn: #b57712;
-  --color-warn-soft: rgba(181, 119, 18, 0.1);
   --color-danger: #d53f37;
-  --color-danger-soft: rgba(213, 63, 55, 0.1);
+
+  --color-accent-soft: color-mix(in oklab, var(--color-accent) 10%, transparent);
+  --color-ok-soft: color-mix(in oklab, var(--color-ok) 10%, transparent);
+  --color-warn-soft: color-mix(in oklab, var(--color-warn) 10%, transparent);
+  --color-danger-soft: color-mix(in oklab, var(--color-danger) 10%, transparent);
 
   --color-sensor-temperatura: #ea6a0a;
   --color-sensor-humedad: #0891b2;
@@ -84,41 +125,6 @@
   --color-sensor-co2: #7c3aed;
   --color-sensor-luz: #ca8a04;
   --color-sensor-ruido: #db2777;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) {
-    color-scheme: light;
-    --color-bg: #f4f6fa;
-    --color-surface: #ffffff;
-    --color-surface-2: #edf0f6;
-    --color-sidebar: #ffffff;
-    --color-border: #e1e6ee;
-    --color-border-strong: #c9d1de;
-
-    --color-text: #131720;
-    --color-text-muted: #5b6577;
-    --color-text-faint: #8a93a3;
-
-    --color-accent: #2b5ce6;
-    --color-accent-strong: #2b5ce6;
-    --color-accent-ink: #ffffff;
-    --color-accent-soft: rgba(43, 92, 230, 0.1);
-
-    --color-ok: #1b9c64;
-    --color-ok-soft: rgba(27, 156, 100, 0.1);
-    --color-warn: #b57712;
-    --color-warn-soft: rgba(181, 119, 18, 0.1);
-    --color-danger: #d53f37;
-    --color-danger-soft: rgba(213, 63, 55, 0.1);
-
-    --color-sensor-temperatura: #ea6a0a;
-    --color-sensor-humedad: #0891b2;
-    --color-sensor-presion: #64748b;
-    --color-sensor-co2: #7c3aed;
-    --color-sensor-luz: #ca8a04;
-    --color-sensor-ruido: #db2777;
-  }
 }
 
 @layer base {

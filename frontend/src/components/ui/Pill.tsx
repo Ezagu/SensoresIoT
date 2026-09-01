@@ -14,7 +14,7 @@ const TONOS: Record<Tono, string> = {
 export function Pill({ tono, children }: { tono: Tono; children: React.ReactNode }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 shrink-0 rounded-full px-2 py-[3px] text-[10.5px] font-semibold whitespace-nowrap ${TONOS[tono]}`}
+      className={`inline-flex items-center gap-1.5 shrink-0 rounded-full px-2 py-0.75 text-tag font-semibold whitespace-nowrap ${TONOS[tono]}`}
     >
       <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
       {children}

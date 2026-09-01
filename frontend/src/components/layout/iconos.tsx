@@ -22,7 +22,7 @@ export const IconoPanel = ({ className }: Props) => (
   </svg>
 )
 
-export const IconoEquipo = ({ className }: Props) => (
+export const IconoDispositivo = ({ className }: Props) => (
   <svg {...base(className)}>
     <rect x="3" y="4" width="18" height="13" rx="2" />
     <path d="M8 21h8M12 17v4" />

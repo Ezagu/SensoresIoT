@@ -5,8 +5,8 @@ export function Vincular() {
   return (
     <Card>
       <Vacio
-        titulo="Vincular equipo"
-        detalle="El código de vinculación está impreso en la base del equipo."
+        titulo="Vincular dispositivo"
+        detalle="El código de vinculación está impreso en la base del dispositivo."
       />
     </Card>
   )
