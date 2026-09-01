@@ -1,25 +1,31 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api, mensajeDeError } from '@/lib/api'
+import { esquemaRegistro, useFormulario } from '@/lib/formularios'
 import { Boton } from '@/components/ui/Boton'
-import { MarcoAuth, Campo } from './MarcoAuth'
+import { MarcoAuth, Campo, CampoPassword } from './MarcoAuth'
 
 export function Registro() {
-  const [form, setForm] = useState({ nombre: '', email: '', password: '', confirm_password: '' })
+  const { campo, validar } = useFormulario(esquemaRegistro, {
+    nombre: '',
+    email: '',
+    password: '',
+  })
   const [error, setError] = useState<string | null>(null)
-  const [listo, setListo] = useState(false)
+  const [enviadoA, setEnviadoA] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
-
-  const set = (campo: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [campo]: e.target.value }))
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
-    setEnviando(true)
     setError(null)
+
+    const datos = validar()
+    if (!datos) return
+
+    setEnviando(true)
     try {
-      await api.post('/auth/register', form)
-      setListo(true)
+      await api.post('/auth/register', datos)
+      setEnviadoA(datos.email)
     } catch (err) {
       setError(mensajeDeError(err, 'No pudimos crear la cuenta.'))
     } finally {
@@ -27,14 +33,17 @@ export function Registro() {
     }
   }
 
-  if (listo) {
+  if (enviadoA) {
     return (
       <MarcoAuth titulo="Revisá tu correo">
         <p className="text-[12.5px] text-text-muted">
-          Te mandamos un link de verificación a <strong className="text-text">{form.email}</strong>.
+          Te mandamos un link de verificación a <strong className="text-text">{enviadoA}</strong>.
           Verificá la cuenta y después iniciá sesión.
         </p>
-        <Link to="/login" className="mt-4 inline-block text-[12.5px] font-medium text-accent hover:underline">
+        <Link
+          to="/login"
+          className="mt-4 inline-block text-[12.5px] font-medium text-accent hover:underline"
+        >
           Ir a iniciar sesión
         </Link>
       </MarcoAuth>
@@ -44,34 +53,19 @@ export function Registro() {
   return (
     <MarcoAuth titulo="Crear cuenta" subtitulo="Necesitás una para vincular tus equipos.">
       <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
-        <Campo id="nombre" etiqueta="Nombre" autoComplete="name" value={form.nombre} onChange={set('nombre')} required />
+        <Campo etiqueta="Nombre" autoComplete="name" {...campo('nombre')} />
         <Campo
-          id="email"
           etiqueta="Email"
           type="email"
           autoComplete="email"
           spellCheck={false}
-          value={form.email}
-          onChange={set('email')}
-          required
+          {...campo('email')}
         />
-        <Campo
-          id="password"
+        <CampoPassword
           etiqueta="Contraseña"
-          type="password"
           autoComplete="new-password"
-          value={form.password}
-          onChange={set('password')}
-          required
-        />
-        <Campo
-          id="confirm_password"
-          etiqueta="Repetir contraseña"
-          type="password"
-          autoComplete="new-password"
-          value={form.confirm_password}
-          onChange={set('confirm_password')}
-          required
+          ayuda="Mínimo 8 caracteres."
+          {...campo('password')}
         />
 
         {error && (
@@ -85,7 +79,7 @@ export function Registro() {
         </Boton>
       </form>
 
-      <p className="mt-4 text-[12.5px] text-text-muted">
+      <p className="mt-4 text-center text-[12.5px] text-text-muted">
         ¿Ya tenés cuenta?{' '}
         <Link to="/login" className="font-medium text-accent hover:underline">
           Entrar

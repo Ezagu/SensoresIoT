@@ -8,7 +8,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-[8px] font-semibold whitespace-nowrap ' +
+  'inline-flex items-center justify-center gap-1.5 rounded-[8px] font-semibold whitespace-nowrap cursor-pointer ' +
   'transition-[filter,background-color,color] duration-150 disabled:opacity-50 disabled:cursor-not-allowed'
 
 const VARIANTES: Record<Variante, string> = {

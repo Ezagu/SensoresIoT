@@ -107,6 +107,20 @@ export const IconoProblema = ({ className }: Props) => (
   </svg>
 )
 
+export const IconoOjo = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+    <circle cx="12" cy="12" r="2.8" />
+  </svg>
+)
+
+export const IconoOjoTachado = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M10.6 6.2A9.8 9.8 0 0112 6c6.4 0 10 6 10 6a17 17 0 01-3.3 3.9M6.4 7.6A17 17 0 002 12s3.6 6 10 6a9.9 9.9 0 004-.8" />
+    <path d="M10 10a2.8 2.8 0 003.9 3.9M3 3l18 18" />
+  </svg>
+)
+
 export const IconoCompartido = ({ className }: Props) => (
   <svg {...base(className)}>
     <path d="M17 20c0-2.8-2.2-5-5-5s-5 2.2-5 5M12 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 20c0-2.2-1.6-4-3.7-4.4M17.5 12a3 3 0 100-6" />

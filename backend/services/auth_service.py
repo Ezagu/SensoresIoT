@@ -25,9 +25,6 @@ def _crear_tokens_login(cur, usuario_id, usuario_rol):
     }
 
 def register_usuario(usuario) -> dict:
-    if usuario.password != usuario.confirm_password:
-        raise HTTPException(422, "Las contraseñas no coinciden")
-
     with get_cursor() as cur:
         existing = usuario_repo.buscar_por_email(cur, usuario.email)
 

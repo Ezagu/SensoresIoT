@@ -2,24 +2,28 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useSesion } from '@/lib/auth'
 import { esCuentaBloqueada, mensajeDeError } from '@/lib/api'
+import { esquemaLogin, useFormulario } from '@/lib/formularios'
 import { Boton } from '@/components/ui/Boton'
-import { MarcoAuth, Campo } from './MarcoAuth'
+import { MarcoAuth, Campo, CampoPassword } from './MarcoAuth'
 
 export function Login() {
   const { login } = useSesion()
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const { campo, validar } = useFormulario(esquemaLogin, { email: '', password: '' })
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
   async function enviar(e: FormEvent) {
     e.preventDefault()
-    setEnviando(true)
     setError(null)
+
+    const datos = validar()
+    if (!datos) return
+
+    setEnviando(true)
     try {
-      await login(email, password)
+      await login(datos.email, datos.password)
       const destino = (location.state as { desde?: string } | null)?.desde ?? '/'
       navigate(destino, { replace: true })
     } catch (err) {
@@ -37,23 +41,16 @@ export function Login() {
     <MarcoAuth titulo="Entrar a Bitácora" subtitulo="Monitoreá tus equipos y sus alertas.">
       <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
         <Campo
-          id="email"
           etiqueta="Email"
           type="email"
           autoComplete="email"
           spellCheck={false}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
+          {...campo('email')}
         />
-        <Campo
-          id="password"
+        <CampoPassword
           etiqueta="Contraseña"
-          type="password"
           autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+          {...campo('password')}
         />
 
         {error && (
@@ -67,7 +64,7 @@ export function Login() {
         </Boton>
       </form>
 
-      <p className="mt-4 text-[12.5px] text-text-muted">
+      <p className="mt-4 text-[12.5px] text-text-muted text-center">
         ¿No tenés cuenta?{' '}
         <Link to="/registro" className="font-medium text-accent hover:underline">
           Crear una

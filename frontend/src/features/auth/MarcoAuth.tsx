@@ -1,4 +1,5 @@
-import type { InputHTMLAttributes, ReactNode } from 'react'
+import { useState, type InputHTMLAttributes, type ReactNode } from 'react'
+import { IconoOjo, IconoOjoTachado } from '@/components/layout/iconos'
 
 export function MarcoAuth({
   titulo,
@@ -30,7 +31,7 @@ export function MarcoAuth({
           <span className="font-display text-base font-bold tracking-tight">Bitácora</span>
         </div>
 
-        <h1 className="text-[22px]">{titulo}</h1>
+        <h1 className="text-[22px] mb-1">{titulo}</h1>
         {subtitulo && <p className="mt-1 mb-5 text-[12.5px] text-text-muted">{subtitulo}</p>}
 
         <div className="rounded-[12px] border border-border bg-surface p-5 shadow-sm">{children}</div>
@@ -39,13 +40,46 @@ export function MarcoAuth({
   )
 }
 
+const CLASES_INPUT =
+  'min-h-10 w-full rounded-[8px] border bg-surface-2 px-3 text-[13px] text-text placeholder:text-text-faint'
+
+const borde = (error?: string) =>
+  error ? 'border-danger focus-visible:border-danger' : 'border-border focus-visible:border-accent'
+
 type CampoProps = InputHTMLAttributes<HTMLInputElement> & {
   id: string
   etiqueta: string
   ayuda?: string
+  error?: string
 }
 
-export function Campo({ id, etiqueta, ayuda, className = '', ...props }: CampoProps) {
+/* El error reemplaza a la ayuda en vez de sumarse: el campo no cambia de alto
+   al fallar, así el formulario no salta bajo el dedo. */
+function Pie({ id, error, ayuda }: { id: string; error?: string; ayuda?: string }) {
+  if (error) {
+    return (
+      <p id={`${id}-error`} className="text-[11px] text-danger">
+        {error}
+      </p>
+    )
+  }
+  if (ayuda) {
+    return (
+      <p id={`${id}-ayuda`} className="text-[11px] text-text-faint">
+        {ayuda}
+      </p>
+    )
+  }
+  return null
+}
+
+function descrito(id: string, error?: string, ayuda?: string) {
+  if (error) return `${id}-error`
+  if (ayuda) return `${id}-ayuda`
+  return undefined
+}
+
+export function Campo({ id, etiqueta, ayuda, error, className = '', ...props }: CampoProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-[12px] font-medium text-text-muted">
@@ -54,10 +88,47 @@ export function Campo({ id, etiqueta, ayuda, className = '', ...props }: CampoPr
       <input
         id={id}
         name={id}
-        className={`min-h-10 rounded-[8px] border border-border bg-surface-2 px-3 text-[13px] text-text placeholder:text-text-faint focus-visible:border-accent ${className}`}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={descrito(id, error, ayuda)}
+        className={`${CLASES_INPUT} ${borde(error)} ${className}`}
         {...props}
       />
-      {ayuda && <p className="text-[11px] text-text-faint">{ayuda}</p>}
+      <Pie id={id} error={error} ayuda={ayuda} />
+    </div>
+  )
+}
+
+/* Contraseña con alternancia de visibilidad. El botón vive dentro del campo y
+   es focusable, así que se llega por teclado sin salir del formulario. */
+export function CampoPassword({ id, etiqueta, ayuda, error, className = '', ...props }: CampoProps) {
+  const [visible, setVisible] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-[12px] font-medium text-text-muted">
+        {etiqueta}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          name={id}
+          type={visible ? 'text' : 'password'}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={descrito(id, error, ayuda)}
+          className={`${CLASES_INPUT} pr-10 ${borde(error)} ${className}`}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          aria-pressed={visible}
+          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-[8px] text-text-muted transition-colors duration-150 hover:text-text"
+        >
+          {visible ? <IconoOjoTachado className="size-4" /> : <IconoOjo className="size-4" />}
+        </button>
+      </div>
+      <Pie id={id} error={error} ayuda={ayuda} />
     </div>
   )
 }

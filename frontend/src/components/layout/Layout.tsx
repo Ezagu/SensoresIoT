@@ -95,7 +95,7 @@ export function Layout({ titulo }: { titulo: string }) {
       <div className="min-h-full lg:grid lg:grid-cols-[232px_1fr]">
         <aside
           inert={sidebarInerte}
-          className={`fixed top-0 left-0 z-50 flex h-screen w-[250px] flex-col gap-6 overflow-y-auto overscroll-contain border-r border-border bg-sidebar p-5 px-3.5 transition-transform duration-200 lg:sticky lg:w-auto lg:translate-x-0 ${
+          className={`fixed top-0 left-0 z-50 flex h-screen w-62.5 flex-col gap-6 overflow-y-auto overscroll-contain border-r border-border bg-sidebar p-5 px-3.5 transition-transform duration-200 lg:sticky lg:w-auto lg:translate-x-0 ${
             abierto ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -103,13 +103,13 @@ export function Layout({ titulo }: { titulo: string }) {
             ref={cerrar}
             onClick={() => setAbierto(false)}
             aria-label="Cerrar menú"
-            className="-mt-1.5 -mr-1 -mb-3 flex size-[30px] items-center justify-center self-end rounded-[8px] border border-border text-text-muted lg:hidden"
+            className="-mt-1.5 -mr-1 -mb-3 flex size-7.5 items-center justify-center self-end rounded-[8px] border border-border text-text-muted lg:hidden cursor-pointer"
           >
             <IconoCerrar className="size-4" />
           </button>
 
           <div className="flex items-center gap-2.5 px-2">
-            <span className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] bg-accent-strong">
+            <span className="flex size-6.5 shrink-0 items-center justify-center rounded-[7px] bg-accent-strong">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -145,7 +145,7 @@ export function Layout({ titulo }: { titulo: string }) {
                       }`
                     }
                   >
-                    <Icono className="size-[17px] shrink-0" />
+                    <Icono className="size-4.25 shrink-0" />
                     {etiqueta}
                   </NavLink>
                 ))}
@@ -154,7 +154,7 @@ export function Layout({ titulo }: { titulo: string }) {
           </nav>
 
           <div className="mt-auto flex items-center gap-2.5 border-t border-border px-2 py-2.5">
-            <div className="flex size-[30px] shrink-0 items-center justify-center rounded-[8px] bg-gradient-to-br from-[#4C7DFF] to-[#8B5CF6] font-display text-[12.5px] font-bold text-white">
+            <div className="flex size-7.5 shrink-0 items-center justify-center rounded-[8px] bg-linear-to-br from-[#4C7DFF] to-[#8B5CF6] font-display text-[12.5px] font-bold text-white">
               ?
             </div>
             <div className="flex min-w-0 flex-col">
@@ -165,20 +165,20 @@ export function Layout({ titulo }: { titulo: string }) {
         </aside>
 
         <main id="contenido" tabIndex={-1} inert={fondoInerte} className="min-w-0">
-          <div className="sticky top-0 z-5 flex min-h-[52px] items-center gap-2.5 border-b border-border bg-bg px-4 md:min-h-14 md:gap-3.5 md:px-5.5">
+          <div className="sticky top-0 z-5 flex min-h-13 items-center gap-2.5 border-b border-border bg-bg px-4 md:min-h-14 md:gap-3.5 md:px-5.5">
             <button
               ref={trigger}
               onClick={() => setAbierto(true)}
               aria-label="Abrir menú"
               aria-expanded={abierto}
-              className="flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-text-muted lg:hidden"
+              className="flex size-9 shrink-0 items-center justify-center rounded-[9px] border border-border bg-surface text-text-muted lg:hidden cursor-pointer"
             >
-              <IconoMenu className="size-[17px]" />
+              <IconoMenu className="size-4.25" />
             </button>
             <h1 className="text-[17px] md:text-[19px]">{titulo}</h1>
           </div>
 
-          <div className="mx-auto w-full max-w-[1360px] px-4 pt-4.5 pb-24 md:px-5.5 md:pt-5.5 lg:pb-16">
+          <div className="mx-auto w-full max-w-340 px-4 pt-4.5 pb-24 md:px-5.5 md:pt-5.5 lg:pb-16">
             <Outlet />
           </div>
         </main>
