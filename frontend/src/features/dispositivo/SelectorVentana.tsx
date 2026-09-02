@@ -1,6 +1,13 @@
+import { useNavigate } from 'react-router-dom'
 import { Campo } from '@/components/ui/Campo'
 import { Segmentado } from '@/components/ui/Segmentado'
-import { RANGOS, type RangoGrafico, type Ventana } from '@/lib/dispositivos'
+import {
+  permiteRangoPersonalizado,
+  RANGOS,
+  rangoExcedeRetencion,
+  type RangoGrafico,
+  type Ventana,
+} from '@/lib/dispositivos'
 
 type Opcion = RangoGrafico | 'personalizado'
 
@@ -9,42 +16,49 @@ const OPCIONES: { valor: Opcion; etiqueta: string }[] = [
   { valor: 'personalizado', etiqueta: 'Personalizado' },
 ]
 
-/* `<input type="date">` parsea 'YYYY-MM-DD' como medianoche UTC si se le pasa
-   directo a `new Date(...)`: se arma en local a mano para que el rango
-   corresponda al día que el usuario ve en el calendario. */
+/* `<input type="datetime-local">` trabaja en hora local y sin zona: se parsea y
+   se formatea a mano para que el rango sea exactamente el que muestra el campo,
+   en vez de depender de cómo interprete `new Date(...)` una cadena sin zona. */
 function fechaLocalDesde(valor: string): Date {
-  const [y, m, d] = valor.split('-').map(Number)
-  return new Date(y, m - 1, d)
+  const [dia, hora] = valor.split('T')
+  const [y, m, d] = dia.split('-').map(Number)
+  const [hh, mm] = hora.split(':').map(Number)
+  return new Date(y, m - 1, d, hh, mm)
 }
 
-function finDelDia(fecha: Date): Date {
-  const f = new Date(fecha)
-  f.setHours(23, 59, 59, 999)
+function aInputLocal(fecha: Date): string {
+  const dd = (n: number) => String(n).padStart(2, '0')
+  const dia = `${fecha.getFullYear()}-${dd(fecha.getMonth() + 1)}-${dd(fecha.getDate())}`
+  return `${dia}T${dd(fecha.getHours())}:${dd(fecha.getMinutes())}`
+}
+
+/* Los campos tienen precisión de minuto: el default arranca redondeado para que
+   lo que se pide sea lo mismo que muestran. */
+function ahoraAlMinuto(): Date {
+  const f = new Date()
+  f.setSeconds(0, 0)
   return f
-}
-
-function aInputDate(fecha: Date): string {
-  const y = fecha.getFullYear()
-  const m = String(fecha.getMonth() + 1).padStart(2, '0')
-  const d = String(fecha.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
 }
 
 export function SelectorVentana({
   ventana,
   onCambiar,
+  retencionDias,
 }: {
   ventana: Ventana
   onCambiar: (v: Ventana) => void
+  retencionDias: number | null
 }) {
+  const navigate = useNavigate()
+  const permitePersonalizado = permiteRangoPersonalizado(retencionDias)
   const opcion: Opcion = ventana.tipo === 'preset' ? ventana.rango : 'personalizado'
-  const hoy = aInputDate(new Date())
-  const desdeStr = ventana.tipo === 'fechas' ? aInputDate(ventana.desde) : ''
-  const hastaStr = ventana.tipo === 'fechas' ? aInputDate(ventana.hasta) : hoy
+  const ahora = aInputLocal(ahoraAlMinuto())
+  const desdeStr = ventana.tipo === 'fechas' ? aInputLocal(ventana.desde) : ''
+  const hastaStr = ventana.tipo === 'fechas' ? aInputLocal(ventana.hasta) : ahora
 
   function elegir(valor: Opcion) {
     if (valor === 'personalizado') {
-      const hasta = new Date()
+      const hasta = ahoraAlMinuto()
       const desde = new Date(hasta.getTime() - 24 * 3600_000)
       onCambiar({ tipo: 'fechas', desde, hasta })
       return
@@ -54,14 +68,15 @@ export function SelectorVentana({
 
   function cambiarDesde(valor: string) {
     if (!valor) return
-    const hasta = ventana.tipo === 'fechas' ? ventana.hasta : new Date()
+    const hasta = ventana.tipo === 'fechas' ? ventana.hasta : ahoraAlMinuto()
     onCambiar({ tipo: 'fechas', desde: fechaLocalDesde(valor), hasta })
   }
 
   function cambiarHasta(valor: string) {
     if (!valor) return
-    const desde = ventana.tipo === 'fechas' ? ventana.desde : fechaLocalDesde(valor)
-    onCambiar({ tipo: 'fechas', desde, hasta: finDelDia(fechaLocalDesde(valor)) })
+    const hasta = fechaLocalDesde(valor)
+    const desde = ventana.tipo === 'fechas' ? ventana.desde : hasta
+    onCambiar({ tipo: 'fechas', desde, hasta })
   }
 
   const rangoInvalido =
@@ -69,13 +84,25 @@ export function SelectorVentana({
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <Segmentado etiqueta="Rango del gráfico" valor={opcion} opciones={OPCIONES} onCambiar={elegir} />
-      {opcion === 'personalizado' && (
+      <Segmentado
+        etiqueta="Rango del gráfico"
+        valor={opcion}
+        opciones={OPCIONES}
+        onCambiar={elegir}
+        bloqueada={(v) =>
+          v === 'personalizado' ? !permitePersonalizado : rangoExcedeRetencion(v, retencionDias)
+        }
+        onBloqueada={() => navigate('/plan')}
+      />
+      {/* Sin plan que lo habilite los campos no se montan ni siquiera con la
+          ventana en 'fechas': el zoom del gráfico deja ese estado a cualquiera,
+          y mostrarlos sería la misma función premium por otra puerta. */}
+      {opcion === 'personalizado' && permitePersonalizado && (
         <div className="flex flex-wrap gap-2">
           <Campo
             id="ventana-desde"
             etiqueta="Desde"
-            type="date"
+            type="datetime-local"
             max={hastaStr}
             value={desdeStr}
             onChange={(e) => cambiarDesde(e.target.value)}
@@ -83,8 +110,8 @@ export function SelectorVentana({
           <Campo
             id="ventana-hasta"
             etiqueta="Hasta"
-            type="date"
-            max={hoy}
+            type="datetime-local"
+            max={ahora}
             value={hastaStr}
             onChange={(e) => cambiarHasta(e.target.value)}
           />

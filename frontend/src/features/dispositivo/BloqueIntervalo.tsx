@@ -60,7 +60,7 @@ export function BloqueIntervalo({
         <Campo
           etiqueta="Intervalo (segundos)"
           type="number"
-          min={1}
+          min={pisoPlan}
           {...campo('intervaloSeg')}
           disabled={automatico}
           {...(automatico && {

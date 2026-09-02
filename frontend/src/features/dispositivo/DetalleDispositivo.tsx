@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Boton } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { Segmentado } from '@/components/ui/Segmentado'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
@@ -13,19 +12,20 @@ import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO } from '@/lib/tiempo'
 import {
-  duracionMsDeRango,
+  bordesDeVentana,
   ETIQUETA_ROL,
+  excedeRetencion,
   intervaloEfectivo,
   nombreDeDispositivo,
-  rangoExcedeRetencion,
-  RANGOS,
+  resolverVentana,
   useDetalleDispositivo,
-  type RangoGrafico,
+  useVentanaConZoom,
 } from '@/lib/dispositivos'
 import { BloqueSensor } from './BloqueSensor'
 import { BloqueAlertas } from './BloqueAlertas'
 import { BloqueExport } from './BloqueExport'
 import { BloqueIntervalo } from './BloqueIntervalo'
+import { SelectorVentana } from './SelectorVentana'
 
 /* Los gráficos comparten un único borde derecho, y sólo avanza con el tic: uno
    por sensor los desalinearía entre sí y movería el eje en cualquier re-render
@@ -47,12 +47,15 @@ function EsqueletoDetalle() {
 export function DetalleDispositivo() {
   const { id } = useParams<{ id: string }>()
   const { plan } = useSesion()
-  const [rango, setRango] = useState<RangoGrafico>('tiempo-real')
+  const { ventana, elegir, zoomear, restablecer, hayZoom } = useVentanaConZoom({
+    tipo: 'preset',
+    rango: 'tiempo-real',
+  })
   const [exportAbierto, setExportAbierto] = useState(false)
   const [intervaloAbierto, setIntervaloAbierto] = useState(false)
   const hasta = useAhora(TIC_MS)
 
-  const { datos, cargando, refrescando, error, errorCrudo, refrescar } = useDetalleDispositivo(id ?? '', rango)
+  const { datos, cargando, error, errorCrudo, refrescar } = useDetalleDispositivo(id ?? '', ventana)
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" />
 
@@ -88,6 +91,10 @@ export function DetalleDispositivo() {
   const estado = estadoDispositivo(dispositivo.last_seen_at, intervaloEfectivo(dispositivo, pisoPlan))
   // Todos los sensores del dispositivo comparten plan, así que cualquiera sirve
   const retencionDias = sensores.find((s) => s.datos)?.datos?.retencion_dias ?? null
+  const { desde } = resolverVentana(ventana)
+  // Ventana única para todas las tarjetas: comparten eje, así que comparten
+  // también estos bordes — zoomear en una mueve a todas por igual.
+  const { desdeMs, hastaMs } = bordesDeVentana(ventana, hasta)
 
   return (
     <div className="flex flex-col gap-5">
@@ -106,7 +113,6 @@ export function DetalleDispositivo() {
             ) : (
               <Pill tono="faint">Desactivado</Pill>
             )}
-            {refrescando && <span className="text-note text-text-faint">actualizando…</span>}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-label text-text-faint">
             {dispositivo.ubicacion && (
@@ -147,7 +153,7 @@ export function DetalleDispositivo() {
         </p>
       )}
 
-      {rangoExcedeRetencion(rango, retencionDias) && (
+      {excedeRetencion(desde, retencionDias) && (
         <Card tono="warn" className="flex flex-wrap items-center justify-between gap-3 p-3.5">
           <p className="text-label text-warn">
             Tu plan sólo muestra los últimos {retencionDias} días. El rango pedido se acortó.
@@ -158,9 +164,16 @@ export function DetalleDispositivo() {
         </Card>
       )}
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <h3 className="text-body font-medium text-text-muted">Lecturas</h3>
-        <Segmentado etiqueta="Rango del gráfico" valor={rango} opciones={RANGOS} onCambiar={setRango} />
+        <div className="flex flex-wrap items-end gap-3">
+          <SelectorVentana ventana={ventana} onCambiar={elegir} retencionDias={retencionDias} />
+          {hayZoom && (
+            <Boton variante="sutil" onClick={restablecer}>
+              Restablecer zoom
+            </Boton>
+          )}
+        </div>
       </div>
 
       {sensores.length === 0 ? (
@@ -175,8 +188,10 @@ export function DetalleDispositivo() {
               dispositivoId={dispositivo.id}
               sensor={sensor}
               alertas={alertas}
-              desdeMs={hasta - duracionMsDeRango(rango)}
-              hastaMs={hasta}
+              desdeMs={desdeMs}
+              hastaMs={hastaMs}
+              onZoom={zoomear}
+              onRestablecer={restablecer}
             />
           ))}
         </div>

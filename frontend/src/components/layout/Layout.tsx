@@ -167,7 +167,7 @@ export function Layout({ titulo }: { titulo: string }) {
                 </strong>
                 {/* El espacio duro reserva el renglón mientras carga el plan,
                     para que el bloque no crezca después de montar. */}
-                <small className="truncate text-note text-text-faint">
+                <small className={`truncate text-note  ${plan?.plan.id !== "free" ? "text-premium" : "text-text-faint"}`}>
                 {plan ? `Plan ${plan.plan.nombre}` : ' '}
                 </small>
               </span>

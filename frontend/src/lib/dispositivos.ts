@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { useSesion } from './auth'
 import {
   listarAlertas,
@@ -250,19 +250,19 @@ async function cargarDispositivo(
 // Detalle: un dispositivo, gráfico completo por sensor en el rango elegido
 // --------------------------------------------------------------------------
 
-export type RangoGrafico = 'tiempo-real' | '24h' | '7d' | '30d' | '6m' | '1y'
+export type RangoGrafico = 'tiempo-real' | '24h' | '7d' | '30d' | '6m' | '1a'
 
 /* Orden y etiquetas del selector de rango del detalle, en un solo lugar. */
 export const RANGOS: { valor: RangoGrafico; etiqueta: string }[] = [
   { valor: 'tiempo-real', etiqueta: 'En tiempo real' },
-  { valor: '24h', etiqueta: '24 h' },
-  { valor: '7d', etiqueta: '7 d' },
-  { valor: '30d', etiqueta: '30 d' },
-  { valor: '6m', etiqueta: '6 m' },
-  { valor: '1y', etiqueta: '1 y' },
+  { valor: '24h', etiqueta: '24h' },
+  { valor: '7d', etiqueta: '7d' },
+  { valor: '30d', etiqueta: '30d' },
+  { valor: '6m', etiqueta: '6m' },
+  { valor: '1a', etiqueta: '1a' },
 ]
 
-const HORAS_POR_RANGO: Record<RangoGrafico, number> = { 'tiempo-real': 1, '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '6m': 24 * 30 * 6, '1y': 24 * 30 * 12 }
+const HORAS_POR_RANGO: Record<RangoGrafico, number> = { 'tiempo-real': 1, '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '6m': 24 * 30 * 6, '1a': 24 * 30 * 12 }
 
 /* Margen para el desfase de reloj entre cliente y servidor: el backend calcula
    su piso de retención con su propio now() al atender el request, así que un
@@ -278,13 +278,39 @@ export function excedeRetencion(desde: Date, retencionDias: number | null) {
   return desde.getTime() < piso - MARGEN_RELOJ_MS
 }
 
-/* Compatibilidad con el selector de sólo-presets del detalle de dispositivo. */
+/* Gate premium de las opciones preset de SelectorVentana (las dos pantallas de
+   detalle la usan). "Personalizado" no pasa por acá: no depende del ancho del
+   rango sino de permiteRangoPersonalizado. */
 export function rangoExcedeRetencion(rango: RangoGrafico, retencionDias: number | null) {
   return excedeRetencion(new Date(Date.now() - HORAS_POR_RANGO[rango] * 3600_000), retencionDias)
 }
 
+/* Gate premium del rango de fechas a mano. No hay flag propio en el catálogo:
+   `retencion_dias` null es hoy la única marca de "el dueño es premium" que
+   viaja en la respuesta del gráfico (free la trae en 7), y sirve igual para el
+   admin, que está exento. Si aparece un plan con retención acotada que igual
+   permita elegir fechas, esto pasa a ser una columna de `planes` expuesta en
+   DatosGraficoOut.
+   El zoom del gráfico queda libre a propósito: sólo achica una ventana que ya
+   estaba a la vista, mientras que el selector deja saltar a cualquier instante. */
+export function permiteRangoPersonalizado(retencionDias: number | null) {
+  return retencionDias === null
+}
+
 export function duracionMsDeRango(rango: RangoGrafico): number {
   return HORAS_POR_RANGO[rango] * 3600_000
+}
+
+/* Bordes del gráfico en ms: el ancho lo da el preset (contra el tic
+   compartido, así los sensores no se desalinean) o las fechas elegidas a mano
+   / por zoom. Comparte esta cuenta el detalle de dispositivo (una ventana para
+   todas las tarjetas); el detalle de sensor arma su propio borde izquierdo
+   porque además necesita `desde_efectivo` (el piso real que aplicó el plan). */
+export function bordesDeVentana(ventana: Ventana, tic: number): { desdeMs: number; hastaMs: number } {
+  if (ventana.tipo === 'fechas') {
+    return { desdeMs: ventana.desde.getTime(), hastaMs: ventana.hasta.getTime() }
+  }
+  return { desdeMs: tic - duracionMsDeRango(ventana.rango), hastaMs: tic }
 }
 
 /* Un gráfico de 7 o 30 días no cambia de un minuto a otro: pollear cada 60 s
@@ -297,7 +323,7 @@ const POLL_DETALLE_MS: Record<RangoGrafico, number> = {
   '7d': 300_000,
   '30d': 900_000,
   '6m': 300_000_000,
-  '1y': 1_000_000_000
+  '1a': 1_000_000_000
 }
 
 // --------------------------------------------------------------------------
@@ -321,6 +347,35 @@ export function pollDeVentana(v: Ventana): number | undefined {
   return v.tipo === 'preset' ? POLL_DETALLE_MS[v.rango] : undefined
 }
 
+/* Estado de ventana con zoom, compartido por las dos pantallas de detalle.
+   - elegir: uso manual del selector — pisa la ventana y olvida cualquier zoom
+     previo (el usuario salió de ese flujo).
+   - zoomear: guarda la ventana actual como "previa" sólo la primera vez (un
+     segundo zoom no apila, así "restablecer" siempre vuelve al punto de
+     partida y no a un paso intermedio).
+   - restablecer: vuelve a la previa; sin una previa guardada no hace nada. */
+export function useVentanaConZoom(inicial: Ventana) {
+  const [ventana, setVentana] = useState<Ventana>(inicial)
+  const [previa, setPrevia] = useState<Ventana | null>(null)
+
+  function elegir(v: Ventana) {
+    setPrevia(null)
+    setVentana(v)
+  }
+
+  function zoomear(desdeMs: number, hastaMs: number) {
+    setPrevia((p) => p ?? ventana)
+    setVentana({ tipo: 'fechas', desde: new Date(desdeMs), hasta: new Date(hastaMs) })
+  }
+
+  function restablecer() {
+    if (previa) setVentana(previa)
+    setPrevia(null)
+  }
+
+  return { ventana, elegir, zoomear, restablecer, hayZoom: previa !== null }
+}
+
 export type DetalleDispositivo = {
   dispositivo: DispositivoDetalle
   sensores: SensorConDatos[]
@@ -336,7 +391,7 @@ export const ETIQUETA_ROL: Record<DispositivoDetalle['rol'], string> = {
   admin: 'Administrador',
 }
 
-export function useDetalleDispositivo(dispositivoId: string, rango: RangoGrafico) {
+export function useDetalleDispositivo(dispositivoId: string, ventana: Ventana) {
   const cargar = useCallback(
     async (signal: AbortSignal): Promise<DetalleDispositivo> => {
       const [dispositivo, tipos] = await Promise.all([
@@ -344,14 +399,12 @@ export function useDetalleDispositivo(dispositivoId: string, rango: RangoGrafico
         listarTiposSensor(signal),
       ])
 
-      const hasta = new Date()
-      const desde = new Date(hasta.getTime() - HORAS_POR_RANGO[rango] * 3600_000)
-
+      const { desde, hasta } = resolverVentana(ventana)
       const { sensores, alertas } = await cargarSensoresDeDispositivo(dispositivoId, tipos, desde, hasta, signal)
       return { dispositivo, sensores, alertas }
     },
-    [dispositivoId, rango],
+    [dispositivoId, ventana],
   )
 
-  return useCarga(cargar, { intervaloMs: POLL_DETALLE_MS[rango] })
+  return useCarga(cargar, { intervaloMs: pollDeVentana(ventana) })
 }

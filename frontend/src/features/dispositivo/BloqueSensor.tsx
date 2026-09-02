@@ -14,12 +14,16 @@ export function BloqueSensor({
   alertas,
   desdeMs,
   hastaMs,
+  onZoom,
+  onRestablecer,
 }: {
   dispositivoId: string
   sensor: SensorConDatos
   alertas: AlertaConNotificar[]
   desdeMs: number
   hastaMs: number
+  onZoom?: (desdeMs: number, hastaMs: number) => void
+  onRestablecer?: () => void
 }) {
   const { datos } = sensor
   const regla = reglaDestacada(alertas, sensor.id)
@@ -63,6 +67,8 @@ export function BloqueSensor({
             hastaMs={hastaMs}
             umbral={regla?.umbral}
             condicion={regla?.condicion}
+            onZoom={onZoom}
+            onRestablecer={onRestablecer}
           />
         ) : (
           <div className="grid h-full place-items-center">

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Boton } from '@/components/ui/Boton'
@@ -14,11 +13,12 @@ import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
 import { estadoDispositivo } from '@/lib/tiempo'
 import {
+  bordesDeVentana,
   excedeRetencion,
   intervaloEfectivo,
   nombreDeDispositivo,
   resolverVentana,
-  type Ventana,
+  useVentanaConZoom,
 } from '@/lib/dispositivos'
 import { SensorNoEncontradoError, reglaDestacada, useDetalleSensor } from '@/lib/sensor'
 import { SelectorVentana } from './SelectorVentana'
@@ -60,11 +60,14 @@ function Navegable({ titulo, dispositivoId }: { titulo: string; dispositivoId?: 
 export function DetalleSensor() {
   const { id, sensorId } = useParams<{ id: string; sensorId: string }>()
   const { plan } = useSesion()
-  const [ventana, setVentana] = useState<Ventana>({ tipo: 'preset', rango: 'tiempo-real' })
+  const { ventana, elegir, zoomear, restablecer, hayZoom } = useVentanaConZoom({
+    tipo: 'preset',
+    rango: 'tiempo-real',
+  })
   const enVivo = ventana.tipo === 'preset' && ventana.rango === 'tiempo-real'
   const tic = useAhora(enVivo ? TIC_MS_TIEMPO_REAL : TIC_MS_DEFAULT)
 
-  const { datos, cargando, refrescando, error, errorCrudo, refrescar } = useDetalleSensor(
+  const { datos, cargando, error, errorCrudo, refrescar } = useDetalleSensor(
     id ?? '',
     sensorId ?? '',
     ventana,
@@ -106,10 +109,10 @@ export function DetalleSensor() {
 
   const { dispositivo, sensor, ultima, alertas } = datos
   const regla = reglaDestacada(alertas, sensor.id)
-  const { desde, hasta: hastaVentana } = resolverVentana(ventana)
+  const { desde } = resolverVentana(ventana)
   // Borde derecho del gráfico: el tic compartido si la ventana sigue en vivo
   // (preset), o el límite fijo elegido si es un rango de fechas cerrado.
-  const hastaGrilla = ventana.tipo === 'preset' ? tic : hastaVentana.getTime()
+  const { hastaMs: hastaGrilla } = bordesDeVentana(ventana, tic)
   const grilla = datos.datos ? serieDeGrafico(datos.datos) : []
   const resumen = datos.datos?.resumen
   // No se ata al gráfico: el resumen puede traer datos en bordes donde no hay
@@ -140,7 +143,6 @@ export function DetalleSensor() {
           style={{ background: sensor.color }}
         />
         <h2 className="font-display text-page-lg font-semibold text-text">{sensor.etiqueta}</h2>
-        {refrescando && <span className="text-note text-text-faint">actualizando…</span>}
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
@@ -178,7 +180,14 @@ export function DetalleSensor() {
         </Card>
       )}
 
-      <SelectorVentana ventana={ventana} onCambiar={setVentana} />
+      <div className="flex flex-wrap items-end gap-3">
+        <SelectorVentana ventana={ventana} onCambiar={elegir} retencionDias={retencionDias} />
+        {hayZoom && (
+          <Boton variante="sutil" onClick={restablecer}>
+            Restablecer zoom
+          </Boton>
+        )}
+      </div>
 
       <Card className="p-4">
         <div className="h-96">
@@ -191,6 +200,8 @@ export function DetalleSensor() {
               hastaMs={hastaGrilla}
               umbral={regla?.umbral}
               condicion={regla?.condicion}
+              onZoom={zoomear}
+              onRestablecer={restablecer}
             />
           ) : (
             <div className="grid h-full place-items-center">

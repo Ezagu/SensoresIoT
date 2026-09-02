@@ -28,6 +28,9 @@
   --color-ok: #29c07a;
   --color-warn: #f0a62b;
   --color-danger: #f2544b;
+  /* Plan premium: mismo hue que --color-sensor-co2, nombre semántico propio
+     porque acá representa "función de pago", no un tipo de sensor. */
+  --color-premium: #a78bfa;
 
   /* Los tonos -soft se derivan del base para que el hue tenga una sola fuente
      de verdad: cambiar --color-ok arrastra su fondo. El porcentaje sí varía por
@@ -36,6 +39,7 @@
   --color-ok-soft: color-mix(in oklab, var(--color-ok) 14%, transparent);
   --color-warn-soft: color-mix(in oklab, var(--color-warn) 14%, transparent);
   --color-danger-soft: color-mix(in oklab, var(--color-danger) 14%, transparent);
+  --color-premium-soft: color-mix(in oklab, var(--color-premium) 16%, transparent);
 
   /* Velo del drawer mobile y del ::backdrop del modal */
   --color-overlay: rgba(0, 0, 0, 0.55);
@@ -114,11 +118,13 @@
   --color-ok: #1b9c64;
   --color-warn: #b57712;
   --color-danger: #d53f37;
+  --color-premium: #7c3aed;
 
   --color-accent-soft: color-mix(in oklab, var(--color-accent) 10%, transparent);
   --color-ok-soft: color-mix(in oklab, var(--color-ok) 10%, transparent);
   --color-warn-soft: color-mix(in oklab, var(--color-warn) 10%, transparent);
   --color-danger-soft: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  --color-premium-soft: color-mix(in oklab, var(--color-premium) 10%, transparent);
 
   --color-sensor-temperatura: #ea6a0a;
   --color-sensor-humedad: #0891b2;
