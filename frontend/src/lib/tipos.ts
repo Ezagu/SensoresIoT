@@ -36,10 +36,18 @@ export type Dispositivo = {
 
 export type RolDispositivo = 'owner' | 'editor' | 'viewer'
 
-/* GET /usuarios/{id}/dispositivos. El rol sale de usuario_dispositivo y no del
-   dispositivo, así que es el único endpoint que lo devuelve: el resto responde
-   un DispositivoOut pelado. */
+/* GET /usuarios/{id}/dispositivos. El rol sale directo de la fila de
+   usuario_dispositivo del join, sin resolver nada. */
 export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }
+
+/* GET /dispositivos/{id}. Acá el rol lo resuelve el backend (rol_en_dispositivo),
+   así que además de owner/editor/viewer puede ser 'admin' (soporte, sin fila
+   propia en usuario_dispositivo). owner_nombre es null sólo si el dispositivo
+   quedó sin vincular. */
+export type DispositivoDetalle = Dispositivo & {
+  rol: RolDispositivo | 'admin'
+  owner_nombre: string | null
+}
 
 /* PATCH /dispositivos/{id}/intervalo. No es un DispositivoOut: el dispositivo
    recién aplica el cambio en su próxima conexión (viaja como

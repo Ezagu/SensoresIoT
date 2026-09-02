@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoOut, DispositivoCreateOut, IntervaloUpdate
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate
 from schemas.sensor import SensorOut
 from schemas.alerta import AlertaConNotificarOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
@@ -25,7 +25,7 @@ def rotate_secret(request: Request, dispositivo: dict = Depends(get_dispositivo_
 def create_dispositivo(dispositivo: DispositivoCreate, usuario_admin: dict = Depends(get_usuario_admin)):
     return dispositivo_service.crear_dispositivo(dispositivo)
 
-@router.get("/{dispositivo_id}", response_model=DispositivoOut)
+@router.get("/{dispositivo_id}", response_model=DispositivoDetalleOut)
 def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.obtener_dispositivo(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
 

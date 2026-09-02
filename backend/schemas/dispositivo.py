@@ -20,9 +20,17 @@ class DispositivoOut(BaseModel):
   intervalo_configurado_seg: Optional[int] = None
 
 class DispositivoConRolOut(DispositivoOut):
-  # Solo el listado por usuario: el rol sale de usuario_dispositivo, no del
-  # dispositivo, asi que el resto de los endpoints no tiene de donde sacarlo.
+  # Listado por usuario: acá el rol sale directo de la fila de usuario_dispositivo
+  # del join, sin resolver nada — a diferencia de DispositivoDetalleOut, que lo
+  # calcula (contempla el admin, que no tiene fila propia).
   rol: str
+
+class DispositivoDetalleOut(DispositivoOut):
+  # GET /dispositivos/{id}: acá sí hace falta resolver el rol (rol_en_dispositivo,
+  # que contempla admin) y quién es el dueño, para que el frontend pueda mostrar
+  # "compartido por" sin otro request.
+  rol: str
+  owner_nombre: Optional[str] = None
 
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut

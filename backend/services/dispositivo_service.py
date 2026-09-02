@@ -37,7 +37,10 @@ def crear_dispositivo(dispositivo) -> dict:
 
 def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
-        return _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
+        dispositivo = _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
+        dispositivo["rol"] = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        dispositivo["owner_nombre"] = dispositivo_repo.buscar_nombre_owner(cur, dispositivo_id)
+        return dispositivo
 
 def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:
     with get_cursor() as cur:

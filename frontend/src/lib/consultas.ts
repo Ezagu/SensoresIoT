@@ -5,8 +5,8 @@ import type {
   AlertaCreatePayload,
   AlertaUpdatePayload,
   DatosGrafico,
-  Dispositivo,
   DispositivoConRol,
+  DispositivoDetalle,
   Historial,
   IntervaloActualizado,
   PreferenciaUpdatePayload,
@@ -24,7 +24,7 @@ export function listarDispositivos(usuarioId: string, signal?: AbortSignal) {
 }
 
 export function obtenerDispositivo(dispositivoId: string, signal?: AbortSignal) {
-  return api.get<Dispositivo>(`/dispositivos/${dispositivoId}`, { signal }).then((r) => r.data)
+  return api.get<DispositivoDetalle>(`/dispositivos/${dispositivoId}`, { signal }).then((r) => r.data)
 }
 
 export function listarTiposSensor(signal?: AbortSignal) {

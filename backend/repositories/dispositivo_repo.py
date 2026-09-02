@@ -155,3 +155,15 @@ def buscar_owner_de_dispositivo(cur, dispositivo_id) -> dict | None:
         (dispositivo_id,)
     )
     return cur.fetchone()
+
+def buscar_nombre_owner(cur, dispositivo_id) -> str | None:
+    cur.execute(
+        """
+        SELECT u.nombre FROM usuario_dispositivo ud
+        JOIN usuarios u ON u.id = ud.usuario_id
+        WHERE ud.dispositivo_id = %s AND ud.rol = 'owner'
+        """,
+        (dispositivo_id,)
+    )
+    fila = cur.fetchone()
+    return fila["nombre"] if fila else None

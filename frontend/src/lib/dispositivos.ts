@@ -16,6 +16,7 @@ import type {
   DatosGrafico,
   Dispositivo,
   DispositivoConRol,
+  DispositivoDetalle,
   Medicion,
   TipoSensor,
 } from './tipos'
@@ -321,9 +322,18 @@ export function pollDeVentana(v: Ventana): number | undefined {
 }
 
 export type DetalleDispositivo = {
-  dispositivo: Dispositivo
+  dispositivo: DispositivoDetalle
   sensores: SensorConDatos[]
   alertas: AlertaConNotificar[]
+}
+
+/* Etiqueta de rol para el detalle de dispositivo (`DispositivoDetalle.rol`):
+   'admin' sólo puede salir ahí, nunca de DispositivoConRol (listado del panel). */
+export const ETIQUETA_ROL: Record<DispositivoDetalle['rol'], string> = {
+  owner: 'Dueño',
+  editor: 'Editor',
+  viewer: 'Solo lectura',
+  admin: 'Administrador',
 }
 
 export function useDetalleDispositivo(dispositivoId: string, rango: RangoGrafico) {
