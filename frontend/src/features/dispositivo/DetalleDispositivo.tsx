@@ -6,11 +6,12 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Segmentado } from '@/components/ui/Segmentado'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { Vacio } from '@/components/ui/Vacio'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
 import { estadoHttp } from '@/lib/api'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
-import { estadoDispositivo, ETIQUETA_ESTADO, haceCuanto } from '@/lib/tiempo'
+import { estadoDispositivo, ETIQUETA_ESTADO } from '@/lib/tiempo'
 import {
   duracionMsDeRango,
   ETIQUETA_ROL,
@@ -115,7 +116,11 @@ export function DetalleDispositivo() {
               </span>
             )}
             <span>
-              {dispositivo.last_seen_at ? `Reportó ${haceCuanto(dispositivo.last_seen_at)}` : 'Nunca reportó'}
+              {dispositivo.last_seen_at ? (
+                <>Reportó <HaceCuanto iso={dispositivo.last_seen_at} /></>
+              ) : (
+                'Nunca reportó'
+              )}
             </span>
             <span className="flex items-center gap-1">
               <IconoCompartido className="size-3.25" />

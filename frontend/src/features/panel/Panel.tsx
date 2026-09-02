@@ -4,10 +4,11 @@ import { Card } from '@/components/ui/Card'
 import { Boton } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlerta, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
 import { intervaloEfectivo, useDispositivos, type DispositivoPanel } from '@/lib/dispositivos'
 import { useAhora } from '@/lib/usarCarga'
-import { estadoDispositivo, haceCuanto, type EstadoDispositivo } from '@/lib/tiempo'
+import { estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
 import { useSesion } from '@/lib/auth'
 import { TarjetaDispositivo } from './TarjetaDispositivo'
 import type { ReactNode } from 'react'
@@ -137,7 +138,7 @@ export function Panel() {
             etiqueta="Última actualización"
             valor={
               <span className="text-heading-lg">
-                {cargando ? '—' : haceCuanto(resumen.ultimoReporte)}
+                {cargando ? '—' : <HaceCuanto iso={resumen.ultimoReporte} />}
               </span>
             }
           />

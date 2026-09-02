@@ -1,14 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlerta, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
 import { medida } from '@/lib/formato'
-import {
-  ETIQUETA_ESTADO,
-  estadoDispositivo,
-  haceCuanto,
-  type EstadoDispositivo,
-} from '@/lib/tiempo'
+import { ETIQUETA_ESTADO, estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
 import { nombreDeDispositivo, type DispositivoPanel, type SensorPanel } from '@/lib/dispositivos'
 
 /* 'retraso' no apaga la fila: arranca a 3 intervalos y estos dispositivos
@@ -102,7 +98,11 @@ export function TarjetaDispositivo({
 
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5 text-note text-text-faint">
         <span className="truncate">
-          {dispositivo.last_seen_at ? `Reportó ${haceCuanto(dispositivo.last_seen_at)}` : 'Nunca reportó'}
+          {dispositivo.last_seen_at ? (
+            <>Reportó <HaceCuanto iso={dispositivo.last_seen_at} /></>
+          ) : (
+            'Nunca reportó'
+          )}
         </span>
         <Link
           to={`/dispositivos/${dispositivo.id}`}

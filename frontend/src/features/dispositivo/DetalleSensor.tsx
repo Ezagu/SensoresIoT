@@ -5,13 +5,14 @@ import { Boton } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Stat } from '@/components/ui/Stat'
 import { Vacio } from '@/components/ui/Vacio'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Grafico } from '@/components/graficos/Grafico'
 import { estadoHttp } from '@/lib/api'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
-import { estadoDispositivo, haceCuanto } from '@/lib/tiempo'
+import { estadoDispositivo } from '@/lib/tiempo'
 import {
   excedeRetencion,
   intervaloEfectivo,
@@ -148,7 +149,7 @@ export function DetalleSensor() {
             {ultima ? medida(ultima.value, sensor.unidad) : '—'}
           </span>
           <span className="text-note text-text-faint">
-            {ultima ? `Reportó ${haceCuanto(ultima.time)}` : 'Nunca reportó'}
+            {ultima ? <>Reportó <HaceCuanto iso={ultima.time} /></> : 'Nunca reportó'}
           </span>
         </div>
         {hayResumen && resumen && (

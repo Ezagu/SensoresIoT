@@ -9,9 +9,14 @@ const fmtHora = new Intl.DateTimeFormat('es-AR', {
   hourCycle: 'h23',
 })
 
-export function haceCuanto(iso: string | null): string {
+export function haceCuanto(iso: string | null, ahora: number = Date.now()): string {
   if (!iso) return 'nunca'
-  const seg = Math.round((Date.now() - new Date(iso).getTime()) / 1000)
+  const seg = Math.round((ahora - new Date(iso).getTime()) / 1000)
+  /* Un timestamp futuro es un reloj desfasado (el del equipo por SNTP, o el del
+     navegador contra el now() del servidor), no un dato del futuro: "dentro de
+     X" no significaría nada acá. Cae en el mismo caso el 0, que como "hace 0 s"
+     se lee peor. */
+  if (seg <= 0) return 'recién'
   if (seg < 60) return `hace ${seg} s`
   if (seg < 3600) return rtf.format(-Math.round(seg / 60), 'minute')
   if (seg < 86400) return rtf.format(-Math.round(seg / 3600), 'hour')
