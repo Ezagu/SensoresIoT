@@ -6,7 +6,7 @@ from repositories import dispositivo_repo, sensor_repo, medicion_repo
 from services import plan_service, alerta_service
 from core.tiempo import a_utc
 
-TOLERANCIA_JITTER = timedelta(seconds=2)  # margen por drift de reloj / latencia de red
+TOLERANCIA_JITTER = timedelta(seconds=5)  # margen por drift de reloj / latencia de red
 # No depende del plan: el free escribe con la misma profundidad que el premium y
 # sólo ve menos al leer, así el historial aparece entero si algún día contrata.
 ANTIGUEDAD_MAXIMA = timedelta(days=90)
@@ -71,6 +71,8 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
                     # Fuera de rango: del futuro (reloj del equipo mal sincronizado)
                     # o más vieja que lo que retenemos.
                     if timestamp > ahora + TOLERANCIA_JITTER or timestamp < ahora - ANTIGUEDAD_MAXIMA:
+                        print("HORA MAL CONFIGURADA")
+                        print("timestamp: " + str(timestamp) + "; Ahora: " + str(ahora))
                         invalidas.append(str(medicion.sensor_id))
                         continue
 

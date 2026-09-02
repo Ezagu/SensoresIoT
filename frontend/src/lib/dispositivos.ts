@@ -43,7 +43,7 @@ export function nombreDeDispositivo(id: string, nombre: string | null) {
 /* Sensor activo con su metadata resuelta (etiqueta/unidad/color por tipo), sin
    lecturas: es la parte común del fan-out del panel y del detalle, que después
    piden lecturas distintas. */
-type SensorConMeta = {
+export type SensorConMeta = {
   id: string
   tipoSensorId: number
   etiqueta: string
@@ -51,7 +51,7 @@ type SensorConMeta = {
   color: string
 }
 
-async function cargarSensoresConMeta(
+export async function cargarSensoresConMeta(
   dispositivoId: string,
   tipos: TipoSensor[],
   signal: AbortSignal,
@@ -249,10 +249,11 @@ async function cargarDispositivo(
 // Detalle: un dispositivo, gráfico completo por sensor en el rango elegido
 // --------------------------------------------------------------------------
 
-export type RangoGrafico = '24h' | '7d' | '30d' | '6m' | '1y'
+export type RangoGrafico = 'tiempo-real' | '24h' | '7d' | '30d' | '6m' | '1y'
 
 /* Orden y etiquetas del selector de rango del detalle, en un solo lugar. */
 export const RANGOS: { valor: RangoGrafico; etiqueta: string }[] = [
+  { valor: 'tiempo-real', etiqueta: 'En tiempo real' },
   { valor: '24h', etiqueta: '24 h' },
   { valor: '7d', etiqueta: '7 d' },
   { valor: '30d', etiqueta: '30 d' },
@@ -260,28 +261,63 @@ export const RANGOS: { valor: RangoGrafico; etiqueta: string }[] = [
   { valor: '1y', etiqueta: '1 y' },
 ]
 
-const HORAS_POR_RANGO: Record<RangoGrafico, number> = { '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '6m': 24 * 30 * 6, '1y': 24 * 30 * 12 }
+const HORAS_POR_RANGO: Record<RangoGrafico, number> = { 'tiempo-real': 1, '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '6m': 24 * 30 * 6, '1y': 24 * 30 * 12 }
 
-/* Si el rango pedido entra en la retención del plan, no hay recorte que avisar.
-   No se usa el `recortado` de la respuesta para esto: el backend calcula su piso
-   con su propio now() al atender el request, así que para un rango igual a la
-   retención (free en 7 d) el piso siempre queda unos milisegundos por delante
-   del `desde` que mandó el cliente y el flag da true por latencia y desfase de
-   reloj, no porque falten datos. Comparar duración contra retención es exacto y
-   no mete relojes de por medio. `retencion_dias` null = sin límite (premium, y
-   también admin, que está exento). */
+/* Margen para el desfase de reloj entre cliente y servidor: el backend calcula
+   su piso de retención con su propio now() al atender el request, así que un
+   `desde` que coincide justo con el borde del plan (free en 7 d) puede quedar
+   unos milisegundos antes del piso real por pura latencia, no porque falten
+   datos. `retencion_dias` null = sin límite (premium, y también admin, que
+   está exento). */
+const MARGEN_RELOJ_MS = 60_000
+
+export function excedeRetencion(desde: Date, retencionDias: number | null) {
+  if (retencionDias === null) return false
+  const piso = Date.now() - retencionDias * 86400_000
+  return desde.getTime() < piso - MARGEN_RELOJ_MS
+}
+
+/* Compatibilidad con el selector de sólo-presets del detalle de dispositivo. */
 export function rangoExcedeRetencion(rango: RangoGrafico, retencionDias: number | null) {
-  return retencionDias !== null && HORAS_POR_RANGO[rango] > retencionDias * 24
+  return excedeRetencion(new Date(Date.now() - HORAS_POR_RANGO[rango] * 3600_000), retencionDias)
+}
+
+export function duracionMsDeRango(rango: RangoGrafico): number {
+  return HORAS_POR_RANGO[rango] * 3600_000
 }
 
 /* Un gráfico de 7 o 30 días no cambia de un minuto a otro: pollear cada 60 s
-   sería puro gasto. El de 24 h sí se mueve seguido, mismo intervalo que el panel. */
+   sería puro gasto. El de 24 h sí se mueve seguido, mismo intervalo que el panel.
+   "En tiempo real" refresca cada 15 s: es el modo pensado justo para ver el
+   sensor moverse. */
 const POLL_DETALLE_MS: Record<RangoGrafico, number> = {
+  'tiempo-real': 15_000,
   '24h': 60_000,
   '7d': 300_000,
   '30d': 900_000,
   '6m': 300_000_000,
   '1y': 1_000_000_000
+}
+
+// --------------------------------------------------------------------------
+// Ventana: preset o rango de fechas explícito, con la misma resolución para
+// ambos casos. Preset sigue pollenado (se mueve solo); fechas explícitas no
+// cambian, pollearlas sería gasto puro.
+// --------------------------------------------------------------------------
+
+export type Ventana =
+  | { tipo: 'preset'; rango: RangoGrafico }
+  | { tipo: 'fechas'; desde: Date; hasta: Date }
+
+export function resolverVentana(v: Ventana): { desde: Date; hasta: Date } {
+  if (v.tipo === 'fechas') return { desde: v.desde, hasta: v.hasta }
+  const hasta = new Date()
+  const desde = new Date(hasta.getTime() - HORAS_POR_RANGO[v.rango] * 3600_000)
+  return { desde, hasta }
+}
+
+export function pollDeVentana(v: Ventana): number | undefined {
+  return v.tipo === 'preset' ? POLL_DETALLE_MS[v.rango] : undefined
 }
 
 export type DetalleDispositivo = {

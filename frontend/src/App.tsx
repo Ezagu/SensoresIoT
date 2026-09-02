@@ -13,10 +13,13 @@ import { PlanPagina } from '@/features/plan/PlanPagina'
 import { Ajustes } from '@/features/cuenta/Ajustes'
 import { Cuenta } from '@/features/cuenta/Cuenta'
 
-/* Recharts pesa ~100 kB gz y sólo lo usa esta pantalla: el panel y el resto de
-   la app no tienen por qué cargarlo. */
+/* Recharts pesa ~100 kB gz y sólo la usan estas pantallas: el panel y el resto
+   de la app no tienen por qué cargarlo. */
 const DetalleDispositivo = lazy(() =>
   import('@/features/dispositivo/DetalleDispositivo').then((m) => ({ default: m.DetalleDispositivo })),
+)
+const DetalleSensor = lazy(() =>
+  import('@/features/dispositivo/DetalleSensor').then((m) => ({ default: m.DetalleSensor })),
 )
 
 function Guardia() {
@@ -64,6 +67,14 @@ export default function App() {
                 element={
                   <Suspense fallback={<div className="grid min-h-40 place-items-center text-text-faint">Cargando…</div>}>
                     <DetalleDispositivo />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/dispositivos/:id/sensores/:sensorId"
+                element={
+                  <Suspense fallback={<div className="grid min-h-40 place-items-center text-text-faint">Cargando…</div>}>
+                    <DetalleSensor />
                   </Suspense>
                 }
               />

@@ -1,3 +1,4 @@
+import psycopg2.errors
 from fastapi import HTTPException
 from repositories import dispositivo_repo, sensor_repo
 from services import plan_service
@@ -58,7 +59,10 @@ def crear_vinculacion(usuario_id, dispositivo_id, rol):
             if has_owner is not None:
                 raise HTTPException(409, "el dispositivo ya tiene un dueño")
 
-        return dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, rol)
+        try:
+            return dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, rol)
+        except psycopg2.errors.UniqueViolation:
+            raise HTTPException(409, "el dispositivo ya tiene un dueño")  # condición de carrera
 
 def rotar_secret_dispositivo(dispositivo_id) -> dict:
     # No valida ownership: el dispositivo ya se autenticó a sí mismo y sólo puede

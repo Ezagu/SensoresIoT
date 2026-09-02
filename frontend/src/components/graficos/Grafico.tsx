@@ -9,19 +9,32 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import type { DotItemDotProps } from 'recharts'
 import type { CondicionAlerta } from '@/lib/tipos'
 import type { PuntoGrilla } from '@/lib/series'
-import type { RangoGrafico } from '@/lib/dispositivos'
 import { medida } from '@/lib/formato'
-import { fechaCorta, fechaHora, hora } from '@/lib/tiempo'
+import { fechaConAnio, fechaCorta, fechaHora, hora } from '@/lib/tiempo'
 
 type Props = {
   puntos: PuntoGrilla[]
   color: string
   unidad: string
-  rango: RangoGrafico
+  /* Bordes de la ventana mostrada, no un preset: fijan el dominio del eje X
+     (así el silencio al principio o al final se ve como espacio vacío, no
+     como un eje que se encoge a los datos) y gobiernan el formato de sus
+     ticks, así que un rango de fechas arbitrario también sabe elegir. */
+  desdeMs: number
+  hastaMs: number
   umbral?: number | null
   condicion?: CondicionAlerta | null
+}
+
+const DIA_MS = 86_400_000
+
+function formatterDeEje(duracionMs: number) {
+  if (duracionMs < 2 * DIA_MS) return hora
+  if (duracionMs < 365 * DIA_MS) return fechaCorta
+  return fechaConAnio
 }
 
 function TooltipGrafico({
@@ -47,16 +60,27 @@ function TooltipGrafico({
 /* Wrapper de Recharts: nada de la app importa la librería directo. Puntos que
    no salen por default:
    - connectNulls={false} (default, pero explícito): un hueco corta el trazo
-     en vez de interpolar, mismo criterio que Tira — es la única señal visible
-     de que un dispositivo dejó de reportar.
+     en vez de interpolar — es la única señal visible de que un dispositivo
+     dejó de reportar.
    - isAnimationActive={false}: Recharts anima por JS, así que
      prefers-reduced-motion (index.css) no lo alcanza; además animar de cero
      en cada poll sería insoportable.
    - Colores por token (var(--color-*)): Recharts los pasa tal cual como
      atributos SVG, así que el tema claro/oscuro sigue funcionando solo. */
-export function Grafico({ puntos, color, unidad, rango, umbral, condicion }: Props) {
+export function Grafico({ puntos, color, unidad, desdeMs, hastaMs, umbral, condicion }: Props) {
   const uid = useId().replace(/:/g, '')
-  const formatearTick = rango === '24h' ? hora : fechaCorta
+  const formatearTick = formatterDeEje(hastaMs - desdeMs)
+
+  // Una lectura sin vecino de ningún lado (rodeada de huecos, o sola en la
+  // ventana) no dibuja trazo: sin un punto explícito sería invisible.
+  const renderPunto = ({ key, cx, cy, index }: DotItemDotProps) => {
+    if (puntos[index]?.valor === null) return <g key={key} />
+    const anterior = puntos[index - 1]
+    const siguiente = puntos[index + 1]
+    const aislado = (anterior?.valor ?? null) === null && (siguiente?.valor ?? null) === null
+    if (!aislado) return <g key={key} />
+    return <circle key={key} cx={cx} cy={cy} r={3} fill={color} />
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -71,7 +95,7 @@ export function Grafico({ puntos, color, unidad, rango, umbral, condicion }: Pro
         <XAxis
           dataKey="t"
           type="number"
-          domain={['dataMin', 'dataMax']}
+          domain={[desdeMs, hastaMs]}
           tickFormatter={formatearTick}
           stroke="var(--color-text-faint)"
           tick={{ fontSize: 11 }}
@@ -109,7 +133,7 @@ export function Grafico({ puntos, color, unidad, rango, umbral, condicion }: Pro
           fill={`url(#${uid})`}
           connectNulls={false}
           isAnimationActive={false}
-          dot={false}
+          dot={renderPunto}
           activeDot={{ r: 3 }}
         />
       </AreaChart>

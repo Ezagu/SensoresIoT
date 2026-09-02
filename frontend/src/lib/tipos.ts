@@ -83,6 +83,10 @@ export type DatosGrafico = {
   /* true = el plan subió el `desde` pedido. No es un error: la respuesta es 200 */
   recortado: boolean
   retencion_dias: number | null
+  /* Resolución realmente usada; null = puntos crudos, sin agregar. */
+  bucket_seg: number | null
+  /* Muestreo esperado del equipo: separa un hueco real del ritmo normal. */
+  intervalo_seg: number
 }
 
 export type Medicion = {

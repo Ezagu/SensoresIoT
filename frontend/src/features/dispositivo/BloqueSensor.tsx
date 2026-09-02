@@ -1,37 +1,30 @@
+import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
+import { Stat } from '@/components/ui/Stat'
 import { Vacio } from '@/components/ui/Vacio'
 import { Grafico } from '@/components/graficos/Grafico'
-import { grillaDeGrafico } from '@/lib/series'
+import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
-import { reglaDestacada, type RangoGrafico, type SensorConDatos } from '@/lib/dispositivos'
+import { reglaDestacada, type SensorConDatos } from '@/lib/dispositivos'
 import type { AlertaConNotificar } from '@/lib/tipos'
 
-function Stat({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return (
-    <span className="flex items-baseline gap-1">
-      <span className="text-text-faint">{etiqueta}</span>
-      <span className="num font-medium text-text">{valor}</span>
-    </span>
-  )
-}
-
 export function BloqueSensor({
+  dispositivoId,
   sensor,
   alertas,
-  rango,
-  hasta,
+  desdeMs,
+  hastaMs,
 }: {
+  dispositivoId: string
   sensor: SensorConDatos
   alertas: AlertaConNotificar[]
-  rango: RangoGrafico
-  hasta: number
+  desdeMs: number
+  hastaMs: number
 }) {
   const { datos } = sensor
   const regla = reglaDestacada(alertas, sensor.id)
-  const grilla = datos ? grillaDeGrafico(datos, hasta) : []
-  /* La grilla se rellena con null en los buckets sin filas, así que tener
-     longitud no implica tener nada que dibujar. */
-  const hayDatos = grilla.some((p) => p.valor !== null)
+  const grilla = datos ? serieDeGrafico(datos) : []
+  const hayDatos = datos !== null && datos.puntos.length > 0
   const resumen = datos?.resumen
 
   return (
@@ -43,7 +36,12 @@ export function BloqueSensor({
             className="size-2.5 shrink-0 rounded-full"
             style={{ background: sensor.color }}
           />
-          <h3 className="text-body-lg font-semibold text-text">{sensor.etiqueta}</h3>
+          <Link
+            to={`/dispositivos/${dispositivoId}/sensores/${sensor.id}`}
+            className="text-body-lg font-semibold text-text hover:text-accent"
+          >
+            {sensor.etiqueta}
+          </Link>
         </div>
         {/* Con la tarjeta vacía, "prom — mín — máx —" es sólo ruido */}
         {hayDatos && resumen && (
@@ -61,7 +59,8 @@ export function BloqueSensor({
             puntos={grilla}
             color={sensor.color}
             unidad={sensor.unidad}
-            rango={rango}
+            desdeMs={desdeMs}
+            hastaMs={hastaMs}
             umbral={regla?.umbral}
             condicion={regla?.condicion}
           />

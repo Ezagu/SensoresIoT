@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from datetime import datetime, timezone, timedelta
-from repositories import sensor_repo, tipo_sensor_repo, medicion_repo
+from repositories import sensor_repo, tipo_sensor_repo, medicion_repo, dispositivo_repo
 from services import dispositivo_service, plan_service
 from core.tiempo import a_utc
 from db import get_cursor
@@ -40,6 +40,12 @@ def obtener_grafico(sensor_id, desde, hasta, usuario_id, rol) -> dict:
     with get_cursor() as cur:
         sensor = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
 
+        dispositivo = dispositivo_repo.buscar_por_id(cur, sensor["dispositivo_id"])
+        limites = plan_service.limites_de_dispositivo(cur, sensor["dispositivo_id"])
+        intervalo_seg = plan_service.intervalo_efectivo_seg(
+            dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"]
+        )
+
         ventana = plan_service.ventana_de_consulta(cur, sensor["dispositivo_id"], rol)
         recortado = ventana["piso"] is not None and desde < ventana["piso"]
         if recortado:
@@ -50,9 +56,11 @@ def obtener_grafico(sensor_id, desde, hasta, usuario_id, rol) -> dict:
         if desde >= hasta:
             puntos = []
             resumen = {"promedio": None, "minimo": None, "maximo": None}
+            bucket = None
         else:
-            puntos = medicion_repo.buscar_puntos(cur, sensor_id, desde, hasta)
-            resumen = medicion_repo.buscar_resumen(cur, sensor_id, desde, hasta)
+            fuente, bucket = medicion_repo.resolucion_grafico(cur, sensor_id, desde, hasta, intervalo_seg)
+            puntos = medicion_repo.buscar_puntos(cur, sensor_id, desde, hasta, fuente, bucket)
+            resumen = medicion_repo.buscar_resumen(cur, sensor_id, desde, hasta, fuente)
 
     return {
         "puntos": puntos,
@@ -60,6 +68,8 @@ def obtener_grafico(sensor_id, desde, hasta, usuario_id, rol) -> dict:
         "desde_efectivo": desde,
         "recortado": recortado,
         "retencion_dias": ventana["retencion_dias"],
+        "bucket_seg": bucket.total_seconds() if bucket is not None else None,
+        "intervalo_seg": intervalo_seg,
     }
 
 def obtener_historial(sensor_id, hasta, cursor, limite, usuario_id, rol) -> dict:

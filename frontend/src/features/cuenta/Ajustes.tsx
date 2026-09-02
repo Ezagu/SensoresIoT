@@ -29,7 +29,7 @@ export function Ajustes() {
         <p className="mt-1 mb-3 text-label text-text-faint">
           Cerrar sesión sólo afecta a este dispositivo.
         </p>
-        <Boton variante="fantasma" onClick={() => void logout()}>
+        <Boton className='hover:bg-danger-soft' variante="fantasma" onClick={() => void logout()} >
           Cerrar sesión
         </Boton>
       </Card>

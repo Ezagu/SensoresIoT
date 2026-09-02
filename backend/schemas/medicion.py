@@ -35,3 +35,8 @@ class DatosGraficoOut(BaseModel):
     desde_efectivo: datetime
     recortado: bool
     retencion_dias: Optional[int] = None
+    # Resolución realmente usada; None = puntos crudos, sin agregar.
+    bucket_seg: Optional[float] = None
+    # Muestreo esperado del equipo: con esto el front sabe qué separación entre
+    # lecturas es un hueco real y cuál es el ritmo normal.
+    intervalo_seg: int

@@ -39,6 +39,12 @@ export function fechaCorta(ms: number): string {
   return fmtFechaCorta.format(new Date(ms))
 }
 
+/* Día, mes y año: eje X para ventanas de más de un año, donde omitir el año
+   vuelve ambiguo a qué vuelta del calendario pertenece cada tick. */
+export function fechaConAnio(ms: number): string {
+  return fmtFecha.format(new Date(ms))
+}
+
 export type EstadoDispositivo = 'nunca' | 'en-linea' | 'retraso' | 'sin-reportar'
 
 /* No existe online/offline en el backend: se deriva de last_seen_at, que es el

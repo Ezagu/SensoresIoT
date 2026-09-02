@@ -77,13 +77,70 @@ def mediciones_en_ventana(cur, sensor_ids: list, desde, hasta) -> dict:
         ventana.setdefault(sensor_id, []).append(momento)
     return ventana
 
-def buscar_puntos(cur, sensor_id, desde, hasta) -> list[dict]:
-    rango = hasta - desde
-    bucket_objetivo = max(rango / TARGET_PUNTO, timedelta(seconds=30))
-    antiguedad = datetime.now(timezone.utc) - desde
+TOPE_CRUDO = 1000
 
-    fuente = _elegir_fuente(bucket_objetivo, antiguedad)
+def _contar_acotado(cur, sensor_id, desde, hasta, tope) -> int:
+    # LIMIT adentro del count: sólo hace falta saber si entra o no, no el
+    # total exacto cuando ya se pasó — así el costo queda acotado por tope
+    # sin importar cuántas filas haya realmente en el rango.
+    cur.execute(
+        """
+        SELECT count(*) AS n FROM (
+            SELECT 1 FROM mediciones
+            WHERE sensor_id = %s AND time >= %s AND time <= %s
+            LIMIT %s
+        ) t
+        """,
+        (sensor_id, desde, hasta, tope),
+    )
+    return cur.fetchone()["n"]
+
+def resolucion_grafico(cur, sensor_id, desde, hasta, intervalo_seg) -> tuple[dict, timedelta | None]:
+    # bucket None = puntos crudos, sin agregar. Punto único de decisión para
+    # buscar_puntos y buscar_resumen: al recibir la misma (fuente, bucket) no
+    # pueden discrepar entre sí por construcción.
+    rango = hasta - desde
+    antiguedad = datetime.now(timezone.utc) - desde
+    intervalo = timedelta(seconds=intervalo_seg)
+    raw = FUENTES[0]
+
+    # Si las lecturas entran en el tope no hay nada que agregar: un bucket más
+    # fino que el muestreo deja slots vacíos y uno más grueso promedia de más.
+    # El intervalo configurado es la config de HOY, no una propiedad de lo ya
+    # guardado (un equipo pudo muestrear más rápido el mes pasado), así que la
+    # estimación por intervalo es sólo un filtro barato antes de confirmar con
+    # el conteo real, acotado por TOPE_CRUDO.
+    if (
+        antiguedad <= raw["retencion"]
+        and rango / intervalo <= TOPE_CRUDO
+        and _contar_acotado(cur, sensor_id, desde, hasta, TOPE_CRUDO) <= TOPE_CRUDO
+    ):
+        return raw, None
+
+    bucket = max(rango / TARGET_PUNTO, intervalo)
+    fuente = _elegir_fuente(bucket, antiguedad)
+    # Sobre un agregado no se puede bajar de su granularidad nativa.
+    bucket_final = bucket if fuente["es_raw"] else max(bucket, fuente["granularidad"])
+    return fuente, bucket_final
+
+def buscar_puntos(cur, sensor_id, desde, hasta, fuente: dict, bucket: timedelta | None) -> list[dict]:
     tabla, columna_tiempo = fuente["tabla"], fuente["columna_tiempo"]
+
+    if bucket is None:
+        # Una lectura por fila: prom = mín = máx = el valor, mismo shape de
+        # salida que el caso agregado, nada aguas abajo tiene que ramificar.
+        cur.execute(
+            f"""
+            SELECT
+                {columna_tiempo} AS bucket,
+                value AS promedio, value AS minimo, value AS maximo
+            FROM {tabla}
+            WHERE sensor_id = %s AND {columna_tiempo} >= %s AND {columna_tiempo} <= %s
+            ORDER BY {columna_tiempo}
+            """,
+            (sensor_id, desde, hasta),
+        )
+        return cur.fetchall()
 
     if fuente["es_raw"]:
         select_stats = "avg(value) AS promedio, min(value) AS minimo, max(value) AS maximo"
@@ -105,18 +162,12 @@ def buscar_puntos(cur, sensor_id, desde, hasta) -> list[dict]:
         GROUP BY bucket
         ORDER BY bucket
         """,
-        (bucket_objetivo, sensor_id, desde, hasta),
+        (bucket, sensor_id, desde, hasta),
     )
     return cur.fetchall()
 
 
-def buscar_resumen(cur, sensor_id, desde, hasta) -> dict:
-    rango = hasta - desde
-    antiguedad = datetime.now(timezone.utc) - desde
-
-    # Acá el objetivo es el rango completo, no rango/TARGET_PUNTO: la granularidad
-    # de la tabla tiene que entrar entera o el bucket no matchea ninguna fila.
-    fuente = _elegir_fuente(rango, antiguedad)
+def buscar_resumen(cur, sensor_id, desde, hasta, fuente: dict) -> dict:
     tabla, columna_tiempo = fuente["tabla"], fuente["columna_tiempo"]
 
     if fuente["es_raw"]:

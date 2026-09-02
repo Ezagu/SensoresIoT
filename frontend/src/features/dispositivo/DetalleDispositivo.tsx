@@ -12,6 +12,7 @@ import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO, haceCuanto } from '@/lib/tiempo'
 import {
+  duracionMsDeRango,
   intervaloEfectivo,
   nombreDeDispositivo,
   rangoExcedeRetencion,
@@ -44,7 +45,7 @@ function EsqueletoDetalle() {
 export function DetalleDispositivo() {
   const { id } = useParams<{ id: string }>()
   const { plan } = useSesion()
-  const [rango, setRango] = useState<RangoGrafico>('24h')
+  const [rango, setRango] = useState<RangoGrafico>('tiempo-real')
   const [exportAbierto, setExportAbierto] = useState(false)
   const [intervaloAbierto, setIntervaloAbierto] = useState(false)
   const hasta = useAhora(TIC_MS)
@@ -161,10 +162,11 @@ export function DetalleDispositivo() {
           {sensores.map((sensor) => (
             <BloqueSensor
               key={sensor.id}
+              dispositivoId={dispositivo.id}
               sensor={sensor}
               alertas={alertas}
-              rango={rango}
-              hasta={hasta}
+              desdeMs={hasta - duracionMsDeRango(rango)}
+              hastaMs={hasta}
             />
           ))}
         </div>
