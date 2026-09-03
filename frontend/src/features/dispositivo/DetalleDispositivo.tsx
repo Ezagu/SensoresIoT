@@ -6,13 +6,11 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { IconoActualizar, IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
-import { estadoHttp } from '@/lib/api'
+import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/lib/tiempo'
 import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
-import { excedeRetencion } from '@/lib/retencion'
 import { ETIQUETA_ROL, intervaloEfectivo, nombreDeDispositivo, ultimoReporteEfectivo } from '@/lib/dispositivos'
 import { useDetalleDispositivo, useGraficosDeSensores } from './usarDetalleDispositivo'
 import type { SensorConDatos } from './cargarSensores'
@@ -20,7 +18,9 @@ import { BloqueSensor } from './BloqueSensor'
 import { BloqueAlertas } from './BloqueAlertas'
 import { BloqueExport } from './BloqueExport'
 import { BloqueIntervalo } from './BloqueIntervalo'
-import { SelectorVentana } from './SelectorVentana'
+import { AvisoRetencion } from './AvisoRetencion'
+import { BarraVentana } from './BarraVentana'
+import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 
 function EsqueletoDetalle() {
   return (
@@ -51,7 +51,7 @@ export function DetalleDispositivo() {
   const enVivo = esTiempoReal(ventana)
   const hasta = useAhora(enVivo && graficos.intervaloSeg ? graficos.intervaloSeg * 1000 : TIC_RELOJ_MS)
 
-  if (!id) return <Navegable titulo="Dispositivo no encontrado" />
+  if (!id) return <Navegable titulo="Dispositivo no encontrado" volverA="/" />
 
   // Recién con el primer lote real de gráficos se puede pintar la grilla: sin
   // esto, un instante entre "cargó el dispositivo" y "cargó el primer gráfico"
@@ -60,25 +60,17 @@ export function DetalleDispositivo() {
   if (cargando || cargandoGrilla) return <EsqueletoDetalle />
 
   if (error && !datos) {
-    const status = estadoHttp(errorCrudo)
-    if (status === 404) {
-      return <Navegable titulo="Este dispositivo no existe" detalle="Puede que lo hayas desvinculado, o el link esté mal." />
-    }
-    if (status === 403) {
-      return <Navegable titulo="No tenés acceso a este dispositivo" detalle="Pedile al dueño que te comparta el acceso." />
-    }
     return (
-      <Card>
-        <Vacio
-          titulo="No pudimos cargar este dispositivo"
-          detalle={error}
-          accion={
-            <Boton variante="sutil" onClick={refrescar}>
-              Reintentar
-            </Boton>
-          }
-        />
-      </Card>
+      <ErrorDeCarga
+        error={error}
+        errorCrudo={errorCrudo}
+        volverA="/"
+        tituloNoEncontrado="Este dispositivo no existe"
+        detalleNoEncontrado="Puede que lo hayas desvinculado, o el link esté mal."
+        tituloSinAcceso="No tenés acceso a este dispositivo"
+        tituloGenerico="No pudimos cargar este dispositivo"
+        onReintentar={refrescar}
+      />
     )
   }
 
@@ -91,15 +83,12 @@ export function DetalleDispositivo() {
   }))
   const pisoPlan = plan?.plan.intervalo_minimo_seg
   const intervaloSeg = graficos.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
-  // Sin pollear el dispositivo, last_seen_at no se mueve solo: en vivo el
-  // propio gráfico ya trae lecturas más nuevas que esa foto.
   const ultimoReporte = ultimoReporteEfectivo(dispositivo, sensoresConDatos)
   const estado = estadoDispositivo(ultimoReporte, intervaloSeg)
   // Todos los sensores del dispositivo comparten plan, así que cualquiera sirve
   const retencionDias = sensoresConDatos.find((s) => s.datos)?.datos?.retencion_dias ?? null
   const { desde } = resolverVentana(ventana)
-  // Ventana única para todas las tarjetas: comparten eje, así que comparten
-  // también estos bordes — zoomear en una mueve a todas por igual.
+  // Ventana única para todas las tarjetas: zoomear en una mueve a todas por igual.
   const { desdeMs, hastaMs } = bordesDeVentana(ventana, hasta)
 
   return (
@@ -159,35 +148,19 @@ export function DetalleDispositivo() {
         </p>
       )}
 
-      {excedeRetencion(desde, retencionDias) && (
-        <Card tono="warn" className="flex flex-wrap items-center justify-between gap-3 p-3.5">
-          <p className="text-label text-warn">
-            Tu plan sólo muestra los últimos {retencionDias} días. El rango pedido se acortó.
-          </p>
-          <Link to="/plan">
-            <Boton variante="sutil">Ver planes</Boton>
-          </Link>
-        </Card>
-      )}
+      <AvisoRetencion desde={desde} retencionDias={retencionDias} />
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h3 className="text-body font-medium text-text-muted">Lecturas</h3>
-        <div className="flex flex-wrap items-end gap-2 ">
-          <SelectorVentana ventana={ventana} onCambiar={elegir} retencionDias={retencionDias} />
-          {/* Fuera de "En tiempo real" el gráfico no pollea (rangos anchos no se
-              mueven seguido): esto es lo único que lo refresca. */}
-          {!enVivo && (
-            <Boton variante="fantasma" onClick={graficos.refrescar} disabled={graficos.refrescando}>
-              <IconoActualizar className="size-3.5" />
-            </Boton>
-          )}
-          {hayZoom && (
-            <Boton variante="sutil" onClick={restablecer}>
-              Restablecer zoom
-            </Boton>
-          )}
-        </div>
-      </div>
+      <BarraVentana
+        titulo="Lecturas"
+        ventana={ventana}
+        onCambiar={elegir}
+        retencionDias={retencionDias}
+        enVivo={enVivo}
+        refrescar={graficos.refrescar}
+        refrescando={graficos.refrescando}
+        hayZoom={hayZoom}
+        onRestablecer={restablecer}
+      />
 
       {sensoresConDatos.length === 0 ? (
         <Card>
@@ -239,21 +212,5 @@ export function DetalleDispositivo() {
         />
       )}
     </div>
-  )
-}
-
-function Navegable({ titulo, detalle }: { titulo: string; detalle?: string }) {
-  return (
-    <Card>
-      <Vacio
-        titulo={titulo}
-        detalle={detalle}
-        accion={
-          <Link to="/">
-            <Boton variante="sutil">Volver al panel</Boton>
-          </Link>
-        }
-      />
-    </Card>
   )
 }

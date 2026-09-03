@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
-import { Stat } from '@/components/ui/Stat'
 import { Vacio } from '@/components/ui/Vacio'
+import { ResumenStats } from '@/components/ui/ResumenStats'
 import { Grafico } from '@/components/graficos/Grafico'
 import { serieDeGrafico } from '@/lib/series'
-import { medida } from '@/lib/formato'
 import { reglaDestacada } from '@/lib/alertas'
 import type { SensorConDatos } from './cargarSensores'
 import type { AlertaConNotificar } from '@/lib/tipos'
@@ -49,13 +48,7 @@ export function BloqueSensor({
           </Link>
         </div>
         {/* Con la tarjeta vacía, "prom — mín — máx —" es sólo ruido */}
-        {hayDatos && resumen && (
-          <div className="flex gap-3 text-note-lg">
-            <Stat etiqueta="prom" valor={resumen.promedio !== null ? medida(resumen.promedio, sensor.unidad) : '—'} />
-            <Stat etiqueta="mín" valor={resumen.minimo !== null ? medida(resumen.minimo, sensor.unidad) : '—'} />
-            <Stat etiqueta="máx" valor={resumen.maximo !== null ? medida(resumen.maximo, sensor.unidad) : '—'} />
-          </div>
-        )}
+        {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
       </div>
 
       <div className="h-56">

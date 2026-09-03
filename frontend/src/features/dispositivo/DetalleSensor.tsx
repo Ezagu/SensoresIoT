@@ -1,24 +1,22 @@
 import { Link, useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
-import { Boton } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { Stat } from '@/components/ui/Stat'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
+import { ResumenStats } from '@/components/ui/ResumenStats'
 import { Grafico } from '@/components/graficos/Grafico'
-import { IconoActualizar } from '@/components/layout/iconos'
-import { estadoHttp } from '@/lib/api'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
 import { estadoDispositivo, TIC_RELOJ_MS } from '@/lib/tiempo'
 import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
-import { excedeRetencion } from '@/lib/retencion'
 import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
 import { reglaDestacada } from '@/lib/alertas'
 import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
-import { SelectorVentana } from './SelectorVentana'
+import { AvisoRetencion } from './AvisoRetencion'
+import { BarraVentana } from './BarraVentana'
+import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { BloqueHistorial } from './BloqueHistorial'
 
 function EsqueletoSensor() {
@@ -28,21 +26,6 @@ function EsqueletoSensor() {
       <Skeleton className="h-9 w-72" />
       <Skeleton className="h-96 w-full" />
     </div>
-  )
-}
-
-function Navegable({ titulo, dispositivoId }: { titulo: string; dispositivoId?: string }) {
-  return (
-    <Card>
-      <Vacio
-        titulo={titulo}
-        accion={
-          <Link to={dispositivoId ? `/dispositivos/${dispositivoId}` : '/'}>
-            <Boton variante="sutil">Volver</Boton>
-          </Link>
-        }
-      />
-    </Card>
   )
 }
 
@@ -59,35 +42,22 @@ export function DetalleSensor() {
   const polling = useDatosSensor(sensorId ?? '', ventana)
   const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_RELOJ_MS)
 
-  if (!id || !sensorId) return <Navegable titulo="Sensor no encontrado" />
+  if (!id || !sensorId) return <Navegable titulo="Sensor no encontrado" volverA="/" />
 
   if (estatico.cargando || polling.cargando) return <EsqueletoSensor />
 
   if (estatico.error && !estatico.datos) {
-    const status = estatico.errorCrudo instanceof SensorNoEncontradoError ? 404 : estadoHttp(estatico.errorCrudo)
-    if (status === 404) {
-      return (
-        <Navegable
-          titulo="Este sensor no existe"
-          dispositivoId={id}
-        />
-      )
-    }
-    if (status === 403) {
-      return <Navegable titulo="No tenés acceso a este dispositivo" dispositivoId={id} />
-    }
     return (
-      <Card>
-        <Vacio
-          titulo="No pudimos cargar el sensor"
-          detalle={estatico.error}
-          accion={
-            <Boton variante="sutil" onClick={estatico.refrescar}>
-              Reintentar
-            </Boton>
-          }
-        />
-      </Card>
+      <ErrorDeCarga
+        error={estatico.error}
+        errorCrudo={estatico.errorCrudo}
+        esNoEncontrado={estatico.errorCrudo instanceof SensorNoEncontradoError}
+        volverA={`/dispositivos/${id}`}
+        tituloNoEncontrado="Este sensor no existe"
+        tituloSinAcceso="No tenés acceso a este dispositivo"
+        tituloGenerico="No pudimos cargar el sensor"
+        onReintentar={estatico.refrescar}
+      />
     )
   }
 
@@ -140,13 +110,7 @@ export function DetalleSensor() {
             {ultima ? <>Reportó <HaceCuanto iso={ultima.time} /></> : 'Nunca reportó'}
           </span>
         </div>
-        {hayResumen && resumen && (
-          <div className="flex gap-4">
-            <Stat tamano="md" etiqueta="prom" valor={resumen.promedio !== null ? medida(resumen.promedio, sensor.unidad) : '—'} />
-            <Stat tamano="md" etiqueta="mín" valor={resumen.minimo !== null ? medida(resumen.minimo, sensor.unidad) : '—'} />
-            <Stat tamano="md" etiqueta="máx" valor={resumen.maximo !== null ? medida(resumen.maximo, sensor.unidad) : '—'} />
-          </div>
-        )}
+        {hayResumen && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" gap="gap-4" />}
       </div>
 
       {estatico.error && (
@@ -155,33 +119,20 @@ export function DetalleSensor() {
         </p>
       )}
 
-      {excedeRetencion(desde, retencionDias) && (
-        <Card tono="warn" className="flex flex-wrap items-center justify-between gap-3 p-3.5">
-          <p className="text-label text-warn">
-            Tu plan sólo muestra los últimos {retencionDias} días. El rango pedido se acortó.
-          </p>
-          <Link to="/plan">
-            <Boton variante="sutil">Ver planes</Boton>
-          </Link>
-        </Card>
-      )}
+      <AvisoRetencion desde={desde} retencionDias={retencionDias} />
 
-      <div className="flex flex-wrap items-end gap-3">
-        <SelectorVentana ventana={ventana} onCambiar={elegir} retencionDias={retencionDias} />
-        {/* Fuera de "En tiempo real" no hay poll (rangos anchos no se mueven
-            seguido): esto es lo único que refresca el gráfico y el valor actual. */}
-        {!enVivo && (
-          <Boton variante="sutil" onClick={polling.refrescar} disabled={polling.refrescando}>
-            <IconoActualizar className="size-3.5" />
-            Actualizar
-          </Boton>
-        )}
-        {hayZoom && (
-          <Boton variante="sutil" onClick={restablecer}>
-            Restablecer zoom
-          </Boton>
-        )}
-      </div>
+      <BarraVentana
+        ventana={ventana}
+        onCambiar={elegir}
+        retencionDias={retencionDias}
+        enVivo={enVivo}
+        refrescar={polling.refrescar}
+        refrescando={polling.refrescando}
+        etiquetaActualizar="Actualizar"
+        varianteActualizar="sutil"
+        hayZoom={hayZoom}
+        onRestablecer={restablecer}
+      />
 
       <Card className="p-4">
         <div className="h-96">
