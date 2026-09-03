@@ -1,13 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { Campo } from '@/components/ui/Campo'
 import { Segmentado } from '@/components/ui/Segmentado'
-import {
-  permiteRangoPersonalizado,
-  RANGOS,
-  rangoExcedeRetencion,
-  type RangoGrafico,
-  type Ventana,
-} from '@/lib/dispositivos'
+import { RANGOS, type RangoGrafico, type Ventana } from '@/lib/ventana'
+import { permiteRangoPersonalizado, rangoExcedeRetencion } from '@/lib/retencion'
 
 type Opcion = RangoGrafico | 'personalizado'
 

@@ -50,6 +50,11 @@ export function fechaConAnio(ms: number): string {
   return fmtFecha.format(new Date(ms))
 }
 
+/* Tic compartido para todo lo que se deriva de la hora actual ("hace X",
+   estado de conexión): nunca más lento que el poll más rápido en pantalla,
+   para que esos textos no envejezcan mintiendo entre un poll y el siguiente. */
+export const TIC_RELOJ_MS = 30_000
+
 export type EstadoDispositivo = 'nunca' | 'en-linea' | 'retraso' | 'sin-reportar'
 
 /* No existe online/offline en el backend: se deriva de last_seen_at, que es el

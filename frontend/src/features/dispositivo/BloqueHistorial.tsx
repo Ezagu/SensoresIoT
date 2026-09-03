@@ -5,7 +5,7 @@ import { Boton } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
 import { Segmentado } from '@/components/ui/Segmentado'
 import { Vacio } from '@/components/ui/Vacio'
-import { useHistorial, type FiltroHistorial } from '@/lib/sensor'
+import { useHistorial, type FiltroHistorial } from './usarHistorial'
 import { medida } from '@/lib/formato'
 import { fechaHora } from '@/lib/tiempo'
 

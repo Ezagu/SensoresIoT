@@ -12,27 +12,14 @@ import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
-import { estadoDispositivo } from '@/lib/tiempo'
-import {
-  bordesDeVentana,
-  esTiempoReal,
-  excedeRetencion,
-  intervaloEfectivo,
-  nombreDeDispositivo,
-  resolverVentana,
-  useVentanaConZoom,
-} from '@/lib/dispositivos'
-import { SensorNoEncontradoError, reglaDestacada, useDatosSensor, useDetalleSensorEstatico } from '@/lib/sensor'
+import { estadoDispositivo, TIC_RELOJ_MS } from '@/lib/tiempo'
+import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
+import { excedeRetencion } from '@/lib/retencion'
+import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
+import { reglaDestacada } from '@/lib/alertas'
+import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
 import { SelectorVentana } from './SelectorVentana'
 import { BloqueHistorial } from './BloqueHistorial'
-
-/* Mismo criterio que el detalle de dispositivo: un único borde derecho para
-   que el gráfico no se desalinee con re-renders ajenos al tic. En tiempo real
-   se acelera a la par del poll (el intervalo real del equipo), así que el
-   "hace X s" del valor actual se mueve al mismo ritmo. Ventanas de fechas
-   cerradas en el pasado no se mueven, pero el tic igual corre para el
-   "hace X" — barato y sin caso especial. */
-const TIC_MS_DEFAULT = 30_000
 
 function EsqueletoSensor() {
   return (
@@ -70,7 +57,7 @@ export function DetalleSensor() {
 
   const estatico = useDetalleSensorEstatico(id ?? '', sensorId ?? '')
   const polling = useDatosSensor(sensorId ?? '', ventana)
-  const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_MS_DEFAULT)
+  const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_RELOJ_MS)
 
   if (!id || !sensorId) return <Navegable titulo="Sensor no encontrado" />
 

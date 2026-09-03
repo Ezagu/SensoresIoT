@@ -10,33 +10,17 @@ import { IconoActualizar, IconoAjustes, IconoCompartido, IconoExportar, IconoUbi
 import { estadoHttp } from '@/lib/api'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
-import { estadoDispositivo, ETIQUETA_ESTADO } from '@/lib/tiempo'
-import {
-  bordesDeVentana,
-  esTiempoReal,
-  ETIQUETA_ROL,
-  excedeRetencion,
-  intervaloEfectivo,
-  nombreDeDispositivo,
-  resolverVentana,
-  ultimoReporteEfectivo,
-  useDetalleDispositivo,
-  useGraficosDeSensores,
-  useVentanaConZoom,
-  type SensorConDatos,
-} from '@/lib/dispositivos'
+import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/lib/tiempo'
+import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
+import { excedeRetencion } from '@/lib/retencion'
+import { ETIQUETA_ROL, intervaloEfectivo, nombreDeDispositivo, ultimoReporteEfectivo } from '@/lib/dispositivos'
+import { useDetalleDispositivo, useGraficosDeSensores } from './usarDetalleDispositivo'
+import type { SensorConDatos } from './cargarSensores'
 import { BloqueSensor } from './BloqueSensor'
 import { BloqueAlertas } from './BloqueAlertas'
 import { BloqueExport } from './BloqueExport'
 import { BloqueIntervalo } from './BloqueIntervalo'
 import { SelectorVentana } from './SelectorVentana'
-
-/* Los gráficos comparten un único borde derecho, y sólo avanza con el tic: uno
-   por sensor los desalinearía entre sí y movería el eje en cualquier re-render
-   ajeno. En vivo sigue el ritmo del poll (así el "hace X" no envejece más
-   lento que los datos); fuera de vivo no hay poll, pero el tic sigue corriendo
-   para el "hace X" del encabezado — barato, sin caso especial. */
-const TIC_MS_DEFAULT = 30_000
 
 function EsqueletoDetalle() {
   return (
@@ -65,7 +49,7 @@ export function DetalleDispositivo() {
   const graficos = useGraficosDeSensores(sensoresBase, ventana)
 
   const enVivo = esTiempoReal(ventana)
-  const hasta = useAhora(enVivo && graficos.intervaloSeg ? graficos.intervaloSeg * 1000 : TIC_MS_DEFAULT)
+  const hasta = useAhora(enVivo && graficos.intervaloSeg ? graficos.intervaloSeg * 1000 : TIC_RELOJ_MS)
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" />
 

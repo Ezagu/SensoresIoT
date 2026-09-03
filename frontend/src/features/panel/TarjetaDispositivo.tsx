@@ -5,7 +5,8 @@ import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlerta, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
 import { medida } from '@/lib/formato'
 import { ETIQUETA_ESTADO, estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
-import { nombreDeDispositivo, type DispositivoPanel, type SensorPanel } from '@/lib/dispositivos'
+import { nombreDeDispositivo } from '@/lib/dispositivos'
+import type { DispositivoPanel, SensorPanel } from './usarPanel'
 
 /* 'retraso' no apaga la fila: arranca a 3 intervalos y estos dispositivos
    pierden WiFi y se ponen al día solos, así que apagarla ahí la haría parpadear

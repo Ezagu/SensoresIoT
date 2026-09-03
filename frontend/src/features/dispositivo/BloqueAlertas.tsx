@@ -10,10 +10,10 @@ import { IconoMas } from '@/components/layout/iconos'
 import { crearAlerta, actualizarAlerta, eliminarAlerta, actualizarPreferenciaAlerta } from '@/lib/consultas'
 import { mensajeDeError } from '@/lib/api'
 import { esquemaAlertaEdicion, esquemaAlertaNueva, useFormulario } from '@/lib/formularios'
-import { agruparAlertasPorSensor } from '@/lib/dispositivos'
+import { agruparAlertasPorSensor } from '@/lib/alertas'
 import { medida } from '@/lib/formato'
 import type { AlertaConNotificar } from '@/lib/tipos'
-import type { SensorConMeta } from '@/lib/dispositivos'
+import type { SensorConMeta } from './cargarSensores'
 
 const ETIQUETA_CONDICION = { mayor: 'Mayor a', menor: 'Menor a' } as const
 

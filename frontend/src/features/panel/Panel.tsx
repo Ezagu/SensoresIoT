@@ -6,18 +6,11 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlerta, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
-import { useDispositivos, type DispositivoPanel } from '@/lib/dispositivos'
+import { useDispositivos, type DispositivoPanel } from './usarPanel'
 import { useAhora } from '@/lib/usarCarga'
-import { estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
+import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/lib/tiempo'
 import { TarjetaDispositivo } from './TarjetaDispositivo'
 import type { ReactNode } from 'react'
-
-/* Los datos hacen poll solos, a la cadencia del equipo más rápido de la
-   cartera (ver useDispositivos en lib/dispositivos.ts). Este tic es más fino,
-   sólo para lo que se deriva de la hora (estado de conexión y "hace X"), pero
-   nunca más lento que ese poll — si no, el "hace X" envejecería mintiendo
-   entre un poll y el siguiente. */
-const TIC_MS_TECHO = 30_000
 
 /* Los 3 indicadores del resumen. Nada de deltas porcentuales: un +5% sobre una
    temperatura no significa nada (el cero de la escala es arbitrario). */
@@ -86,9 +79,9 @@ export function Panel() {
   // El tic del reloj nunca es más lento que el poll del panel: si el equipo
   // más rápido de la cartera reporta cada 15 s, el "hace X" también.
   const ticMs = useMemo(() => {
-    if (!dispositivos || dispositivos.length === 0) return TIC_MS_TECHO
+    if (!dispositivos || dispositivos.length === 0) return TIC_RELOJ_MS
     const menorSeg = Math.min(...dispositivos.map((d) => d.intervaloEfectivoSeg))
-    return Math.min(TIC_MS_TECHO, menorSeg * 1000)
+    return Math.min(TIC_RELOJ_MS, menorSeg * 1000)
   }, [dispositivos])
   const ahora = useAhora(ticMs)
 

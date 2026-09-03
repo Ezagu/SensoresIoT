@@ -5,7 +5,8 @@ import { Vacio } from '@/components/ui/Vacio'
 import { Grafico } from '@/components/graficos/Grafico'
 import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
-import { reglaDestacada, type SensorConDatos } from '@/lib/dispositivos'
+import { reglaDestacada } from '@/lib/alertas'
+import type { SensorConDatos } from './cargarSensores'
 import type { AlertaConNotificar } from '@/lib/tipos'
 
 export function BloqueSensor({
