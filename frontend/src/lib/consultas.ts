@@ -9,6 +9,7 @@ import type {
   DispositivoDetalle,
   Historial,
   IntervaloActualizado,
+  PanelResumen,
   PreferenciaUpdatePayload,
   Sensor,
   TipoSensor,
@@ -25,6 +26,12 @@ export function listarDispositivos(usuarioId: string, signal?: AbortSignal) {
 
 export function obtenerDispositivo(dispositivoId: string, signal?: AbortSignal) {
   return api.get<DispositivoDetalle>(`/dispositivos/${dispositivoId}`, { signal }).then((r) => r.data)
+}
+
+/* Todos los dispositivos del usuario con sensores + última lectura + alertas
+   disparadas, resuelto en un solo request (ver "Panel" en lib/dispositivos.ts). */
+export function obtenerPanel(usuarioId: string, signal?: AbortSignal) {
+  return api.get<PanelResumen>(`/usuarios/${usuarioId}/panel`, { signal }).then((r) => r.data)
 }
 
 export function listarTiposSensor(signal?: AbortSignal) {

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from uuid import UUID
-from services import usuario_service, plan_service
+from services import usuario_service, plan_service, panel_service
 from schemas.usuario import UsuarioOut
 from schemas.dispositivo import DispositivoConRolOut
 from schemas.plan import SuscripcionCreate, SuscripcionOut
+from schemas.panel import PanelOut
 from core.deps import get_usuario_admin, get_usuario_actual
 
 router = APIRouter()
@@ -21,6 +22,12 @@ def get_dispositivos(usuario_id: UUID, usuario_actual = Depends(get_usuario_actu
     if str(usuario_id) != usuario_actual["sub"] and usuario_actual["rol"] != "admin":
         raise HTTPException(403, "No tienes acceso a este recurso")
     return usuario_service.obtener_dispositivos_de_usuario(usuario_id)
+
+@router.get("/{usuario_id}/panel", response_model=PanelOut)
+def get_panel(usuario_id: UUID, usuario_actual = Depends(get_usuario_actual)):
+    if str(usuario_id) != usuario_actual["sub"] and usuario_actual["rol"] != "admin":
+        raise HTTPException(403, "No tienes acceso a este recurso")
+    return panel_service.listar_panel(usuario_id)
 
 @router.post("/{usuario_id}/suscripcion", response_model=SuscripcionOut)
 def asignar_suscripcion(usuario_id: UUID, suscripcion: SuscripcionCreate, usuario_admin = Depends(get_usuario_admin)):

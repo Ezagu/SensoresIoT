@@ -12,7 +12,9 @@ import { useCarga } from './usarCarga'
 import type { AlertaConNotificar, DatosGrafico, Dispositivo, Medicion } from './tipos'
 
 // --------------------------------------------------------------------------
-// Detalle de un sensor: metadata + gráfico de la ventana elegida.
+// Detalle de un sensor: metadata estática (no pollea) + datos de la ventana
+// elegida (único que pollea, y sólo en "En tiempo real" — mismo criterio que
+// el detalle de dispositivo).
 // --------------------------------------------------------------------------
 
 /* `estadoHttp` (lib/api.ts) sólo reconoce AxiosError: un sensorId ajeno al
@@ -24,14 +26,9 @@ export class SensorNoEncontradoError extends Error {
   }
 }
 
-export type DetalleSensor = {
+export type DetalleSensorEstatico = {
   dispositivo: Dispositivo
   sensor: SensorConMeta
-  datos: DatosGrafico | null
-  /* Última lectura cruda, independiente de la ventana elegida: no puede salir
-     del último bucket del gráfico porque ese es un promedio y cambiaría de
-     valor según el rango que se esté mirando. */
-  ultima: Medicion | null
   alertas: AlertaConNotificar[]
 }
 
@@ -39,10 +36,11 @@ export type DetalleSensor = {
    resolver GET /sensores/{id} primero: el fan-out de arriba es paralelo.
    Un sensorId que no está entre los del dispositivo se trata como 404 — link
    viejo o sensor de otro equipo — para que la pantalla lo maneje igual que un
-   dispositivo inexistente. */
-export function useDetalleSensor(dispositivoId: string, sensorId: string, ventana: Ventana) {
+   dispositivo inexistente. No pollea: se refresca sólo al montar y con
+   `refrescar()`. */
+export function useDetalleSensorEstatico(dispositivoId: string, sensorId: string) {
   const cargar = useCallback(
-    async (signal: AbortSignal): Promise<DetalleSensor> => {
+    async (signal: AbortSignal): Promise<DetalleSensorEstatico> => {
       const [dispositivo, tipos] = await Promise.all([
         obtenerDispositivo(dispositivoId, signal),
         listarTiposSensor(signal),
@@ -52,28 +50,56 @@ export function useDetalleSensor(dispositivoId: string, sensorId: string, ventan
       const sensor = sensores.find((s) => s.id === sensorId)
       if (!sensor) throw new SensorNoEncontradoError()
 
+      return {
+        dispositivo,
+        sensor,
+        alertas: alertas.filter((a) => a.sensor_id === sensorId),
+      }
+    },
+    [dispositivoId, sensorId],
+  )
+
+  return useCarga(cargar)
+}
+
+export type DatosSensor = {
+  datos: DatosGrafico | null
+  /* Última lectura cruda, independiente de la ventana elegida: no puede salir
+     del último bucket del gráfico porque ese es un promedio y cambiaría de
+     valor según el rango que se esté mirando. */
+  ultima: Medicion | null
+}
+
+/* Único hook que pollea acá. La cadencia se aprende de `intervalo_seg` del
+   propio gráfico (arranca sin pollear hasta conocerlo), mismo criterio que
+   useGraficosDeSensores del detalle de dispositivo. */
+export function useDatosSensor(sensorId: string, ventana: Ventana) {
+  const [intervaloSeg, setIntervaloSeg] = useState<number | undefined>(undefined)
+
+  const cargar = useCallback(
+    async (signal: AbortSignal): Promise<DatosSensor> => {
       const { desde, hasta } = resolverVentana(ventana)
       const [datos, ultima] = await Promise.all([
         obtenerGrafico(sensorId, desde, hasta, signal).catch(() => null),
         // limite=1 es la lectura cruda más reciente, sin ventana ni promediar
-        // — mismo patrón que ya usa cargarDispositivo para el panel.
         obtenerHistorial(sensorId, { limite: 1 }, signal)
           .then((r) => r.mediciones[0] ?? null)
           .catch(() => null),
       ])
-
-      return {
-        dispositivo,
-        sensor,
-        datos,
-        ultima,
-        alertas: alertas.filter((a) => a.sensor_id === sensorId),
-      }
+      return { datos, ultima }
     },
-    [dispositivoId, sensorId, ventana],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sensorId, ventana],
   )
 
-  return useCarga(cargar, { intervaloMs: pollDeVentana(ventana) })
+  const estado = useCarga(cargar, { intervaloMs: pollDeVentana(ventana, intervaloSeg) })
+
+  useEffect(() => {
+    const actual = estado.datos?.datos?.intervalo_seg
+    if (actual !== undefined && actual !== intervaloSeg) setIntervaloSeg(actual)
+  }, [estado.datos, intervaloSeg])
+
+  return { ...estado, intervaloSeg }
 }
 
 export { reglaDestacada }

@@ -6,17 +6,18 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlerta, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
-import { intervaloEfectivo, useDispositivos, type DispositivoPanel } from '@/lib/dispositivos'
+import { useDispositivos, type DispositivoPanel } from '@/lib/dispositivos'
 import { useAhora } from '@/lib/usarCarga'
 import { estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
-import { useSesion } from '@/lib/auth'
 import { TarjetaDispositivo } from './TarjetaDispositivo'
 import type { ReactNode } from 'react'
 
-/* Los datos hacen poll solos (ver POLL_PANEL_MS en lib/dispositivos.ts); este tic es
-   más fino, sólo para lo que se deriva de la hora (estado de conexión y
-   "hace X"), que si no envejece mintiendo entre un poll y el siguiente. */
-const TIC_MS = 30_000
+/* Los datos hacen poll solos, a la cadencia del equipo más rápido de la
+   cartera (ver useDispositivos en lib/dispositivos.ts). Este tic es más fino,
+   sólo para lo que se deriva de la hora (estado de conexión y "hace X"), pero
+   nunca más lento que ese poll — si no, el "hace X" envejecería mintiendo
+   entre un poll y el siguiente. */
+const TIC_MS_TECHO = 30_000
 
 /* Los 3 indicadores del resumen. Nada de deltas porcentuales: un +5% sobre una
    temperatura no significa nada (el cero de la escala es arbitrario). */
@@ -80,21 +81,24 @@ function Grilla({ filas, ahora }: { filas: Fila[]; ahora: number }) {
 }
 
 export function Panel() {
-  const { plan } = useSesion()
   const { datos: dispositivos, cargando, refrescando, error, refrescar } = useDispositivos()
-  const ahora = useAhora(TIC_MS)
-  const pisoPlan = plan?.plan.intervalo_minimo_seg
+
+  // El tic del reloj nunca es más lento que el poll del panel: si el equipo
+  // más rápido de la cartera reporta cada 15 s, el "hace X" también.
+  const ticMs = useMemo(() => {
+    if (!dispositivos || dispositivos.length === 0) return TIC_MS_TECHO
+    const menorSeg = Math.min(...dispositivos.map((d) => d.intervaloEfectivoSeg))
+    return Math.min(TIC_MS_TECHO, menorSeg * 1000)
+  }, [dispositivos])
+  const ahora = useAhora(ticMs)
 
   const resumen = useMemo(() => {
     const lista = dispositivos ?? []
-    const estados = lista.map((e) => {
-      const intervaloSeg = intervaloEfectivo(e.dispositivo, pisoPlan)
-      return {
-        datos: e,
-        intervaloSeg,
-        estado: estadoDispositivo(e.dispositivo.last_seen_at, intervaloSeg, ahora),
-      }
-    })
+    const estados = lista.map((e) => ({
+      datos: e,
+      intervaloSeg: e.intervaloEfectivoSeg,
+      estado: estadoDispositivo(e.dispositivo.last_seen_at, e.intervaloEfectivoSeg, ahora),
+    }))
 
     const ultimoReporte = lista.reduce<string | null>((max, e) => {
       const visto = e.dispositivo.last_seen_at
@@ -115,7 +119,7 @@ export function Panel() {
       ).length,
       ultimoReporte,
     }
-  }, [dispositivos, ahora, pisoPlan])
+  }, [dispositivos, ahora])
 
   return (
     <div className="flex flex-col gap-7">

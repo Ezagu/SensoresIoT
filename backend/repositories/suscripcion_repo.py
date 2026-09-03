@@ -44,6 +44,26 @@ def buscar_plan_vigente_por_dispositivo(cur, dispositivo_id) -> dict | None:
     )
     return cur.fetchone()
 
+def buscar_planes_vigentes_por_dispositivos(cur, dispositivo_ids: list) -> dict:
+    # Versión por lote de buscar_plan_vigente_por_dispositivo, para no abrir una
+    # query por dispositivo en el panel. Lo que no aparece en el resultado cae al
+    # fallback free en plan_service.limites_de_dispositivos.
+    if not dispositivo_ids:
+        return {}
+
+    cur.execute(
+        f"""
+        SELECT DISTINCT ON (ud.dispositivo_id) ud.dispositivo_id, p.*
+        FROM usuario_dispositivo ud
+        JOIN suscripciones s ON s.usuario_id = ud.usuario_id AND {VIGENTE}
+        JOIN planes p ON p.id = s.plan_id
+        WHERE ud.dispositivo_id = ANY(%s) AND ud.rol = 'owner'
+        ORDER BY ud.dispositivo_id, s.inicio_at DESC
+        """,
+        (dispositivo_ids,)
+    )
+    return {fila["dispositivo_id"]: fila for fila in cur.fetchall()}
+
 def listar_por_usuario(cur, usuario_id) -> list[dict]:
     # Historial completo, incluidas las revocadas y las ya vencidas
     cur.execute(

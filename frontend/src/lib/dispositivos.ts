@@ -1,13 +1,12 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSesion } from './auth'
 import {
   listarAlertas,
-  listarDispositivos,
   listarSensores,
   listarTiposSensor,
   obtenerDispositivo,
   obtenerGrafico,
-  obtenerHistorial,
+  obtenerPanel,
 } from './consultas'
 import { etiquetarSensores } from './sensores'
 import { useCarga } from './usarCarga'
@@ -17,11 +16,12 @@ import type {
   Dispositivo,
   DispositivoConRol,
   DispositivoDetalle,
-  Medicion,
+  DispositivoResumen,
   TipoSensor,
 } from './tipos'
 
-/* Piso de muestreo si todavía no cargó el plan: sólo afecta al umbral con el
+/* Piso de muestreo mientras el intervalo real todavía no se conoce (antes de
+   que cargue el primer gráfico, en el detalle): sólo afecta al umbral con el
    que se decide "en línea", nunca a los datos. */
 const INTERVALO_FALLBACK_SEG = 60
 
@@ -29,8 +29,9 @@ const INTERVALO_FALLBACK_SEG = 60
    Se resuelve al renderizar y no al pedir los datos, porque el plan llega
    después de la sesión y meterlo en el fetch recargaría todo cuando aparece
    — el intervalo sólo decide el estado de conexión, no qué se pide.
-   El piso real es el del DUEÑO del dispositivo y no se expone; hoy es exacto porque
-   todo vínculo es 'owner'. */
+   El piso real es el del DUEÑO del dispositivo y no se expone acá; es sólo un
+   fallback hasta que se conoce el `intervalo_seg` exacto que ya trae el panel
+   (DispositivoResumen) o el gráfico (DatosGrafico). */
 export function intervaloEfectivo(dispositivo: Dispositivo, pisoPlan: number | undefined) {
   return Math.max(dispositivo.intervalo_configurado_seg ?? 0, pisoPlan ?? INTERVALO_FALLBACK_SEG)
 }
@@ -42,8 +43,8 @@ export function nombreDeDispositivo(id: string, nombre: string | null) {
 }
 
 /* Sensor activo con su metadata resuelta (etiqueta/unidad/color por tipo), sin
-   lecturas: es la parte común del fan-out del panel y del detalle, que después
-   piden lecturas distintas. */
+   lecturas: es la parte estática del detalle (no pollea) y la que consumen
+   BloqueAlertas / BloqueSensor antes de cruzarla con el gráfico. */
 export type SensorConMeta = {
   id: string
   tipoSensorId: number
@@ -80,37 +81,14 @@ export async function cargarSensoresConMeta(
   }
 }
 
-/* Lo que necesita el detalle: la metadata más el gráfico del rango. `datos` es
-   null cuando el sensor no tiene lecturas en el rango o el request puntual
-   falló: un sensor caído no puede tirar abajo el resto del dispositivo. */
+/* Lo que necesita el gráfico: la metadata más los datos del rango elegido.
+   `datos` es null cuando el sensor no tiene lecturas en el rango, el request
+   puntual falló, o el gráfico todavía no polleó (ver useGraficosDeSensores):
+   un sensor caído no puede tirar abajo el resto del dispositivo. */
 export type SensorConDatos = SensorConMeta & { datos: DatosGrafico | null }
 
-async function cargarSensoresDeDispositivo(
-  dispositivoId: string,
-  tipos: TipoSensor[],
-  desde: Date,
-  hasta: Date,
-  signal: AbortSignal,
-): Promise<{ sensores: SensorConDatos[]; alertas: AlertaConNotificar[] }> {
-  const { sensores, alertas } = await cargarSensoresConMeta(dispositivoId, tipos, signal)
-
-  const conDatos = await Promise.all(
-    sensores.map(async (sensor): Promise<SensorConDatos> => {
-      let datos: DatosGrafico | null = null
-      try {
-        datos = await obtenerGrafico(sensor.id, desde, hasta, signal)
-      } catch {
-        // Sensor sin lecturas o fallo puntual: se muestra vacío, no rompe el resto
-      }
-      return { ...sensor, datos }
-    }),
-  )
-
-  return { sensores: conDatos, alertas }
-}
-
 // --------------------------------------------------------------------------
-// Panel: todos los dispositivos, última lectura por sensor
+// Panel: todos los dispositivos, resueltos en 1 sólo request (GET .../panel).
 // --------------------------------------------------------------------------
 
 export type SensorPanel = {
@@ -130,35 +108,88 @@ export type DispositivoPanel = {
   dispositivo: DispositivoConRol
   sensores: SensorPanel[]
   alertasDisparadas: number
-  /* El dispositivo se listó pero su detalle no cargó: se muestra igual, degradado */
-  incompleto: boolean
+  /* Resuelto en el backend con el plan del DUEÑO: exacto también para un
+     dispositivo compartido, a diferencia del intervalo_configurado_seg solo. */
+  intervaloEfectivoSeg: number
 }
 
-const POLL_PANEL_MS = 60_000
+/* El panel arma su propio catálogo de tipos de sensor a partir de lo que ya
+   vino en la respuesta (tipo_sensor_id/tipo_nombre/unidad por sensor), sin
+   pedir `/tipos-sensor/` aparte: es lo único que necesita etiquetarSensores. */
+function catalogoDeTipos(sensores: DispositivoResumen['sensores']): TipoSensor[] {
+  const vistos = new Map<number, TipoSensor>()
+  for (const s of sensores) {
+    if (!vistos.has(s.tipo_sensor_id)) {
+      vistos.set(s.tipo_sensor_id, { id: s.tipo_sensor_id, nombre: s.tipo_nombre, unidad: s.unidad })
+    }
+  }
+  return [...vistos.values()]
+}
 
-/* Los dispositivos del panel con la última lectura de cada sensor.
-   No hay endpoint agregado: es un fan-out de 2 requests por dispositivo más 1
-   por sensor. Si aparecen carteras grandes, esto pide un /panel/resumen en el
-   backend (una sola query con DISTINCT ON (sensor_id)) antes que paginado acá. */
+function panelADispositivo(d: DispositivoResumen): DispositivoPanel {
+  const etiquetas = etiquetarSensores(
+    d.sensores.map((s) => ({ id: s.id, tipo_sensor_id: s.tipo_sensor_id })),
+    catalogoDeTipos(d.sensores),
+  )
+
+  return {
+    dispositivo: {
+      id: d.id,
+      nombre: d.nombre,
+      ubicacion: d.ubicacion,
+      descripcion: d.descripcion,
+      activo: d.activo,
+      last_seen_at: d.last_seen_at,
+      first_connected_at: d.first_connected_at,
+      intervalo_configurado_seg: d.intervalo_configurado_seg,
+      rol: d.rol,
+    },
+    alertasDisparadas: d.alertas_disparadas,
+    intervaloEfectivoSeg: d.intervalo_efectivo_seg,
+    sensores: d.sensores.map((s): SensorPanel => {
+      const meta = etiquetas.get(s.id)
+      return {
+        id: s.id,
+        etiqueta: meta?.etiqueta ?? 'Sensor',
+        unidad: meta?.unidad ?? s.unidad,
+        color: meta?.color ?? 'var(--color-text-muted)',
+        ultimo: s.ultimo_valor,
+        ultimoAt: s.ultimo_at,
+        disparada: s.disparada,
+      }
+    }),
+  }
+}
+
+/* Los dispositivos del panel con la última lectura de cada sensor, en un único
+   GET /usuarios/{id}/panel (antes: 2 + 2·dispositivos + sensores requests).
+   La cadencia del poll se aprende del propio resultado: arranca sin pollear y,
+   apenas se conoce el intervalo efectivo mínimo de la cartera, se activa a ese
+   ritmo (useCarga reprograma el tick sin perder los datos ya cargados). */
 export function useDispositivos() {
   const { sesion } = useSesion()
   const usuarioId = sesion?.usuario_id
+  const [intervaloMs, setIntervaloMs] = useState<number | undefined>(undefined)
 
   const cargar = useCallback(
     async (signal: AbortSignal): Promise<DispositivoPanel[]> => {
       if (!usuarioId) return []
-
-      const [dispositivos, tipos] = await Promise.all([
-        listarDispositivos(usuarioId, signal),
-        listarTiposSensor(signal),
-      ])
-
-      return Promise.all(dispositivos.map((d) => cargarDispositivo(d, tipos, signal)))
+      const panel = await obtenerPanel(usuarioId, signal)
+      return panel.dispositivos.map(panelADispositivo)
     },
     [usuarioId],
   )
 
-  return useCarga(cargar, { intervaloMs: POLL_PANEL_MS })
+  const estado = useCarga(cargar, { intervaloMs })
+
+  useEffect(() => {
+    if (!estado.datos || estado.datos.length === 0) return
+    const menorSeg = Math.min(...estado.datos.map((d) => d.intervaloEfectivoSeg))
+    const nuevo = menorSeg * 1000
+    setIntervaloMs((actual) => (actual === nuevo ? actual : nuevo))
+  }, [estado.datos])
+
+  return estado
 }
 
 /* Para el detalle (BloqueAlertas): todas las reglas del sensor, activas o no
@@ -191,59 +222,6 @@ function reglasPorSensor(alertas: AlertaConNotificar[]) {
 export function reglaDestacada(alertas: AlertaConNotificar[], sensorId: string) {
   const reglas = reglasPorSensor(alertas).get(sensorId) ?? []
   return reglas.find((r) => r.estado === 'disparada') ?? reglas[0]
-}
-
-async function cargarDispositivo(
-  dispositivo: DispositivoConRol,
-  tipos: TipoSensor[],
-  signal: AbortSignal,
-): Promise<DispositivoPanel> {
-  const base: DispositivoPanel = {
-    dispositivo,
-    sensores: [],
-    alertasDisparadas: 0,
-    incompleto: false,
-  }
-
-  let sensores: SensorConMeta[]
-  let alertas: AlertaConNotificar[]
-  try {
-    ;({ sensores, alertas } = await cargarSensoresConMeta(dispositivo.id, tipos, signal))
-  } catch {
-    // Un dispositivo que falla no puede vaciar el panel entero
-    return { ...base, incompleto: true }
-  }
-
-  const reglas = reglasPorSensor(alertas)
-
-  const filas = await Promise.all(
-    sensores.map(async (sensor): Promise<SensorPanel> => {
-      let ultima: Medicion | undefined
-      try {
-        // limite=1 es la lectura cruda más reciente: sin ventana y sin promediar
-        ultima = (await obtenerHistorial(sensor.id, { limite: 1 }, signal)).mediciones[0]
-      } catch {
-        // Sensor sin lecturas o fallo puntual: queda en —, no rompe el resto
-      }
-      const reglasDelSensor = reglas.get(sensor.id) ?? []
-
-      return {
-        id: sensor.id,
-        etiqueta: sensor.etiqueta,
-        unidad: sensor.unidad,
-        color: sensor.color,
-        ultimo: ultima?.value ?? null,
-        ultimoAt: ultima?.time ?? null,
-        disparada: reglasDelSensor.some((r) => r.estado === 'disparada'),
-      }
-    }),
-  )
-
-  return {
-    ...base,
-    sensores: filas,
-    alertasDisparadas: alertas.filter((a) => a.activa && a.estado === 'disparada').length,
-  }
 }
 
 // --------------------------------------------------------------------------
@@ -313,23 +291,12 @@ export function bordesDeVentana(ventana: Ventana, tic: number): { desdeMs: numbe
   return { desdeMs: tic - duracionMsDeRango(ventana.rango), hastaMs: tic }
 }
 
-/* Un gráfico de 7 o 30 días no cambia de un minuto a otro: pollear cada 60 s
-   sería puro gasto. El de 24 h sí se mueve seguido, mismo intervalo que el panel.
-   "En tiempo real" refresca cada 15 s: es el modo pensado justo para ver el
-   sensor moverse. */
-const POLL_DETALLE_MS: Record<RangoGrafico, number> = {
-  'tiempo-real': 15_000,
-  '24h': 60_000,
-  '7d': 300_000,
-  '30d': 900_000,
-  '6m': 300_000_000,
-  '1a': 1_000_000_000
-}
-
 // --------------------------------------------------------------------------
 // Ventana: preset o rango de fechas explícito, con la misma resolución para
-// ambos casos. Preset sigue pollenado (se mueve solo); fechas explícitas no
-// cambian, pollearlas sería gasto puro.
+// ambos casos. Sólo "En tiempo real" pollea (se mueve solo y es el modo
+// pensado para ver el sensor moverse); el resto de los presets y cualquier
+// rango de fechas explícito (selector o zoom) quedan quietos hasta que el
+// usuario pida "Actualizar" — pollearlos era gasto puro, no se movían seguido.
 // --------------------------------------------------------------------------
 
 export type Ventana =
@@ -343,8 +310,17 @@ export function resolverVentana(v: Ventana): { desde: Date; hasta: Date } {
   return { desde, hasta }
 }
 
-export function pollDeVentana(v: Ventana): number | undefined {
-  return v.tipo === 'preset' ? POLL_DETALLE_MS[v.rango] : undefined
+export function esTiempoReal(v: Ventana) {
+  return v.tipo === 'preset' && v.rango === 'tiempo-real'
+}
+
+/* La cadencia del poll es el intervalo de muestreo real del equipo, no una
+   constante por rango: pedir más seguido que lo que el equipo reporta sólo
+   devuelve la misma foto. `intervaloSeg` llega ya resuelto (plan del dueño
+   incluido) desde `DatosGrafico.intervalo_seg`; sin él todavía (primera carga)
+   no hay poll hasta que se conozca. */
+export function pollDeVentana(v: Ventana, intervaloSeg: number | undefined): number | undefined {
+  return esTiempoReal(v) && intervaloSeg ? intervaloSeg * 1000 : undefined
 }
 
 /* Estado de ventana con zoom, compartido por las dos pantallas de detalle.
@@ -378,7 +354,7 @@ export function useVentanaConZoom(inicial: Ventana) {
 
 export type DetalleDispositivo = {
   dispositivo: DispositivoDetalle
-  sensores: SensorConDatos[]
+  sensores: SensorConMeta[]
   alertas: AlertaConNotificar[]
 }
 
@@ -391,20 +367,90 @@ export const ETIQUETA_ROL: Record<DispositivoDetalle['rol'], string> = {
   admin: 'Administrador',
 }
 
-export function useDetalleDispositivo(dispositivoId: string, ventana: Ventana) {
+/* Parte estática del detalle: dispositivo, sensores, alertas. No pollea — a
+   diferencia del gráfico (useGraficosDeSensores), nada de esto cambia seguido,
+   y re-pedirlo en cada tick era la mitad del costo del poll viejo. Se refresca
+   sólo al montar y con `refrescar()` (alta/edición/borrado de alertas, cambio
+   de intervalo). */
+export function useDetalleDispositivo(dispositivoId: string) {
   const cargar = useCallback(
     async (signal: AbortSignal): Promise<DetalleDispositivo> => {
       const [dispositivo, tipos] = await Promise.all([
         obtenerDispositivo(dispositivoId, signal),
         listarTiposSensor(signal),
       ])
-
-      const { desde, hasta } = resolverVentana(ventana)
-      const { sensores, alertas } = await cargarSensoresDeDispositivo(dispositivoId, tipos, desde, hasta, signal)
+      const { sensores, alertas } = await cargarSensoresConMeta(dispositivoId, tipos, signal)
       return { dispositivo, sensores, alertas }
     },
-    [dispositivoId, ventana],
+    [dispositivoId],
   )
 
-  return useCarga(cargar, { intervaloMs: pollDeVentana(ventana) })
+  return useCarga(cargar)
+}
+
+/* Único hook que pollea en el detalle, y sólo pide /grafico por sensor — el
+   resto (dispositivo, sensores, alertas) ya salió de useDetalleDispositivo.
+   El intervalo de poll se aprende del propio resultado (`intervalo_seg` del
+   primer gráfico que vuelve, todos los sensores de un equipo lo comparten):
+   arranca sin pollear y se activa apenas se conoce, sin perder la carga en
+   curso (useCarga reprograma el tick, no reinicia el ciclo). */
+export function useGraficosDeSensores(sensores: SensorConMeta[], ventana: Ventana) {
+  const idsKey = sensores.map((s) => s.id).join(',')
+  const [intervaloSeg, setIntervaloSeg] = useState<number | undefined>(undefined)
+
+  const cargar = useCallback(
+    async (signal: AbortSignal): Promise<Map<string, DatosGrafico | null>> => {
+      const ids = idsKey ? idsKey.split(',') : []
+      const { desde, hasta } = resolverVentana(ventana)
+      const entradas = await Promise.all(
+        ids.map(async (id): Promise<[string, DatosGrafico | null]> => {
+          try {
+            return [id, await obtenerGrafico(id, desde, hasta, signal)]
+          } catch {
+            // Sensor sin lecturas o fallo puntual: se muestra vacío, no rompe el resto
+            return [id, null]
+          }
+        }),
+      )
+      return new Map(entradas)
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [idsKey, ventana],
+  )
+
+  const { datos, cargando, refrescando, error, errorCrudo, refrescar } = useCarga(cargar, {
+    intervaloMs: pollDeVentana(ventana, intervaloSeg),
+  })
+
+  useEffect(() => {
+    if (!datos) return
+    const primero = [...datos.values()].find((d) => d !== null)
+    if (primero && primero.intervalo_seg !== intervaloSeg) setIntervaloSeg(primero.intervalo_seg)
+  }, [datos, intervaloSeg])
+
+  return {
+    porSensor: datos ?? new Map<string, DatosGrafico | null>(),
+    intervaloSeg,
+    cargando,
+    refrescando,
+    error,
+    errorCrudo,
+    refrescar,
+  }
+}
+
+/* Sin pollear el dispositivo en cada tick, `last_seen_at` no se mueve solo: en
+   "En tiempo real" el propio gráfico ya trae lecturas más nuevas que esa foto,
+   y sin este máximo el pill de estado se quedaría en "sin reportar" aunque el
+   equipo esté al día. Los puntos vienen ordenados por tiempo ascendente
+   (medicion_repo.buscar_puntos: `ORDER BY 1`), así que el último de cada serie
+   es el más reciente. */
+export function ultimoReporteEfectivo(dispositivo: Dispositivo, sensores: SensorConDatos[]): string | null {
+  let max = dispositivo.last_seen_at
+  for (const sensor of sensores) {
+    const puntos = sensor.datos?.puntos
+    const ultimo = puntos?.[puntos.length - 1]?.bucket
+    if (ultimo && (!max || Date.parse(ultimo) > Date.parse(max))) max = ultimo
+  }
+  return max
 }

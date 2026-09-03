@@ -42,6 +42,15 @@ def limites_de_dispositivo(cur, dispositivo_id) -> dict:
     # free con acceso compartido a un dispositivo premium ve lo mismo que el owner.
     return suscripcion_repo.buscar_plan_vigente_por_dispositivo(cur, dispositivo_id) or _plan_free(cur)
 
+def limites_de_dispositivos(cur, dispositivo_ids: list) -> dict:
+    # Versión por lote de limites_de_dispositivo, para el panel: un plan por
+    # dispositivo sin una query por dispositivo. Mismo fallback free.
+    if not dispositivo_ids:
+        return {}
+    planes = suscripcion_repo.buscar_planes_vigentes_por_dispositivos(cur, dispositivo_ids)
+    libre = _plan_free(cur)
+    return {d: planes.get(d, libre) for d in dispositivo_ids}
+
 def intervalo_efectivo_seg(configurado, piso) -> int:
     # El valor elegido por el owner nunca baja del piso de su plan.
     return max(configurado, piso) if configurado is not None else piso

@@ -13,7 +13,7 @@ import { esquemaAlertaEdicion, esquemaAlertaNueva, useFormulario } from '@/lib/f
 import { agruparAlertasPorSensor } from '@/lib/dispositivos'
 import { medida } from '@/lib/formato'
 import type { AlertaConNotificar } from '@/lib/tipos'
-import type { SensorConDatos } from '@/lib/dispositivos'
+import type { SensorConMeta } from '@/lib/dispositivos'
 
 const ETIQUETA_CONDICION = { mayor: 'Mayor a', menor: 'Menor a' } as const
 
@@ -30,7 +30,7 @@ function FormularioNuevaAlerta({
   onCreada,
   onCancelar,
 }: {
-  sensores: SensorConDatos[]
+  sensores: SensorConMeta[]
   onCreada: () => void
   onCancelar: () => void
 }) {
@@ -241,7 +241,7 @@ function FilaAlerta({
           type="button"
           disabled={ocupado}
           onClick={alternarNotificar}
-          className="rounded-tile px-2 py-1 text-note font-medium text-text-muted hover:bg-surface-2 hover:text-text disabled:opacity-50"
+          className="rounded-tile px-2 py-1 text-note font-medium text-text-muted hover:bg-surface-2 hover:text-text disabled:opacity-50 cursor-pointer"
           title="Sólo afecta tus propias notificaciones, no las de los demás usuarios con acceso"
         >
           {alerta.notificar ? 'Notificándome' : 'Sin notificar'}
@@ -249,7 +249,7 @@ function FilaAlerta({
         <button
           type="button"
           onClick={onEditar}
-          className="rounded-tile px-2 py-1 text-note font-medium text-accent hover:bg-accent-soft"
+          className="rounded-tile px-2 py-1 text-note font-medium text-accent hover:bg-accent-soft cursor-pointer"
         >
           Editar
         </button>
@@ -257,7 +257,7 @@ function FilaAlerta({
           type="button"
           disabled={ocupado}
           onClick={borrar}
-          className="rounded-tile px-2 py-1 text-note font-medium text-danger hover:bg-danger-soft disabled:opacity-50"
+          className="rounded-tile px-2 py-1 text-note font-medium text-danger hover:bg-danger-soft disabled:opacity-50 cursor-pointer"
         >
           Borrar
         </button>
@@ -277,7 +277,7 @@ export function BloqueAlertas({
   maxAlertas,
   onCambio,
 }: {
-  sensores: SensorConDatos[]
+  sensores: SensorConMeta[]
   alertas: AlertaConNotificar[]
   puedeAlertas: boolean
   maxAlertas: number | null

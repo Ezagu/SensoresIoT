@@ -6,6 +6,7 @@ import { Stat } from '@/components/ui/Stat'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Grafico } from '@/components/graficos/Grafico'
+import { IconoActualizar } from '@/components/layout/iconos'
 import { estadoHttp } from '@/lib/api'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
@@ -14,22 +15,23 @@ import { medida } from '@/lib/formato'
 import { estadoDispositivo } from '@/lib/tiempo'
 import {
   bordesDeVentana,
+  esTiempoReal,
   excedeRetencion,
   intervaloEfectivo,
   nombreDeDispositivo,
   resolverVentana,
   useVentanaConZoom,
 } from '@/lib/dispositivos'
-import { SensorNoEncontradoError, reglaDestacada, useDetalleSensor } from '@/lib/sensor'
+import { SensorNoEncontradoError, reglaDestacada, useDatosSensor, useDetalleSensorEstatico } from '@/lib/sensor'
 import { SelectorVentana } from './SelectorVentana'
 import { BloqueHistorial } from './BloqueHistorial'
 
 /* Mismo criterio que el detalle de dispositivo: un único borde derecho para
    que el gráfico no se desalinee con re-renders ajenos al tic. En tiempo real
-   se acelera a la par del poll, así que el "hace X s" del valor actual se
-   mueve al mismo ritmo. Ventanas de fechas cerradas en el pasado no se mueven,
-   pero el tic igual corre para el "hace X" — barato y sin caso especial. */
-const TIC_MS_TIEMPO_REAL = 15_000
+   se acelera a la par del poll (el intervalo real del equipo), así que el
+   "hace X s" del valor actual se mueve al mismo ritmo. Ventanas de fechas
+   cerradas en el pasado no se mueven, pero el tic igual corre para el
+   "hace X" — barato y sin caso especial. */
 const TIC_MS_DEFAULT = 30_000
 
 function EsqueletoSensor() {
@@ -64,21 +66,18 @@ export function DetalleSensor() {
     tipo: 'preset',
     rango: 'tiempo-real',
   })
-  const enVivo = ventana.tipo === 'preset' && ventana.rango === 'tiempo-real'
-  const tic = useAhora(enVivo ? TIC_MS_TIEMPO_REAL : TIC_MS_DEFAULT)
+  const enVivo = esTiempoReal(ventana)
 
-  const { datos, cargando, error, errorCrudo, refrescar } = useDetalleSensor(
-    id ?? '',
-    sensorId ?? '',
-    ventana,
-  )
+  const estatico = useDetalleSensorEstatico(id ?? '', sensorId ?? '')
+  const polling = useDatosSensor(sensorId ?? '', ventana)
+  const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_MS_DEFAULT)
 
   if (!id || !sensorId) return <Navegable titulo="Sensor no encontrado" />
 
-  if (cargando) return <EsqueletoSensor />
+  if (estatico.cargando || polling.cargando) return <EsqueletoSensor />
 
-  if (error && !datos) {
-    const status = errorCrudo instanceof SensorNoEncontradoError ? 404 : estadoHttp(errorCrudo)
+  if (estatico.error && !estatico.datos) {
+    const status = estatico.errorCrudo instanceof SensorNoEncontradoError ? 404 : estadoHttp(estatico.errorCrudo)
     if (status === 404) {
       return (
         <Navegable
@@ -94,9 +93,9 @@ export function DetalleSensor() {
       <Card>
         <Vacio
           titulo="No pudimos cargar el sensor"
-          detalle={error}
+          detalle={estatico.error}
           accion={
-            <Boton variante="sutil" onClick={refrescar}>
+            <Boton variante="sutil" onClick={estatico.refrescar}>
               Reintentar
             </Boton>
           }
@@ -105,26 +104,26 @@ export function DetalleSensor() {
     )
   }
 
-  if (!datos) return null
+  if (!estatico.datos) return null
 
-  const { dispositivo, sensor, ultima, alertas } = datos
+  const { dispositivo, sensor, alertas } = estatico.datos
+  const { datos: datosGrafico, ultima } = polling.datos ?? { datos: null, ultima: null }
   const regla = reglaDestacada(alertas, sensor.id)
   const { desde } = resolverVentana(ventana)
   // Borde derecho del gráfico: el tic compartido si la ventana sigue en vivo
   // (preset), o el límite fijo elegido si es un rango de fechas cerrado.
   const { hastaMs: hastaGrilla } = bordesDeVentana(ventana, tic)
-  const grilla = datos.datos ? serieDeGrafico(datos.datos) : []
-  const resumen = datos.datos?.resumen
+  const grilla = datosGrafico ? serieDeGrafico(datosGrafico) : []
+  const resumen = datosGrafico?.resumen
   // No se ata al gráfico: el resumen puede traer datos en bordes donde no hay
   // puntos que dibujar, y mostrarlo no depende de que haya trazo.
   const hayResumen = resumen && (resumen.promedio !== null || resumen.minimo !== null || resumen.maximo !== null)
-  const hayDatos = datos.datos !== null && datos.datos.puntos.length > 0
-  const retencionDias = datos.datos?.retencion_dias ?? null
+  const hayDatos = datosGrafico !== null && datosGrafico.puntos.length > 0
+  const retencionDias = datosGrafico?.retencion_dias ?? null
 
   const pisoPlan = plan?.plan.intervalo_minimo_seg
-  const estado = ultima
-    ? estadoDispositivo(ultima.time, intervaloEfectivo(dispositivo, pisoPlan), tic)
-    : 'nunca'
+  const intervaloSeg = polling.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
+  const estado = ultima ? estadoDispositivo(ultima.time, intervaloSeg, tic) : 'nunca'
   const valorApagado = estado !== 'en-linea'
 
   return (
@@ -163,9 +162,9 @@ export function DetalleSensor() {
         )}
       </div>
 
-      {error && (
+      {estatico.error && (
         <p role="alert" className="text-label text-danger">
-          No pudimos actualizar: {error}
+          No pudimos actualizar: {estatico.error}
         </p>
       )}
 
@@ -182,6 +181,14 @@ export function DetalleSensor() {
 
       <div className="flex flex-wrap items-end gap-3">
         <SelectorVentana ventana={ventana} onCambiar={elegir} retencionDias={retencionDias} />
+        {/* Fuera de "En tiempo real" no hay poll (rangos anchos no se mueven
+            seguido): esto es lo único que refresca el gráfico y el valor actual. */}
+        {!enVivo && (
+          <Boton variante="sutil" onClick={polling.refrescar} disabled={polling.refrescando}>
+            <IconoActualizar className="size-3.5" />
+            Actualizar
+          </Boton>
+        )}
         {hayZoom && (
           <Boton variante="sutil" onClick={restablecer}>
             Restablecer zoom
@@ -196,7 +203,7 @@ export function DetalleSensor() {
               puntos={grilla}
               color={sensor.color}
               unidad={sensor.unidad}
-              desdeMs={new Date(datos.datos?.desde_efectivo ?? desde).getTime()}
+              desdeMs={new Date(datosGrafico?.desde_efectivo ?? desde).getTime()}
               hastaMs={hastaGrilla}
               umbral={regla?.umbral}
               condicion={regla?.condicion}

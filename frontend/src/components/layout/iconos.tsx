@@ -126,3 +126,9 @@ export const IconoCompartido = ({ className }: Props) => (
     <path d="M17 20c0-2.8-2.2-5-5-5s-5 2.2-5 5M12 12a3.5 3.5 0 100-7 3.5 3.5 0 000 7zM21 20c0-2.2-1.6-4-3.7-4.4M17.5 12a3 3 0 100-6" />
   </svg>
 )
+
+export const IconoActualizar = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M21 12a9 9 0 10-2.6 6.4M21 12v-5M21 12h-5" />
+  </svg>
+)

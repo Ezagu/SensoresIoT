@@ -51,7 +51,7 @@ export function TarjetaDispositivo({
   intervaloSeg: number
   ahora: number
 }) {
-  const { dispositivo, sensores, incompleto } = datos
+  const { dispositivo, sensores } = datos
   const inactivo = !dispositivo.activo
 
   /* Por sensor y no por dispositivo: el pill de arriba habla del equipo, pero
@@ -84,9 +84,7 @@ export function TarjetaDispositivo({
         )}
       </div>
 
-      {incompleto ? (
-        <p className="text-label text-text-faint">No pudimos leer los sensores de este dispositivo.</p>
-      ) : sensores.length === 0 ? (
+      {sensores.length === 0 ? (
         <p className="text-label text-text-faint">Este dispositivo todavía no tiene sensores.</p>
       ) : (
         <ul className="flex flex-col gap-2">

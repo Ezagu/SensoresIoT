@@ -36,6 +36,33 @@ export type Dispositivo = {
 
 export type RolDispositivo = 'owner' | 'editor' | 'viewer'
 
+/* GET /usuarios/{id}/panel. Un dispositivo con sus sensores y la última lectura
+   de cada uno resueltos en el propio backend (una sola query cada uno), en vez
+   del fan-out que hacía el front antes (2 requests por dispositivo + 1 por sensor). */
+export type SensorResumen = {
+  id: string
+  tipo_sensor_id: number
+  tipo_nombre: string
+  unidad: string
+  ultimo_valor: number | null
+  ultimo_at: string | null
+  disparada: boolean
+}
+
+/* intervalo_efectivo_seg ya viene resuelto con el plan del DUEÑO del
+   dispositivo (max(intervalo_configurado_seg, piso del plan)): a diferencia de
+   intervalo_configurado_seg, es exacto también para un dispositivo compartido. */
+export type DispositivoResumen = Dispositivo & {
+  rol: RolDispositivo
+  intervalo_efectivo_seg: number
+  alertas_disparadas: number
+  sensores: SensorResumen[]
+}
+
+export type PanelResumen = {
+  dispositivos: DispositivoResumen[]
+}
+
 /* GET /usuarios/{id}/dispositivos. El rol sale directo de la fila de
    usuario_dispositivo del join, sin resolver nada. */
 export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }

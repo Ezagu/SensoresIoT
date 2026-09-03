@@ -50,6 +50,24 @@ def buscar_con_tipo_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     )
     return cur.fetchall()
 
+def buscar_con_tipo_por_dispositivos(cur, dispositivo_ids: list) -> list[dict]:
+    # Versión por lote de buscar_con_tipo_por_dispositivo, para el panel. A
+    # diferencia de esa (usada por el export, que quiere también los inactivos),
+    # acá sí se filtra por activo: son los mismos que hoy ve el panel.
+    if not dispositivo_ids:
+        return []
+    cur.execute(
+        """
+        SELECT s.id, s.dispositivo_id, s.tipo_sensor_id, ts.nombre AS tipo_nombre, ts.unidad
+        FROM sensores s
+        JOIN tipos_sensor ts ON ts.id = s.tipo_sensor_id
+        WHERE s.dispositivo_id = ANY(%s) AND s.activo
+        ORDER BY s.dispositivo_id, ts.nombre, s.created_at
+        """,
+        (dispositivo_ids,)
+    )
+    return cur.fetchall()
+
 def ids_por_dispositivo(cur, dispositivo_id) -> set:
     cur.execute("SELECT id FROM sensores WHERE dispositivo_id = %s", (dispositivo_id,))
     return {row[0] for row in cur.fetchall()}

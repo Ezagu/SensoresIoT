@@ -6,20 +6,24 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
+import { IconoActualizar, IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
 import { estadoHttp } from '@/lib/api'
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO } from '@/lib/tiempo'
 import {
   bordesDeVentana,
+  esTiempoReal,
   ETIQUETA_ROL,
   excedeRetencion,
   intervaloEfectivo,
   nombreDeDispositivo,
   resolverVentana,
+  ultimoReporteEfectivo,
   useDetalleDispositivo,
+  useGraficosDeSensores,
   useVentanaConZoom,
+  type SensorConDatos,
 } from '@/lib/dispositivos'
 import { BloqueSensor } from './BloqueSensor'
 import { BloqueAlertas } from './BloqueAlertas'
@@ -29,8 +33,10 @@ import { SelectorVentana } from './SelectorVentana'
 
 /* Los gráficos comparten un único borde derecho, y sólo avanza con el tic: uno
    por sensor los desalinearía entre sí y movería el eje en cualquier re-render
-   ajeno. Mismo criterio que el tic del panel. */
-const TIC_MS = 30_000
+   ajeno. En vivo sigue el ritmo del poll (así el "hace X" no envejece más
+   lento que los datos); fuera de vivo no hay poll, pero el tic sigue corriendo
+   para el "hace X" del encabezado — barato, sin caso especial. */
+const TIC_MS_DEFAULT = 30_000
 
 function EsqueletoDetalle() {
   return (
@@ -53,13 +59,21 @@ export function DetalleDispositivo() {
   })
   const [exportAbierto, setExportAbierto] = useState(false)
   const [intervaloAbierto, setIntervaloAbierto] = useState(false)
-  const hasta = useAhora(TIC_MS)
 
-  const { datos, cargando, error, errorCrudo, refrescar } = useDetalleDispositivo(id ?? '', ventana)
+  const { datos, cargando, error, errorCrudo, refrescar } = useDetalleDispositivo(id ?? '')
+  const sensoresBase = datos?.sensores ?? []
+  const graficos = useGraficosDeSensores(sensoresBase, ventana)
+
+  const enVivo = esTiempoReal(ventana)
+  const hasta = useAhora(enVivo && graficos.intervaloSeg ? graficos.intervaloSeg * 1000 : TIC_MS_DEFAULT)
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" />
 
-  if (cargando) return <EsqueletoDetalle />
+  // Recién con el primer lote real de gráficos se puede pintar la grilla: sin
+  // esto, un instante entre "cargó el dispositivo" y "cargó el primer gráfico"
+  // mostraría cada tarjeta como "Sin lecturas" en vez de un esqueleto.
+  const cargandoGrilla = sensoresBase.length > 0 && graficos.porSensor.size === 0
+  if (cargando || cargandoGrilla) return <EsqueletoDetalle />
 
   if (error && !datos) {
     const status = estadoHttp(errorCrudo)
@@ -87,10 +101,18 @@ export function DetalleDispositivo() {
   if (!datos) return null
 
   const { dispositivo, sensores, alertas } = datos
+  const sensoresConDatos: SensorConDatos[] = sensores.map((s) => ({
+    ...s,
+    datos: graficos.porSensor.get(s.id) ?? null,
+  }))
   const pisoPlan = plan?.plan.intervalo_minimo_seg
-  const estado = estadoDispositivo(dispositivo.last_seen_at, intervaloEfectivo(dispositivo, pisoPlan))
+  const intervaloSeg = graficos.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
+  // Sin pollear el dispositivo, last_seen_at no se mueve solo: en vivo el
+  // propio gráfico ya trae lecturas más nuevas que esa foto.
+  const ultimoReporte = ultimoReporteEfectivo(dispositivo, sensoresConDatos)
+  const estado = estadoDispositivo(ultimoReporte, intervaloSeg)
   // Todos los sensores del dispositivo comparten plan, así que cualquiera sirve
-  const retencionDias = sensores.find((s) => s.datos)?.datos?.retencion_dias ?? null
+  const retencionDias = sensoresConDatos.find((s) => s.datos)?.datos?.retencion_dias ?? null
   const { desde } = resolverVentana(ventana)
   // Ventana única para todas las tarjetas: comparten eje, así que comparten
   // también estos bordes — zoomear en una mueve a todas por igual.
@@ -140,7 +162,7 @@ export function DetalleDispositivo() {
             <IconoAjustes className="size-3.5" />
             Intervalo
           </Boton>
-          <Boton variante="sutil" onClick={() => setExportAbierto(true)}>
+          <Boton variante="fantasma" onClick={() => setExportAbierto(true)}>
             <IconoExportar className="size-3.5" />
             Exportar
           </Boton>
@@ -166,8 +188,15 @@ export function DetalleDispositivo() {
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h3 className="text-body font-medium text-text-muted">Lecturas</h3>
-        <div className="flex flex-wrap items-end gap-3">
+        <div className="flex flex-wrap items-end gap-2 ">
           <SelectorVentana ventana={ventana} onCambiar={elegir} retencionDias={retencionDias} />
+          {/* Fuera de "En tiempo real" el gráfico no pollea (rangos anchos no se
+              mueven seguido): esto es lo único que lo refresca. */}
+          {!enVivo && (
+            <Boton variante="fantasma" onClick={graficos.refrescar} disabled={graficos.refrescando}>
+              <IconoActualizar className="size-3.5" />
+            </Boton>
+          )}
           {hayZoom && (
             <Boton variante="sutil" onClick={restablecer}>
               Restablecer zoom
@@ -176,13 +205,13 @@ export function DetalleDispositivo() {
         </div>
       </div>
 
-      {sensores.length === 0 ? (
+      {sensoresConDatos.length === 0 ? (
         <Card>
           <Vacio titulo="Este dispositivo todavía no tiene sensores" />
         </Card>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
-          {sensores.map((sensor) => (
+          {sensoresConDatos.map((sensor) => (
             <BloqueSensor
               key={sensor.id}
               dispositivoId={dispositivo.id}

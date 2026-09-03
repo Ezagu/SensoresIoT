@@ -77,6 +77,33 @@ def mediciones_en_ventana(cur, sensor_ids: list, desde, hasta) -> dict:
         ventana.setdefault(sensor_id, []).append(momento)
     return ventana
 
+def ultimas_por_sensores(cur, pares: list[tuple]) -> dict:
+    # {sensor_id: {time, value}}. `pares` es [(sensor_id, piso), ...]: cada sensor
+    # trae su propio piso (retención del plan de SU dueño), no uno global.
+    # LATERAL + LIMIT 1 en vez de DISTINCT ON: cada sensor resuelve con un index
+    # scan sobre idx_mediciones_sensor_time que corta en la primera fila, en vez
+    # de ordenar el rango completo de cada sensor.
+    if not pares:
+        return {}
+
+    sensor_ids = [p[0] for p in pares]
+    pisos = [p[1] for p in pares]
+
+    cur.execute(
+        """
+        SELECT s.sensor_id, m.time, m.value
+        FROM unnest(%s::uuid[], %s::timestamptz[]) AS s(sensor_id, piso)
+        LEFT JOIN LATERAL (
+            SELECT time, value FROM mediciones
+            WHERE sensor_id = s.sensor_id AND time >= s.piso
+            ORDER BY time DESC
+            LIMIT 1
+        ) m ON true
+        """,
+        (sensor_ids, pisos)
+    )
+    return {fila["sensor_id"]: fila for fila in cur.fetchall() if fila["time"] is not None}
+
 TOPE_CRUDO = 1000
 
 def _contar_acotado(cur, sensor_id, desde, hasta, tope) -> int:

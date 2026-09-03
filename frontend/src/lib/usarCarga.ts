@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { mensajeDeError } from './api'
 
 type Estado<T> = {
@@ -37,6 +37,17 @@ export function useCarga<T>(cargar: (signal: AbortSignal) => Promise<T>, opcione
   })
   const [intento, setIntento] = useState(0)
 
+  /* Estado actual accesible sin entrar en las deps del efecto de abajo. */
+  const estadoRef = useRef(estado)
+  estadoRef.current = estado
+
+  /* Identifica el ciclo de carga (de qué `cargar`/intento viene el poll en
+     curso). Si sólo cambió `intervaloMs` (p. ej. el intervalo del equipo recién
+     resuelto), es el mismo ciclo: no hay que perder la carga en vuelo ni
+     disparar una de más, sólo reprogramar el próximo tick con la cadencia
+     nueva. */
+  const cicloRef = useRef<{ cargar: typeof cargar; intento: number } | null>(null)
+
   useEffect(() => {
     let vigente = true
     let control: AbortController | null = null
@@ -46,6 +57,10 @@ export function useCarga<T>(cargar: (signal: AbortSignal) => Promise<T>, opcione
        segunda invocación creyendo que ya hay un pedido en vuelo (el de la
        primera, recién abortado) y la pantalla nunca carga. */
     let enVuelo = false
+
+    const mismoCiclo =
+      cicloRef.current?.cargar === cargar && cicloRef.current?.intento === intento
+    cicloRef.current = { cargar, intento }
 
     async function ejecutar() {
       // Un poll por vez: si el fan-out tarda más que el intervalo, no se
@@ -94,7 +109,15 @@ export function useCarga<T>(cargar: (signal: AbortSignal) => Promise<T>, opcione
       }, intervaloMs)
     }
 
-    ejecutar().finally(programar)
+    // Mismo ciclo con datos ya en pantalla: sólo el intervalo cambió, no hace
+    // falta recargar — se reprograma con la cadencia nueva y listo. Sin datos
+    // todavía (primera carga, incluso la segunda pasada de StrictMode) hay que
+    // ejecutar sí o sí, o la pantalla se queda colgada en el esqueleto.
+    if (mismoCiclo && estadoRef.current.datos !== null) {
+      programar()
+    } else {
+      ejecutar().finally(programar)
+    }
 
     function alVolverVisible() {
       if (!document.hidden) ejecutar()
