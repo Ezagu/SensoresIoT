@@ -13,10 +13,8 @@ export type SensorConMeta = {
   color: string
 }
 
-/* Lo que necesita el gráfico: la metadata más los datos del rango elegido.
-   `datos` es null cuando el sensor no tiene lecturas en el rango, el request
-   puntual falló, o el gráfico todavía no polleó: un sensor caído no puede
-   tirar abajo el resto del dispositivo. */
+/* `datos` es null sin lecturas en el rango o si el request puntual falló: un
+   sensor caído no tira abajo el resto del dispositivo. */
 export type SensorConDatos = SensorConMeta & { datos: DatosGrafico | null }
 
 export async function cargarSensoresConMeta(

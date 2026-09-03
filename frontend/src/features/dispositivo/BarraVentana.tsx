@@ -3,10 +3,8 @@ import { IconoActualizar } from '@/components/layout/iconos'
 import type { Ventana } from '@/lib/ventana'
 import { SelectorVentana } from './SelectorVentana'
 
-/* Selector de rango + botón de refresco (sólo fuera de "En tiempo real", que
-   ya pollea solo) + "Restablecer zoom". Compartido por las dos pantallas de
-   detalle; `titulo` envuelve con el encabezado "Lecturas" que sólo usa la de
-   dispositivo. */
+/* `titulo` envuelve con el encabezado "Lecturas", que sólo usa la pantalla
+   de dispositivo; sin él es sólo la fila de controles. */
 export function BarraVentana({
   titulo,
   ventana,

@@ -74,10 +74,8 @@ function panelADispositivo(d: DispositivoResumen): DispositivoPanel {
   }
 }
 
-/* Los dispositivos del panel con la última lectura de cada sensor, en un
-   único GET /usuarios/{id}/panel. La cadencia del poll se aprende del propio
-   resultado: arranca sin pollear y, apenas se conoce el intervalo efectivo
-   mínimo de la cartera, se activa a ese ritmo. */
+/* La cadencia del poll se aprende del propio resultado: arranca sin pollear
+   y se activa al intervalo mínimo de la cartera apenas se conoce. */
 export function useDispositivos() {
   const { sesion } = useSesion()
   const usuarioId = sesion?.usuario_id

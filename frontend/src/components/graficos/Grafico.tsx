@@ -40,16 +40,9 @@ function formatterDeEje(duracionMs: number) {
   return fechaConAnio
 }
 
-/* Wrapper de Recharts: nada de la app importa la librería directo. Puntos que
-   no salen por default:
-   - connectNulls={false} (default, pero explícito): un hueco corta el trazo
-     en vez de interpolar — es la única señal visible de que un dispositivo
-     dejó de reportar.
-   - isAnimationActive={false}: Recharts anima por JS, así que
-     prefers-reduced-motion no lo alcanza, y animar de cero en cada poll
-     sería insoportable.
-   - Colores por token (var(--color-*)): Recharts los pasa tal cual como
-     atributos SVG, así que el tema claro/oscuro sigue funcionando solo. */
+/* Wrapper de Recharts: nada de la app importa la librería directo.
+   isAnimationActive={false} porque Recharts anima por JS (prefers-reduced-motion
+   no lo alcanza) y re-animar en cada poll sería insoportable. */
 export function Grafico({
   puntos,
   color,

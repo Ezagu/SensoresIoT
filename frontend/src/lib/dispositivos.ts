@@ -24,10 +24,8 @@ export const ETIQUETA_ROL: Record<DispositivoDetalle['rol'], string> = {
   admin: 'Administrador',
 }
 
-/* Sin pollear el dispositivo, last_seen_at no se mueve solo: en vivo el
-   propio gráfico ya trae lecturas más nuevas que esa foto. Los puntos vienen
-   ordenados por tiempo ascendente, así que el último de cada serie es el más
-   reciente. */
+/* En vivo el gráfico trae lecturas más nuevas que last_seen_at (que no se
+   pollea). Los puntos vienen ordenados ascendente, así que el último es el más reciente. */
 export function ultimoReporteEfectivo(
   dispositivo: Dispositivo,
   sensores: { datos: { puntos: { bucket: string }[] } | null }[],

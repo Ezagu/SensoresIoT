@@ -50,11 +50,8 @@ export function bordesDeVentana(ventana: Ventana, tic: number): { desdeMs: numbe
   return { desdeMs: tic - duracionMsDeRango(ventana.rango), hastaMs: tic }
 }
 
-/* Estado de ventana con zoom, compartido por las dos pantallas de detalle.
-   - elegir: uso manual del selector, pisa cualquier zoom previo.
-   - zoomear: guarda la ventana previa sólo la primera vez, así "restablecer"
-     siempre vuelve al punto de partida y no a un paso intermedio.
-   - restablecer: vuelve a la previa; sin una guardada no hace nada. */
+/* Estado de ventana con zoom. La previa se guarda sólo en el primer zoom, así
+   "restablecer" siempre vuelve al punto de partida y no a un paso intermedio. */
 export function useVentanaConZoom(inicial: Ventana) {
   const [ventana, setVentana] = useState<Ventana>(inicial)
   const [previa, setPrevia] = useState<Ventana | null>(null)
