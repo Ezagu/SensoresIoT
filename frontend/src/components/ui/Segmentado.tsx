@@ -6,7 +6,7 @@ export function Segmentado<T extends string>({
   bloqueada,
   onBloqueada,
 }: {
-  valor: T
+  valor: T | null
   opciones: { valor: T; etiqueta: string }[]
   onCambiar: (valor: T) => void
   etiqueta: string

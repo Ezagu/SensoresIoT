@@ -108,7 +108,7 @@ void setup() {
   // sensores lo comparten. La pausa le da tiempo al sensor a levantar antes
   // del primer handshake, que si no falla y el equipo queda colgado.
   Wire.begin(PIN_SDA, PIN_SCL);
-  delay(100);
+  delay(1000);
 
   if (!aht.begin(&Wire)) {
     Serial.println("[ERROR] AHT10 no detectado. Verifica las conexiones.");

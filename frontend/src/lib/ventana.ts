@@ -18,15 +18,18 @@ export function duracionMsDeRango(rango: RangoGrafico): number {
   return HORAS_POR_RANGO[rango] * 3600_000
 }
 
-/* Preset o rango de fechas explícito, con la misma resolución para ambos
-   casos. Sólo "En tiempo real" pollea (el resto se refresca a mano). */
+/* Preset, rango de "Máx" (desde el primer reporte del equipo) o rango de
+   fechas fijo (sólo lo produce el zoom del gráfico). Sólo "En tiempo real"
+   pollea (el resto se refresca a mano). */
 export type Ventana =
   | { tipo: 'preset'; rango: RangoGrafico }
+  | { tipo: 'maximo'; desde: Date }
   | { tipo: 'fechas'; desde: Date; hasta: Date }
 
 export function resolverVentana(v: Ventana): { desde: Date; hasta: Date } {
   if (v.tipo === 'fechas') return { desde: v.desde, hasta: v.hasta }
   const hasta = new Date()
+  if (v.tipo === 'maximo') return { desde: v.desde, hasta }
   const desde = new Date(hasta.getTime() - HORAS_POR_RANGO[v.rango] * 3600_000)
   return { desde, hasta }
 }
@@ -46,6 +49,9 @@ export function pollDeVentana(v: Ventana, intervaloSeg: number | undefined): num
 export function bordesDeVentana(ventana: Ventana, tic: number): { desdeMs: number; hastaMs: number } {
   if (ventana.tipo === 'fechas') {
     return { desdeMs: ventana.desde.getTime(), hastaMs: ventana.hasta.getTime() }
+  }
+  if (ventana.tipo === 'maximo') {
+    return { desdeMs: ventana.desde.getTime(), hastaMs: tic }
   }
   return { desdeMs: tic - duracionMsDeRango(ventana.rango), hastaMs: tic }
 }

@@ -14,7 +14,6 @@ import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } fro
 import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
 import { reglaDestacada } from '@/lib/alertas'
 import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
-import { AvisoRetencion } from './AvisoRetencion'
 import { BarraVentana } from './BarraVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { BloqueHistorial } from './BloqueHistorial'
@@ -119,17 +118,14 @@ export function DetalleSensor() {
         </p>
       )}
 
-      <AvisoRetencion desde={desde} retencionDias={retencionDias} />
-
       <BarraVentana
         ventana={ventana}
         onCambiar={elegir}
         retencionDias={retencionDias}
+        primeraConexion={dispositivo.first_connected_at}
         enVivo={enVivo}
         refrescar={polling.refrescar}
         refrescando={polling.refrescando}
-        etiquetaActualizar="Actualizar"
-        varianteActualizar="sutil"
         hayZoom={hayZoom}
         onRestablecer={restablecer}
       />

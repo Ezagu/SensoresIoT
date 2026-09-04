@@ -3,56 +3,46 @@ import { IconoActualizar } from '@/components/layout/iconos'
 import type { Ventana } from '@/lib/ventana'
 import { SelectorVentana } from './SelectorVentana'
 
-/* `titulo` envuelve con el encabezado "Lecturas", que sólo usa la pantalla
-   de dispositivo; sin él es sólo la fila de controles. */
 export function BarraVentana({
-  titulo,
   ventana,
   onCambiar,
   retencionDias,
+  primeraConexion,
   enVivo,
   refrescar,
   refrescando,
-  etiquetaActualizar,
-  varianteActualizar = 'fantasma',
   hayZoom,
   onRestablecer,
 }: {
-  titulo?: string
   ventana: Ventana
-  onCambiar: (v: Ventana) => void
   retencionDias: number | null
-  enVivo: boolean
-  refrescar: () => void
+  primeraConexion: string | null
   refrescando: boolean
-  etiquetaActualizar?: string
-  varianteActualizar?: 'fantasma' | 'sutil'
+  enVivo: boolean
   hayZoom: boolean
+  refrescar: () => void
+  onCambiar: (v: Ventana) => void
   onRestablecer: () => void
 }) {
-  const controles = (
+  return (
     <div className="flex flex-wrap items-end gap-2">
-      <SelectorVentana ventana={ventana} onCambiar={onCambiar} retencionDias={retencionDias} />
+      <SelectorVentana
+        ventana={ventana}
+        onCambiar={onCambiar}
+        retencionDias={retencionDias}
+        primeraConexion={primeraConexion}
+      />
       {!enVivo && (
-        <Boton variante={varianteActualizar} onClick={refrescar} disabled={refrescando}>
+        <Boton variante="fantasma" onClick={refrescar} disabled={refrescando}>
           <IconoActualizar className="size-3.5" />
-          {etiquetaActualizar}
+          Actualizar
         </Boton>
       )}
       {hayZoom && (
-        <Boton variante="sutil" onClick={onRestablecer}>
+        <Boton variante="fantasma" onClick={onRestablecer}>
           Restablecer zoom
         </Boton>
       )}
-    </div>
-  )
-
-  if (!titulo) return controles
-
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <h3 className="text-body font-medium text-text-muted">{titulo}</h3>
-      {controles}
     </div>
   )
 }

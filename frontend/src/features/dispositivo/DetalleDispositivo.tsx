@@ -10,7 +10,7 @@ import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/
 import { useAhora } from '@/lib/usarCarga'
 import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/lib/tiempo'
-import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
+import { bordesDeVentana, esTiempoReal, useVentanaConZoom } from '@/lib/ventana'
 import { ETIQUETA_ROL, intervaloEfectivo, nombreDeDispositivo, ultimoReporteEfectivo } from '@/lib/dispositivos'
 import { useDetalleDispositivo, useGraficosDeSensores } from './usarDetalleDispositivo'
 import type { SensorConDatos } from './cargarSensores'
@@ -18,7 +18,6 @@ import { BloqueSensor } from './BloqueSensor'
 import { BloqueAlertas } from './BloqueAlertas'
 import { BloqueExport } from './BloqueExport'
 import { BloqueIntervalo } from './BloqueIntervalo'
-import { AvisoRetencion } from './AvisoRetencion'
 import { BarraVentana } from './BarraVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 
@@ -87,7 +86,6 @@ export function DetalleDispositivo() {
   const estado = estadoDispositivo(ultimoReporte, intervaloSeg)
   // Todos los sensores del dispositivo comparten plan, así que cualquiera sirve
   const retencionDias = sensoresConDatos.find((s) => s.datos)?.datos?.retencion_dias ?? null
-  const { desde } = resolverVentana(ventana)
   // Ventana única para todas las tarjetas: zoomear en una mueve a todas por igual.
   const { desdeMs, hastaMs } = bordesDeVentana(ventana, hasta)
 
@@ -131,13 +129,13 @@ export function DetalleDispositivo() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Boton variante="fantasma" onClick={() => setIntervaloAbierto(true)}>
-            <IconoAjustes className="size-3.5" />
-            Intervalo
-          </Boton>
           <Boton variante="fantasma" onClick={() => setExportAbierto(true)}>
             <IconoExportar className="size-3.5" />
             Exportar
+          </Boton>
+          <Boton variante="fantasma" onClick={() => setIntervaloAbierto(true)}>
+            <IconoAjustes className="size-3.5" />
+            Ajustes
           </Boton>
         </div>
       </div>
@@ -148,13 +146,11 @@ export function DetalleDispositivo() {
         </p>
       )}
 
-      <AvisoRetencion desde={desde} retencionDias={retencionDias} />
-
       <BarraVentana
-        titulo="Lecturas"
         ventana={ventana}
         onCambiar={elegir}
         retencionDias={retencionDias}
+        primeraConexion={dispositivo.first_connected_at}
         enVivo={enVivo}
         refrescar={graficos.refrescar}
         refrescando={graficos.refrescando}
