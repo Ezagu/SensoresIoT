@@ -55,6 +55,15 @@ export function metaDeTipo(nombre: string): MetaSensor {
   return META[claveDeTipo(nombre)]
 }
 
+/* Tipos cuyas lecturas llegan de verdad al cero (oscuridad, silencio): ahí el
+   eje anclado en 0 informa. En temperatura, humedad, presión o CO₂ el cero es
+   arbitrario y anclar aplasta la serie contra el borde superior. */
+const DESDE_CERO: ClaveSensor[] = ['luz', 'ruido']
+
+export function anclaEnCero(nombre: string): boolean {
+  return DESDE_CERO.includes(claveDeTipo(nombre))
+}
+
 export function colorDeTipo(nombre: string): string {
   return metaDeTipo(nombre).color
 }

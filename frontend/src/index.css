@@ -15,9 +15,12 @@
   --color-border: #242a36;
   --color-border-strong: #333b4a;
 
+  /* Los tres escalones sostienen ~15:1 / ~7:1 / ~4.5:1 contra surface-2, que es
+     el fondo más claro sobre el que se apoyan. El más tenue también es texto
+     normal (metadatos, notas al pie), así que le aplica el 4.5:1 de AA. */
   --color-text: #e8ebf0;
-  --color-text-muted: #8d96a8;
-  --color-text-faint: #5c6577;
+  --color-text-muted: #9fa8ba;
+  --color-text-faint: #7c8597;
 
   /* accent es el tono claro para texto/íconos/foco; accent-strong el relleno
      sólido donde va texto blanco encima (el claro no llega a 4.5:1 con blanco). */
@@ -108,16 +111,19 @@
   --color-border-strong: #c9d1de;
 
   --color-text: #131720;
-  --color-text-muted: #5b6577;
-  --color-text-faint: #8a93a3;
+  --color-text-muted: #475163;
+  --color-text-faint: #656e7e;
 
   --color-accent: #2b5ce6;
   --color-accent-strong: #2b5ce6;
   --color-accent-ink: #ffffff;
 
-  --color-ok: #1b9c64;
-  --color-warn: #b57712;
-  --color-danger: #d53f37;
+  /* Más oscuros que su equivalente en el tema oscuro: acá el color va sobre su
+     propio -soft (Pill, Card tono="warn"), que sobre blanco casi no baja el
+     fondo, así que el 4.5:1 se mide contra ese compuesto y no contra surface. */
+  --color-ok: #007c44;
+  --color-warn: #9b5d00;
+  --color-danger: #c73129;
   --color-premium: #7c3aed;
 
   --color-accent-soft: color-mix(in oklab, var(--color-accent) 10%, transparent);

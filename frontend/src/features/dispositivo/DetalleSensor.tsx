@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
+import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
@@ -12,6 +13,7 @@ import { medida } from '@/lib/formato'
 import { estadoDispositivo, TIC_RELOJ_MS } from '@/lib/tiempo'
 import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
 import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
+import { anclaEnCero } from '@/lib/sensores'
 import { reglaDestacada } from '@/lib/alertas'
 import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
 import { BarraVentana } from './BarraVentana'
@@ -65,6 +67,7 @@ export function DetalleSensor() {
   const { dispositivo, sensor, alertas } = estatico.datos
   const { datos: datosGrafico, ultima } = polling.datos ?? { datos: null, ultima: null }
   const regla = reglaDestacada(alertas, sensor.id)
+  const disparada = regla?.estado === 'disparada'
   const { desde } = resolverVentana(ventana)
   // Borde derecho del gráfico: el tic compartido si la ventana sigue en vivo
   // (preset), o el límite fijo elegido si es un rango de fechas cerrado.
@@ -98,11 +101,21 @@ export function DetalleSensor() {
           style={{ background: sensor.color }}
         />
         <h2 className="font-display text-page-lg font-semibold text-text">{sensor.etiqueta}</h2>
+        {disparada && <Pill tono="danger">Alerta disparada</Pill>}
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="flex flex-col gap-0.5">
-          <span className={`num text-display font-semibold ${valorApagado ? 'text-text-muted' : 'text-text'}`}>
+          {/* Igual que en BloqueSensor: la lectura se renueva por polling y hay
+              que anunciarla, con el nombre del sensor adentro del anuncio. */}
+          <span
+            role="status"
+            aria-atomic="true"
+            className={`num text-display font-semibold ${
+              valorApagado ? 'text-text-muted' : disparada ? 'text-danger' : 'text-text'
+            }`}
+          >
+            <span className="sr-only">{sensor.etiqueta}: </span>
             {ultima ? medida(ultima.value, sensor.unidad) : '—'}
           </span>
           <span className="text-note text-text-faint">
@@ -141,6 +154,7 @@ export function DetalleSensor() {
               hastaMs={hastaGrilla}
               umbral={regla?.umbral}
               condicion={regla?.condicion}
+              desdeCero={anclaEnCero(sensor.tipo)}
               onZoom={zoomear}
               onRestablecer={restablecer}
             />

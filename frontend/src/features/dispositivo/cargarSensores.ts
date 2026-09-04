@@ -11,6 +11,9 @@ export type SensorConMeta = {
   etiqueta: string
   unidad: string
   color: string
+  /* Nombre del tipo tal cual lo trae el catálogo: lo consumen los helpers que
+     dependen de la magnitud medida, no de la etiqueta mostrada. */
+  tipo: string
 }
 
 /* `datos` es null sin lecturas en el rango o si el request puntual falló: un
@@ -39,6 +42,7 @@ export async function cargarSensoresConMeta(
         etiqueta: meta?.etiqueta ?? 'Sensor',
         unidad: meta?.unidad ?? '',
         color: meta?.color ?? 'var(--color-text-muted)',
+        tipo: meta?.tipo ?? 'Sensor',
       }
     }),
     alertas,

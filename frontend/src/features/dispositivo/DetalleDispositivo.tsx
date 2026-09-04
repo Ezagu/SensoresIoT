@@ -86,6 +86,7 @@ export function DetalleDispositivo() {
   const estado = estadoDispositivo(ultimoReporte, intervaloSeg)
   // Todos los sensores del dispositivo comparten plan, así que cualquiera sirve
   const retencionDias = sensoresConDatos.find((s) => s.datos)?.datos?.retencion_dias ?? null
+  const disparadas = alertas.filter((a) => a.activa && a.estado === 'disparada').length
   // Ventana única para todas las tarjetas: zoomear en una mueve a todas por igual.
   const { desdeMs, hastaMs } = bordesDeVentana(ventana, hasta)
 
@@ -101,11 +102,22 @@ export function DetalleDispositivo() {
             <h2 className="font-display text-page-lg font-semibold text-text">
               {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
             </h2>
-            {dispositivo.activo ? (
-              <Pill tono={TONO_POR_ESTADO[estado]}>{ETIQUETA_ESTADO[estado]}</Pill>
-            ) : (
-              <Pill tono="faint">Desactivado</Pill>
-            )}
+            {/* Conectividad y alertas son dos preguntas distintas: un equipo
+                puede estar en línea justamente porque está reportando el valor
+                que disparó la regla. role="status" porque las dos cambian solas
+                mientras la página está abierta. */}
+            <span role="status" aria-atomic="true" className="flex flex-wrap items-center gap-2.5">
+              {dispositivo.activo ? (
+                <Pill tono={TONO_POR_ESTADO[estado]}>{ETIQUETA_ESTADO[estado]}</Pill>
+              ) : (
+                <Pill tono="faint">Desactivado</Pill>
+              )}
+              {disparadas > 0 && (
+                <Pill tono="danger">
+                  {disparadas === 1 ? '1 alerta disparada' : `${disparadas} alertas disparadas`}
+                </Pill>
+              )}
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-label text-text-faint">
             {dispositivo.ubicacion && (

@@ -28,16 +28,64 @@ type Props = {
   hastaMs: number
   umbral?: number | null
   condicion?: CondicionAlerta | null
+  /* Sólo para magnitudes donde el cero es una lectura real (ver
+     lib/sensores.ts:anclaEnCero). */
+  desdeCero?: boolean
   onZoom?: (desdeMs: number, hastaMs: number) => void
   onRestablecer?: () => void
 }
 
 const DIA_MS = 86_400_000
+const AIRE = 0.12
 
 function formatterDeEje(duracionMs: number) {
   if (duracionMs < 2 * DIA_MS) return hora
   if (duracionMs < 365 * DIA_MS) return fechaCorta
   return fechaConAnio
+}
+
+/* Bordes redondeados al múltiplo de un paso "lindo" (1, 2 o 5 por década).
+   Sin esto los bordes arrastran la basura decimal del aire (19,7806332) y
+   Recharts reparte los ticks entre esos valores: números que ni caben en el
+   ancho del eje ni significan nada. */
+function bordesLindos(min: number, max: number, desdeCero: boolean): [number, number] {
+  const objetivo = (max - min) / 4
+  const magnitud = Math.pow(10, Math.floor(Math.log10(objetivo)))
+  const normal = objetivo / magnitud
+  const paso = (normal <= 1 ? 1 : normal <= 2 ? 2 : normal <= 5 ? 5 : 10) * magnitud
+  const decimales = Math.max(0, -Math.floor(Math.log10(paso)))
+  const ajustar = (v: number) => Number(v.toFixed(decimales))
+  return [desdeCero ? 0 : ajustar(Math.floor(min / paso) * paso), ajustar(Math.ceil(max / paso) * paso)]
+}
+
+/* El default de Recharts es [0, dataMax], que en una serie de 19,9 a 20,4 °C
+   deja el trazo aplastado contra el borde de arriba y el resto del cuadro
+   relleno. El dominio sale de la serie con aire proporcional, y el umbral de la
+   regla entra al cálculo para que su línea nunca quede fuera de cuadro.
+   Devuelve undefined sin datos numéricos: ahí manda el default. */
+function dominioY(
+  puntos: PuntoGrilla[],
+  umbral: number | null | undefined,
+  desdeCero: boolean,
+): [number, number] | undefined {
+  let min = Infinity
+  let max = -Infinity
+  for (const punto of puntos) {
+    if (punto.valor === null) continue
+    if (punto.valor < min) min = punto.valor
+    if (punto.valor > max) max = punto.valor
+  }
+  if (min === Infinity) return undefined
+
+  if (umbral !== null && umbral !== undefined) {
+    min = Math.min(min, umbral)
+    max = Math.max(max, umbral)
+  }
+
+  // Serie plana: sin un piso de aire el dominio queda de alto cero y el eje
+  // colapsa en un solo tick.
+  const aire = (max - min) * AIRE || Math.abs(max) * AIRE || 1
+  return bordesLindos(min - aire, max + aire, desdeCero)
 }
 
 /* Wrapper de Recharts: nada de la app importa la librería directo.
@@ -51,11 +99,13 @@ export function Grafico({
   hastaMs,
   umbral,
   condicion,
+  desdeCero = false,
   onZoom,
   onRestablecer,
 }: Props) {
   const uid = useId().replace(/:/g, '')
   const formatearTick = formatterDeEje(hastaMs - desdeMs)
+  const dominio = dominioY(puntos, umbral, desdeCero)
   const { contenedorRef, arrastre, manejadores } = useZoomGrafico({ desdeMs, hastaMs, onZoom, onRestablecer })
 
   // Una lectura sin vecino de ningún lado (rodeada de huecos, o sola en la
@@ -92,6 +142,7 @@ export function Grafico({
             minTickGap={40}
           />
           <YAxis
+            domain={dominio}
             stroke="var(--color-text-faint)"
             tick={{ fontSize: 11 }}
             tickLine={false}

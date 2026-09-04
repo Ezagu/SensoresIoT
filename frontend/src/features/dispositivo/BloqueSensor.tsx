@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
+import { Pill } from '@/components/ui/Pill'
 import { Vacio } from '@/components/ui/Vacio'
 import { ResumenStats } from '@/components/ui/ResumenStats'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
@@ -7,6 +8,7 @@ import { Grafico } from '@/components/graficos/Grafico'
 import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
 import { estadoDispositivo } from '@/lib/tiempo'
+import { anclaEnCero } from '@/lib/sensores'
 import { reglaDestacada } from '@/lib/alertas'
 import type { SensorConDatos } from './cargarSensores'
 import type { AlertaConNotificar } from '@/lib/tipos'
@@ -34,6 +36,7 @@ export function BloqueSensor({
 }) {
   const { datos } = sensor
   const regla = reglaDestacada(alertas, sensor.id)
+  const disparada = regla?.estado === 'disparada'
   const grilla = datos ? serieDeGrafico(datos) : []
   const hayDatos = datos !== null && datos.puntos.length > 0
   const resumen = datos?.resumen
@@ -54,13 +57,27 @@ export function BloqueSensor({
         >
           {sensor.etiqueta}
         </Link>
+        {/* El panel ya pinta este sensor en rojo cuando la regla está disparada:
+            sin esto el detalle contradice a la vista de la que se viene. */}
+        {disparada && <Pill tono="danger">Alerta disparada</Pill>}
       </div>
 
       {/* Sólo en vivo: en un rango histórico el valor "actual" no aplica. */}
       {enVivo && ultimo && (
         <div className="flex flex-col gap-0.5">
           <div className='flex gap-3 justify-between'>
-            <span className={`num text-display font-semibold ${apagado ? 'text-text-muted' : 'text-text'}`}>
+            {/* role="status": la lectura se renueva sola por polling, sin ninguna
+                acción del usuario, así que un lector de pantalla no se entera si
+                no se la anuncia. El nombre del sensor va adentro para que el
+                anuncio diga de cuál habla. */}
+            <span
+              role="status"
+              aria-atomic="true"
+              className={`num text-display font-semibold ${
+                apagado ? 'text-text-muted' : disparada ? 'text-danger' : 'text-text'
+              }`}
+            >
+              <span className="sr-only">{sensor.etiqueta}: </span>
               {medida(ultimo.promedio, sensor.unidad)}
             </span>
             {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
@@ -83,6 +100,7 @@ export function BloqueSensor({
             hastaMs={hastaMs}
             umbral={regla?.umbral}
             condicion={regla?.condicion}
+            desdeCero={anclaEnCero(sensor.tipo)}
             onZoom={onZoom}
             onRestablecer={onRestablecer}
           />
