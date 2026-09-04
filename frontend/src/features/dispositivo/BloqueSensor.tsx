@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Vacio } from '@/components/ui/Vacio'
 import { ResumenStats } from '@/components/ui/ResumenStats'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Grafico } from '@/components/graficos/Grafico'
 import { serieDeGrafico } from '@/lib/series'
+import { medida } from '@/lib/formato'
+import { estadoDispositivo } from '@/lib/tiempo'
 import { reglaDestacada } from '@/lib/alertas'
 import type { SensorConDatos } from './cargarSensores'
 import type { AlertaConNotificar } from '@/lib/tipos'
@@ -14,6 +17,8 @@ export function BloqueSensor({
   alertas,
   desdeMs,
   hastaMs,
+  enVivo,
+  intervaloSeg,
   onZoom,
   onRestablecer,
 }: {
@@ -22,6 +27,8 @@ export function BloqueSensor({
   alertas: AlertaConNotificar[]
   desdeMs: number
   hastaMs: number
+  enVivo: boolean
+  intervaloSeg: number
   onZoom?: (desdeMs: number, hastaMs: number) => void
   onRestablecer?: () => void
 }) {
@@ -30,26 +37,41 @@ export function BloqueSensor({
   const grilla = datos ? serieDeGrafico(datos) : []
   const hayDatos = datos !== null && datos.puntos.length > 0
   const resumen = datos?.resumen
+  const ultimo = hayDatos ? datos.puntos[datos.puntos.length - 1] : null
+  const apagado = ultimo ? estadoDispositivo(ultimo.bucket, intervaloSeg, hastaMs) !== 'en-linea' : true
 
   return (
     <Card className="flex flex-col gap-3 p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <div className="flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="size-2.5 shrink-0 rounded-full"
-            style={{ background: sensor.color }}
-          />
-          <Link
-            to={`/dispositivos/${dispositivoId}/sensores/${sensor.id}`}
-            className="text-body-lg font-semibold text-text hover:text-accent"
-          >
-            {sensor.etiqueta}
-          </Link>
-        </div>
-        {/* Con la tarjeta vacía, "prom — mín — máx —" es sólo ruido */}
-        {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
+      <div className="flex items-center gap-2">
+        <span
+          aria-hidden="true"
+          className="size-2.5 shrink-0 rounded-full"
+          style={{ background: sensor.color }}
+        />
+        <Link
+          to={`/dispositivos/${dispositivoId}/sensores/${sensor.id}`}
+          className="text-body-lg font-semibold text-text hover:text-accent"
+        >
+          {sensor.etiqueta}
+        </Link>
       </div>
+
+      {/* Sólo en vivo: en un rango histórico el valor "actual" no aplica. */}
+      {enVivo && ultimo && (
+        <div className="flex flex-col gap-0.5">
+          <div className='flex gap-3 justify-between'>
+            <span className={`num text-display font-semibold ${apagado ? 'text-text-muted' : 'text-text'}`}>
+              {medida(ultimo.promedio, sensor.unidad)}
+            </span>
+            {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
+          </div>
+          <span className="text-note text-text-faint">
+            Reportó <HaceCuanto iso={ultimo.bucket} />
+          </span>
+        </div>
+      )}
+
+      {hayDatos && resumen && !enVivo && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
 
       <div className="h-56">
         {hayDatos ? (

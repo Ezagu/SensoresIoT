@@ -109,7 +109,7 @@ export function DetalleSensor() {
             {ultima ? <>Reportó <HaceCuanto iso={ultima.time} /></> : 'Nunca reportó'}
           </span>
         </div>
-        {hayResumen && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" gap="gap-4" />}
+        {hayResumen && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" />}
       </div>
 
       {estatico.error && (

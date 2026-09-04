@@ -115,8 +115,8 @@ export function DetalleDispositivo() {
               </span>
             )}
             <span>
-              {dispositivo.last_seen_at ? (
-                <>Reportó <HaceCuanto iso={dispositivo.last_seen_at} /></>
+              {ultimoReporte ? (
+                <>Reportó <HaceCuanto iso={ultimoReporte} /></>
               ) : (
                 'Nunca reportó'
               )}
@@ -172,6 +172,8 @@ export function DetalleDispositivo() {
               alertas={alertas}
               desdeMs={desdeMs}
               hastaMs={hastaMs}
+              enVivo={enVivo}
+              intervaloSeg={intervaloSeg}
               onZoom={zoomear}
               onRestablecer={restablecer}
             />

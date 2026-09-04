@@ -1,8 +1,8 @@
 type Tamano = 'sm' | 'md'
 
-const CLASES: Record<Tamano, { etiqueta: string; valor: string }> = {
-  sm: { etiqueta: 'text-note-lg text-text-faint', valor: 'text-note-lg font-medium text-text' },
-  md: { etiqueta: 'text-note text-text-faint', valor: 'text-heading-lg font-semibold text-text' },
+const CLASES: Record<Tamano, { padding: string; etiqueta: string; valor: string }> = {
+  sm: { padding: 'px-2.5 py-1.5', etiqueta: 'text-tag', valor: 'text-heading-lg' },
+  md: { padding: 'px-3.5 py-2', etiqueta: 'text-note', valor: 'text-metric' },
 }
 
 export function Stat({
@@ -16,9 +16,9 @@ export function Stat({
 }) {
   const clases = CLASES[tamano]
   return (
-    <span className="flex items-baseline gap-1">
-      <span className={clases.etiqueta}>{etiqueta}</span>
-      <span className={`num ${clases.valor}`}>{valor}</span>
+    <span className={`flex flex-1 flex-col gap-0.5 ${clases.padding}`}>
+      <span className={`uppercase tracking-wide text-text-faint ${clases.etiqueta}`}>{etiqueta}</span>
+      <span className={`num font-semibold text-text leading-tight ${clases.valor}`}>{valor}</span>
     </span>
   )
 }
