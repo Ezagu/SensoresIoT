@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { IconoAlerta, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
+import { IconoAlertaSonando, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
 import { medida } from '@/lib/formato'
 import { ETIQUETA_ESTADO, estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
 import { nombreDeDispositivo } from '@/lib/dispositivos'
@@ -32,7 +32,7 @@ function Fila({ sensor, desactualizado }: { sensor: SensorPanel; desactualizado:
           style={desactualizado ? undefined : { background: sensor.color }}
         />
         <span className="truncate">{sensor.etiqueta}</span>
-        {sensor.disparada && <IconoAlerta className="size-3.25 shrink-0 text-danger" />}
+        {sensor.disparada && <IconoAlertaSonando className="size-3.25 shrink-0 text-danger" />}
       </span>
       <span className={`num shrink-0 text-heading-lg font-semibold ${tonoValor}`}>
         {sensor.ultimo === null ? '—' : medida(sensor.ultimo, sensor.unidad)}

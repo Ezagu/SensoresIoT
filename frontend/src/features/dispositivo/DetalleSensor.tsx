@@ -7,7 +7,6 @@ import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { ResumenStats } from '@/components/ui/ResumenStats'
 import { Grafico } from '@/components/graficos/Grafico'
 import { useAhora } from '@/lib/usarCarga'
-import { useSesion } from '@/lib/auth'
 import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
 import { estadoDispositivo, TIC_RELOJ_MS } from '@/lib/tiempo'
@@ -15,8 +14,9 @@ import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } fro
 import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
 import { anclaEnCero } from '@/lib/sensores'
 import { limiteDeVentana } from '@/lib/retencion'
-import { reglaDestacada } from '@/lib/alertas'
+import { reglaDestacada, umbralesDeSensor } from '@/lib/alertas'
 import { useTituloPagina } from '@/lib/titulo'
+import { useAlertasDispositivo } from './usarDetalleDispositivo'
 import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
 import { BarraVentana } from './BarraVentana'
 import { AvisoVentana } from './AvisoVentana'
@@ -35,7 +35,6 @@ function EsqueletoSensor() {
 
 export function DetalleSensor() {
   const { id, sensorId } = useParams<{ id: string; sensorId: string }>()
-  const { plan } = useSesion()
   const { ventana, elegir, zoomear, restablecer, hayZoom } = useVentanaConZoom({
     tipo: 'preset',
     rango: 'tiempo-real',
@@ -45,6 +44,7 @@ export function DetalleSensor() {
   const estatico = useDetalleSensorEstatico(id ?? '', sensorId ?? '')
   const polling = useDatosSensor(sensorId ?? '', ventana)
   const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_RELOJ_MS)
+  const { alertas: alertasDelEquipo } = useAlertasDispositivo(id ?? '', polling.intervaloSeg)
 
   useTituloPagina(
     estatico.datos
@@ -73,11 +73,13 @@ export function DetalleSensor() {
 
   if (!estatico.datos) return null
 
-  const { dispositivo, sensor, alertas } = estatico.datos
+  const { dispositivo, sensor } = estatico.datos
+  const alertas = alertasDelEquipo.filter((a) => a.sensor_id === sensor.id)
   const datosGrafico = polling.datos?.datos ?? null
   const ultima = polling.datos?.ultima ?? null
   const regla = reglaDestacada(alertas, sensor.id)
   const disparada = regla?.estado === 'disparada'
+  const umbrales = umbralesDeSensor(alertas, sensor.id)
   const { desde } = resolverVentana(ventana)
   // Borde derecho del gráfico: el tic compartido si la ventana sigue en vivo
   // (preset), o el límite fijo elegido si es un rango de fechas cerrado.
@@ -91,8 +93,8 @@ export function DetalleSensor() {
   const retencionDias = datosGrafico?.retencion_dias ?? null
   const limite = limiteDeVentana(datosGrafico, dispositivo.first_connected_at, desde.getTime())
 
-  const pisoPlan = plan?.plan.intervalo_minimo_seg
-  const intervaloSeg = polling.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
+  const intervaloSeg =
+    polling.intervaloSeg ?? intervaloEfectivo(dispositivo, dispositivo.limites.intervalo_minimo_seg)
   const estado = ultima ? estadoDispositivo(ultima.time, intervaloSeg, tic) : 'nunca'
   const valorApagado = estado !== 'en-linea'
 
@@ -172,8 +174,7 @@ export function DetalleSensor() {
               desdeMs={limite.desdeMs}
               hastaMs={hastaGrilla}
               corteDePlanMs={limite.corteDePlanMs}
-              umbral={regla?.umbral}
-              condicion={regla?.condicion}
+              umbrales={umbrales}
               desdeCero={anclaEnCero(sensor.tipo)}
               onZoom={zoomear}
               onRestablecer={restablecer}

@@ -5,7 +5,7 @@ import { Boton } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { IconoAlerta, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
+import { IconoAlertaSonando, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
 import { useDispositivos, type DispositivoPanel } from './usarPanel'
 import { useAhora } from '@/lib/usarCarga'
 import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/lib/tiempo'
@@ -119,8 +119,8 @@ export function Panel() {
       <section aria-label="Resumen">
         <div className="grid grid-cols-3 gap-2 md:gap-3">
           <Kpi
-            icono={<IconoAlerta className="size-3.5" />}
-            etiqueta="Alertas activas"
+            icono={<IconoAlertaSonando className="size-3.5" />}
+            etiqueta="Alertas disparadas"
             valor={cargando ? '—' : resumen.alertas}
             tono={resumen.alertas > 0 ? 'danger' : undefined}
           />

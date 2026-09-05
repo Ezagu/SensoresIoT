@@ -1,10 +1,10 @@
-import { Card } from '@/components/ui/Card'
-import { Vacio } from '@/components/ui/Vacio'
+import { Pendiente } from '@/components/ui/Pendiente'
 
 export function Alertas() {
   return (
-    <Card>
-      <Vacio titulo="Alertas" detalle="Reglas por dispositivo y el log global de eventos." />
-    </Card>
+    <Pendiente
+      titulo="Alertas de todos tus equipos"
+      detalle="El log global de eventos y las reglas de todos los dispositivos juntos. Por ahora las reglas se administran desde la pantalla de cada dispositivo."
+    />
   )
 }

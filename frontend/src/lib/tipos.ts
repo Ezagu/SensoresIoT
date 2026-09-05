@@ -74,6 +74,20 @@ export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }
 export type DispositivoDetalle = Dispositivo & {
   rol: RolDispositivo | 'admin'
   owner_nombre: string | null
+  limites: LimitesDispositivo
+}
+
+/* Límites que rigen sobre el dispositivo: salen del plan de su DUEÑO. No
+   confundir con `useSesion().plan`, que es el plan de la cuenta propia y
+   gobierna otras cosas (compartir los equipos de uno). Un free con acceso
+   compartido a un equipo premium ve acá lo mismo que ve el dueño, que es
+   exactamente lo que el backend le va a aceptar. */
+export type LimitesDispositivo = {
+  puede_alertas: boolean
+  /* null = sin tope. Se cuenta por dispositivo, no por cuenta ni por sensor. */
+  max_alertas: number | null
+  /* Piso, no valor fijo: el dueño puede pedir un intervalo más lento. */
+  intervalo_minimo_seg: number
 }
 
 /* PATCH /dispositivos/{id}/intervalo. No es un DispositivoOut: el dispositivo

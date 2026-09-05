@@ -8,13 +8,23 @@ import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
 import { useAhora } from '@/lib/usarCarga'
-import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/lib/tiempo'
 import { bordesDeVentana, esTiempoReal, useVentanaConZoom } from '@/lib/ventana'
-import { ETIQUETA_ROL, intervaloEfectivo, nombreDeDispositivo, ultimoReporteEfectivo } from '@/lib/dispositivos'
+import {
+  ETIQUETA_ROL,
+  intervaloEfectivo,
+  nombreDeDispositivo,
+  puedeEditarAlertas,
+  ultimoReporteEfectivo,
+} from '@/lib/dispositivos'
 import { limiteDeVentana } from '@/lib/retencion'
 import { useTituloPagina } from '@/lib/titulo'
-import { useDetalleDispositivo, useGraficosDeSensores } from './usarDetalleDispositivo'
+import {
+  useAlertasDispositivo,
+  useDetalleDispositivo,
+  useGraficosDeSensores,
+  useUltimoReporte,
+} from './usarDetalleDispositivo'
 import type { SensorConDatos } from './cargarSensores'
 import { BloqueSensor } from './BloqueSensor'
 import { BloqueAlertas } from './BloqueAlertas'
@@ -24,13 +34,17 @@ import { BarraVentana } from './BarraVentana'
 import { AvisoVentana } from './AvisoVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 
-function EsqueletoDetalle() {
+/* Tantos huecos como sensores tenga el equipo. Dos fijos garantizaban un salto
+   de layout en todo equipo que no tuviera exactamente dos; el 2 acá es sólo el
+   default de la primera carga, cuando todavía no se sabe cuántos son. */
+function EsqueletoDetalle({ sensores = 2 }: { sensores?: number }) {
   return (
     <div className="flex flex-col gap-4">
       <Skeleton className="h-6 w-56" />
       <div className="grid gap-3 md:grid-cols-2">
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
+        {Array.from({ length: Math.max(1, sensores) }, (_, i) => (
+          <Skeleton key={i} className="h-64 w-full" />
+        ))}
       </div>
     </div>
   )
@@ -38,7 +52,6 @@ function EsqueletoDetalle() {
 
 export function DetalleDispositivo() {
   const { id } = useParams<{ id: string }>()
-  const { plan } = useSesion()
   const { ventana, elegir, zoomear, restablecer, hayZoom } = useVentanaConZoom({
     tipo: 'preset',
     rango: 'tiempo-real',
@@ -49,6 +62,8 @@ export function DetalleDispositivo() {
   const { datos, cargando, error, errorCrudo, refrescar } = useDetalleDispositivo(id ?? '')
   const sensoresBase = datos?.sensores ?? []
   const graficos = useGraficosDeSensores(sensoresBase, ventana)
+  const lastSeenAt = useUltimoReporte(id ?? '', graficos.intervaloSeg)
+  const { alertas, refrescar: refrescarAlertas } = useAlertasDispositivo(id ?? '', graficos.intervaloSeg)
 
   const enVivo = esTiempoReal(ventana)
   const hasta = useAhora(enVivo && graficos.intervaloSeg ? graficos.intervaloSeg * 1000 : TIC_RELOJ_MS)
@@ -61,7 +76,7 @@ export function DetalleDispositivo() {
   // esto, un instante entre "cargó el dispositivo" y "cargó el primer gráfico"
   // mostraría cada tarjeta como "Sin lecturas" en vez de un esqueleto.
   const cargandoGrilla = sensoresBase.length > 0 && graficos.porSensor.size === 0
-  if (cargando || cargandoGrilla) return <EsqueletoDetalle />
+  if (cargando || cargandoGrilla) return <EsqueletoDetalle sensores={sensoresBase.length || undefined} />
 
   if (error && !datos) {
     return (
@@ -80,20 +95,23 @@ export function DetalleDispositivo() {
 
   if (!datos) return null
 
-  const { dispositivo, sensores, alertas } = datos
+  const { dispositivo, sensores } = datos
   const sensoresConDatos: SensorConDatos[] = sensores.map((s) => ({
     ...s,
     datos: graficos.porSensor.get(s.id) ?? null,
   }))
-  const pisoPlan = plan?.plan.intervalo_minimo_seg
+  // Del plan del dueño y no del propio: son los límites de ESTE equipo.
+  const { puede_alertas: puedeAlertas, max_alertas: maxAlertas, intervalo_minimo_seg: pisoPlan } =
+    dispositivo.limites
   const intervaloSeg = graficos.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
-  const ultimoReporte = ultimoReporteEfectivo(dispositivo, sensoresConDatos)
-  const estado = estadoDispositivo(ultimoReporte, intervaloSeg)
+  const ultimoReporte = ultimoReporteEfectivo(lastSeenAt ?? dispositivo.last_seen_at, sensoresConDatos)
+  const estado = estadoDispositivo(ultimoReporte, intervaloSeg, hasta)
   // Todos los sensores del dispositivo comparten plan y ventana pedida, así que
   // el primero que traiga datos contesta por todos (recorte y retención).
   const graficoRef = sensoresConDatos.find((s) => s.datos)?.datos ?? null
   const retencionDias = graficoRef?.retencion_dias ?? null
   const disparadas = alertas.filter((a) => a.activa && a.estado === 'disparada').length
+  const puedeEditar = puedeEditarAlertas(dispositivo.rol)
   // Ventana única para todas las tarjetas: zoomear en una mueve a todas por igual.
   const { desdeMs: desdePedidoMs, hastaMs } = bordesDeVentana(ventana, hasta)
   const limite = limiteDeVentana(graficoRef, dispositivo.first_connected_at, desdePedidoMs)
@@ -213,9 +231,10 @@ export function DetalleDispositivo() {
       <BloqueAlertas
         sensores={sensores}
         alertas={alertas}
-        puedeAlertas={plan?.plan.puede_alertas ?? false}
-        maxAlertas={plan?.plan.max_alertas ?? null}
-        onCambio={refrescar}
+        puedeAlertas={puedeAlertas}
+        puedeEditar={puedeEditar}
+        maxAlertas={maxAlertas}
+        onCambio={refrescarAlertas}
       />
 
       {/* Montados sólo mientras están abiertos: los dos siembran estado de sus

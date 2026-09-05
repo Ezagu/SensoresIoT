@@ -1,10 +1,10 @@
-import { listarAlertas, listarSensores } from '@/lib/consultas'
+import { listarSensores } from '@/lib/consultas'
 import { etiquetarSensores } from '@/lib/sensores'
-import type { AlertaConNotificar, DatosGrafico, TipoSensor } from '@/lib/tipos'
+import type { DatosGrafico, TipoSensor } from '@/lib/tipos'
 
-/* Sensor activo con su metadata resuelta (etiqueta/unidad/color por tipo),
-   sin lecturas: es la parte estática del detalle (no pollea) y la que
-   consumen BloqueAlertas / BloqueSensor antes de cruzarla con el gráfico. */
+/* Sensor activo con su metadata resuelta (etiqueta/unidad/color por tipo), sin
+   lecturas: es la parte estática del detalle (no pollea) y la que consumen
+   BloqueAlertas / BloqueSensor antes de cruzarla con el gráfico. */
 export type SensorConMeta = {
   id: string
   tipoSensorId: number
@@ -20,31 +20,26 @@ export type SensorConMeta = {
    sensor caído no tira abajo el resto del dispositivo. */
 export type SensorConDatos = SensorConMeta & { datos: DatosGrafico | null }
 
+/* Las alertas no vienen acá: su estado cambia solo mientras la pantalla está
+   abierta y necesita su propio poll (ver useAlertasDispositivo). */
 export async function cargarSensoresConMeta(
   dispositivoId: string,
   tipos: TipoSensor[],
   signal: AbortSignal,
-): Promise<{ sensores: SensorConMeta[]; alertas: AlertaConNotificar[] }> {
-  const [sensores, alertas] = await Promise.all([
-    listarSensores(dispositivoId, signal),
-    listarAlertas(dispositivoId, signal),
-  ])
-
+): Promise<SensorConMeta[]> {
+  const sensores = await listarSensores(dispositivoId, signal)
   const activos = sensores.filter((s) => s.activo)
   const etiquetas = etiquetarSensores(activos, tipos)
 
-  return {
-    sensores: activos.map((sensor) => {
-      const meta = etiquetas.get(sensor.id)
-      return {
-        id: sensor.id,
-        tipoSensorId: sensor.tipo_sensor_id,
-        etiqueta: meta?.etiqueta ?? 'Sensor',
-        unidad: meta?.unidad ?? '',
-        color: meta?.color ?? 'var(--color-text-muted)',
-        tipo: meta?.tipo ?? 'Sensor',
-      }
-    }),
-    alertas,
-  }
+  return activos.map((sensor) => {
+    const meta = etiquetas.get(sensor.id)
+    return {
+      id: sensor.id,
+      tipoSensorId: sensor.tipo_sensor_id,
+      etiqueta: meta?.etiqueta ?? 'Sensor',
+      unidad: meta?.unidad ?? '',
+      color: meta?.color ?? 'var(--color-text-muted)',
+      tipo: meta?.tipo ?? 'Sensor',
+    }
+  })
 }

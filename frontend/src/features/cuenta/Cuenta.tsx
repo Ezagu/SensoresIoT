@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/Card'
-import { Vacio } from '@/components/ui/Vacio'
+import { Pendiente } from '@/components/ui/Pendiente'
 import { useSesion } from '@/lib/auth'
 
 export function Cuenta() {
@@ -17,9 +17,7 @@ export function Cuenta() {
         )}
       </Card>
 
-      <Card>
-        <Vacio titulo="Perfil" detalle="La edición de la cuenta se implementa más adelante." />
-      </Card>
+      <Pendiente titulo="Editar perfil" detalle="Cambiar nombre, mail y contraseña desde acá." />
     </div>
   )
 }

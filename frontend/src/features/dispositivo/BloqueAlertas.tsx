@@ -16,12 +16,16 @@ export function BloqueAlertas({
   sensores,
   alertas,
   puedeAlertas,
+  puedeEditar,
   maxAlertas,
   onCambio,
 }: {
   sensores: SensorConMeta[]
   alertas: AlertaConNotificar[]
   puedeAlertas: boolean
+  /* Rol de edición sobre el equipo. Un viewer ve las reglas y elige si quiere
+     sus mails, pero no las crea, edita ni borra. */
+  puedeEditar: boolean
   maxAlertas: number | null
   onCambio: () => void
 }) {
@@ -42,7 +46,7 @@ export function BloqueAlertas({
     <Card className="flex flex-col gap-3 p-4">
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-heading font-semibold">Alertas</h2>
-        {puedeAlertas ? (
+        {puedeAlertas && puedeEditar ? (
           <Boton
             variante="sutil"
             onClick={() => setCreando(true)}
@@ -68,7 +72,11 @@ export function BloqueAlertas({
       ) : alertas.length === 0 ? (
         <Vacio
           titulo="Sin alertas configuradas"
-          detalle="Creá una regla para que te avisemos cuando un sensor cruce un umbral."
+          detalle={
+            puedeEditar
+              ? 'Creá una regla para que te avisemos cuando un sensor cruce un umbral.'
+              : 'Tu rol en este equipo es de solo lectura: las reglas las crea quien lo administra.'
+          }
         />
       ) : (
         <div className="flex flex-col divide-y divide-border">
@@ -90,6 +98,7 @@ export function BloqueAlertas({
                       key={alerta.id}
                       alerta={alerta}
                       unidad={unidadPorSensor.get(alerta.sensor_id) ?? ''}
+                      puedeEditar={puedeEditar}
                       onEditar={() => setEditando(alerta)}
                       onCambio={onCambio}
                     />

@@ -9,7 +9,7 @@ import { serieDeGrafico } from '@/lib/series'
 import { medida } from '@/lib/formato'
 import { estadoDispositivo } from '@/lib/tiempo'
 import { anclaEnCero } from '@/lib/sensores'
-import { reglaDestacada } from '@/lib/alertas'
+import { reglaDestacada, umbralesDeSensor } from '@/lib/alertas'
 import type { SensorConDatos } from './cargarSensores'
 import type { AlertaConNotificar } from '@/lib/tipos'
 
@@ -44,6 +44,7 @@ export function BloqueSensor({
   const { datos } = sensor
   const regla = reglaDestacada(alertas, sensor.id)
   const disparada = regla?.estado === 'disparada'
+  const umbrales = umbralesDeSensor(alertas, sensor.id)
   const grilla = datos ? serieDeGrafico(datos) : []
   const hayDatos = datos !== null && datos.puntos.length > 0
   const resumen = datos?.resumen
@@ -107,8 +108,7 @@ export function BloqueSensor({
             desdeMs={desdeMs}
             hastaMs={hastaMs}
             corteDePlanMs={corteDePlanMs}
-            umbral={regla?.umbral}
-            condicion={regla?.condicion}
+            umbrales={umbrales}
             desdeCero={anclaEnCero(sensor.tipo)}
             onZoom={onZoom}
             onRestablecer={onRestablecer}

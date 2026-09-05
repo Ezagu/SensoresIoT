@@ -9,6 +9,13 @@ const fmtHora = new Intl.DateTimeFormat('es-AR', {
   hourCycle: 'h23',
 })
 
+const fmtHoraSeg = new Intl.DateTimeFormat('es-AR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
 export function haceCuanto(iso: string | null, ahora: number = Date.now()): string {
   if (!iso) return 'nunca'
   const seg = Math.round((ahora - new Date(iso).getTime()) / 1000)
@@ -37,6 +44,14 @@ export function fechaHora(iso: string): string {
 export function fechaHoraMs(ms: number): string {
   const d = new Date(ms)
   return `${fmtFecha.format(d)} ${fmtHora.format(d)}`
+}
+
+/* Con segundos, para listas de lecturas crudas: estos equipos muestrean cada
+   15-30 s, así que al minuto dos filas seguidas quedan con la misma fecha y se
+   leen como una fila duplicada. */
+export function fechaHoraSegundos(iso: string): string {
+  const d = new Date(iso)
+  return `${fmtFecha.format(d)} ${fmtHoraSeg.format(d)}`
 }
 
 /* Sólo la hora, para el eje X del gráfico en el rango de 24 h (la fecha ahí es
@@ -85,7 +100,9 @@ export function estadoDispositivo(
 }
 
 export const ETIQUETA_ESTADO: Record<EstadoDispositivo, string> = {
-  nunca: 'Nunca conectado',
+  // Misma palabra que el resto de la app ("Reportó hace X", "Sin reportar"):
+  // "conectado" y "reportó" describían el mismo hecho a centímetros de distancia.
+  nunca: 'Nunca reportó',
   'en-linea': 'En línea',
   retraso: 'Con retraso',
   'sin-reportar': 'Sin reportar',

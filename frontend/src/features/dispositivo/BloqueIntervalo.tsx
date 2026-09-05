@@ -72,7 +72,7 @@ export function BloqueIntervalo({
         
         <label className="flex items-center gap-2 text-label text-text-muted">
           <input type="checkbox" checked={automatico} onChange={(e) => setAutomatico(e.target.checked)} />
-          Automático (usa el mínimo de tu plan)
+          Automático (usa el mínimo que permite el plan del equipo)
         </label>
 
         {(error || (!automatico && errores.intervaloSeg)) && (

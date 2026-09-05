@@ -24,13 +24,26 @@ export const ETIQUETA_ROL: Record<DispositivoDetalle['rol'], string> = {
   admin: 'Administrador',
 }
 
-/* En vivo el gráfico trae lecturas más nuevas que last_seen_at (que no se
-   pollea). Los puntos vienen ordenados ascendente, así que el último es el más reciente. */
+/* Espeja `dispositivo_service.ROLES_EDICION`: el backend ya rechaza con 403 a un
+   viewer que intente crear, editar o borrar una regla, así que esto no es el
+   control de acceso — es no ofrecerle un botón que le va a devolver un error.
+   Ojo: la preferencia de notificación (`PUT /alertas/{id}/notificacion`) NO
+   entra acá, es de cualquier rol a propósito. Cada usuario decide si quiere los
+   mails de un equipo, aunque no lo administre. */
+const ROLES_EDICION: DispositivoDetalle['rol'][] = ['admin', 'owner', 'editor']
+
+export function puedeEditarAlertas(rol: DispositivoDetalle['rol']): boolean {
+  return ROLES_EDICION.includes(rol)
+}
+
+/* En vivo el gráfico trae lecturas más nuevas que el último `last_seen_at`
+   conocido. Los puntos vienen ordenados ascendente, así que el último es el más
+   reciente; en un rango histórico son viejos y gana `last_seen_at`. */
 export function ultimoReporteEfectivo(
-  dispositivo: Dispositivo,
+  lastSeenAt: string | null,
   sensores: { datos: { puntos: { bucket: string }[] } | null }[],
 ): string | null {
-  let max = dispositivo.last_seen_at
+  let max = lastSeenAt
   for (const sensor of sensores) {
     const puntos = sensor.datos?.puntos
     const ultimo = puntos?.[puntos.length - 1]?.bucket

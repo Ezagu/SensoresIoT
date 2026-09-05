@@ -1,10 +1,10 @@
-import { Card } from '@/components/ui/Card'
-import { Vacio } from '@/components/ui/Vacio'
+import { Pendiente } from '@/components/ui/Pendiente'
 
 export function Dispositivos() {
   return (
-    <Card>
-      <Vacio titulo="Dispositivos" detalle="Listado completo con su estado y sus sensores." />
-    </Card>
+    <Pendiente
+      titulo="Listado completo de equipos"
+      detalle="Con búsqueda, filtros y orden. Por ahora los equipos se ven en el panel."
+    />
   )
 }

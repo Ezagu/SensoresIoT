@@ -135,6 +135,9 @@ React 19 + Vite + TypeScript + Tailwind v4. Es **sólo la app de cliente** (`app
 - **`lib/tiempo.ts:estadoDispositivo`** deriva online/offline, que el backend no expone. Tres estados y no un booleano (`en-linea` / `retraso` / `sin-reportar`), porque estos equipos pierden WiFi, bufferean y se ponen al día: "con retraso" casi nunca es una falla.
 - **`lib/tipos.ts` espeja `backend/schemas/`** con los nombres de campo tal cual (español, snake_case). No renombrar al importar: así un cambio de contrato salta en el type-check.
 - **El límite del plan en el selector de rango se marca, no se bloquea**, y es derivado, no un flag. `lib/retencion.ts` lo saca de `retencion_dias` en la respuesta de `/grafico` (plan del **dueño** del equipo, y también el admin exento) porque el catálogo `planes` no tiene columna para esto. `SelectorVentana` pinta en violeta las opciones que exceden la retención (`rangoExcedeRetencion`, más `Máx` vía `permiteHistorialCompleto`) pero se eligen igual: el backend recorta subiendo `desde` y responde 200, y `AvisoVentana` dice desde cuándo se está mostrando con el link a `/plan`. Bloquearlas y mandar a `/plan` al click dejaba al usuario sin ver nunca su propio límite sobre sus propios datos, y era incoherente con el zoom, que siempre pudo producir cualquier ventana. **`AvisoVentana` no confía en el `recortado` del backend a secas**: el piso se calcula con el `now()` del servidor, siempre posterior al que usó el cliente para armar el `desde`, así que pedir 7 d con 7 d de retención viene marcado como recortado sin que falte un dato — sólo cuenta si movió el borde más que el margen de reloj (`recorteEsMaterial`). Y si el equipo empezó a reportar después del piso del plan, gana el aviso de "primera vez": ahí lo que falta a la izquierda no existe en ninguna suscripción y ofrecer retención extendida sería mentir. `lib/retencion.ts:limiteDeVentana` es el único lugar que resuelve todo esto y lo consumen las tres piezas que tienen que contestar lo mismo: el `desdeMs` del eje X, la marca del corte (`Grafico:corteDePlanMs`, una franja violeta pegada al borde) y el aviso. **El eje arranca en `desde_efectivo`, no en la ventana pedida**: dibujar el rango completo deja el tramo recortado en blanco, indistinguible de un equipo que estuvo mudo, y con 7 días de retención pedir un año dejaría el 98% del cuadro vacío con las lecturas aplastadas contra el borde derecho. Por eso el corte se marca en el borde en vez de pintar lo inaccesible: a esa escala no hay nada que pintar.
+- **Lo que cambia solo del lado del servidor no puede viajar en el lote "estático" del detalle.** Son tres cosas y cada una tiene su propio poll: las lecturas (`useGraficosDeSensores`), `last_seen_at` (`useUltimoReporte`) y el estado de las reglas (`useAlertasDispositivo`). Las dos últimas corren a la cadencia de estado (`intervalo_seg` del equipo, 60 s como piso) y **no** a `pollDeVentana`: los gráficos dejan de pollear cuando se elige un rango histórico, pero una alerta se dispara *ahora*, no dentro de la ventana que se está mirando — con las alertas adentro del lote estático, una regla que se disparaba con la pantalla abierta no aparecía hasta recargar. `cargarSensoresConMeta` por eso ya no trae alertas, y el detalle de sensor consume el mismo hook del dispositivo y filtra (las reglas son del equipo, no del sensor).
+- **El gate de edición de alertas en la UI espeja `dispositivo_service.ROLES_EDICION`** vía `lib/dispositivos.ts:puedeEditarAlertas(dispositivo.rol)`. No es control de acceso — el backend ya devuelve 403 a un viewer — es no ofrecerle un botón que va a fallar. La preferencia de notificación queda habilitada para todos los roles a propósito, igual que en `alerta_service.actualizar_preferencia`: es el opt-out de mails de cada usuario, no una edición de la regla.
+- **`GET /dispositivos/{id}` trae `limites`: los límites del plan del DUEÑO del equipo** (`puede_alertas`, `max_alertas`, `intervalo_minimo_seg`), resueltos con `plan_service.limites_de_dispositivo`. Existe porque el front sólo conocía el plan de la cuenta propia (`useSesion().plan`) y lo usaba para gatear cosas del equipo: un free con acceso compartido a un equipo premium veía "Las alertas son premium" mientras los gráficos de esa misma pantalla dibujaban las líneas de umbral de esas reglas, y el backend le aceptaba las operaciones. **`useSesion().plan` es el plan de la cuenta y gobierna otra cosa** (compartir los equipos propios); todo lo que sea del equipo sale de `dispositivo.limites`. Van sólo los campos que el front necesita para no ofrecer lo que el backend va a rechazar — el resto del plan del dueño no es asunto de quien mira. `retencion_dias` sigue viajando sólo en `/grafico` a propósito: el recorte de la ventana ya está construido sobre esa respuesta y duplicarlo daría dos fuentes para el mismo límite.
 - El drawer mobile usa `inert` en los dos sentidos (sidebar cerrada / fondo cuando está abierta) en vez de un focus trap a mano.
 - Estado actual: andamiaje + auth (login/registro/verificación) funcionando; el resto de las pantallas son estructura vacía a cablear.
 
@@ -220,5 +223,33 @@ Landing → Página de consumo (`app.dominio`, dashboard + gráficos + historial
 - **Google OAuth**: after Tier 5 (post-frontend), salvo compromiso externo (demo, cliente puntual) que lo adelante. Motivo: el login por password ya funciona end-to-end, OAuth reduce fricción de registro pero no es bloqueante; además obliga a definir modelo de datos de usuario (password_hash nullable, tabla de providers, account linking) justo antes de diseñar pantallas de perfil que dependen de ese mismo modelo — mejor definirlo una sola vez con todo el contexto.
 - **Riesgo legal/regulatorio** (derecho al borrado/exportación de datos personales al eliminar cuenta): usuario pidió explícitamente verlo más adelante. Queda como pendiente de definición, no resuelto — retomar antes de operar en jurisdicciones con protección de datos personal (ej. Europa) o antes de escalar la base de usuarios.
 
-Cada vez que hagas modificaciones en un código y dejes comentarios, no comentes la modificación en sí y que hacía el código anteriormente, solo comenta la funcionalidad actual.
-No agregues comentarios de cosas que se sobreentienden, solo en partes donde el codigo o la implementación es compleja o da lugar a ambiguedades.
+Comments
+
+Keep comments extremely concise.
+
+Only add a comment when the code itself cannot reasonably communicate the intent.
+
+Do NOT:
+
+explain obvious code
+explain line-by-line implementations
+write long explanations or justifications
+describe previous implementations
+reference removed or outdated code
+explain the history of a refactor
+repeat information already expressed by names, types, or structure
+
+Prefer improving naming and structure over adding comments.
+
+Most comments should be one line. Avoid multi-paragraph comments.
+
+Bad:
+
+// This function is responsible for fetching the user's data from the API.
+// We previously handled this elsewhere, but after the refactoring...
+
+Good:
+
+// API timestamps are returned in UTC.
+
+When in doubt, omit the comment.

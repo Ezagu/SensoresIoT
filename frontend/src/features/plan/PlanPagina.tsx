@@ -1,10 +1,10 @@
-import { Card } from '@/components/ui/Card'
-import { Vacio } from '@/components/ui/Vacio'
+import { Pendiente } from '@/components/ui/Pendiente'
 
 export function PlanPagina() {
   return (
-    <Card>
-      <Vacio titulo="Plan" detalle="Tu plan actual y la comparación con Premium." />
-    </Card>
+    <Pendiente
+      titulo="Comparación de planes"
+      detalle="Acá va a estar tu plan actual, qué incluye Premium y el alta del pago. Mientras tanto, los límites que ves en la app son los del plan que tenés hoy."
+    />
   )
 }

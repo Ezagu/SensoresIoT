@@ -25,12 +25,27 @@ class DispositivoConRolOut(DispositivoOut):
   # calcula (contempla el admin, que no tiene fila propia).
   rol: str
 
+class LimitesDispositivoOut(BaseModel):
+  # Los límites que rigen sobre ESTE dispositivo: salen del plan de su dueño, no
+  # del de quien consulta (plan_service.limites_de_dispositivo). Sin esto el
+  # frontend sólo conocía el plan del que mira, y un free con acceso compartido a
+  # un equipo premium veía "las alertas son premium" mientras el backend le
+  # aceptaba las reglas de ese equipo.
+  # Van sólo los que el front necesita para no ofrecer lo que el backend va a
+  # rechazar; el resto del plan del dueño no es asunto de quien mira.
+  puede_alertas: bool
+  # None = sin tope. Se cuenta por dispositivo, no por cuenta ni por sensor.
+  max_alertas: Optional[int] = None
+  # Piso de muestreo, no valor fijo: el dueño puede pedir un intervalo más lento.
+  intervalo_minimo_seg: int
+
 class DispositivoDetalleOut(DispositivoOut):
   # GET /dispositivos/{id}: acá sí hace falta resolver el rol (rol_en_dispositivo,
   # que contempla admin) y quién es el dueño, para que el frontend pueda mostrar
   # "compartido por" sin otro request.
   rol: str
   owner_nombre: Optional[str] = None
+  limites: LimitesDispositivoOut
 
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut

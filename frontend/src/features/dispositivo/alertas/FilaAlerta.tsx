@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Boton } from '@/components/ui/Boton'
+import { Modal } from '@/components/ui/Modal'
 import { Pill } from '@/components/ui/Pill'
 import { eliminarAlerta, actualizarPreferenciaAlerta } from '@/lib/consultas'
 import { medida } from '@/lib/formato'
@@ -8,15 +10,18 @@ import { condicionTexto } from './condicion'
 export function FilaAlerta({
   alerta,
   unidad,
+  puedeEditar,
   onEditar,
   onCambio,
 }: {
   alerta: AlertaConNotificar
   unidad: string
+  puedeEditar: boolean
   onEditar: () => void
   onCambio: () => void
 }) {
   const [ocupado, setOcupado] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
 
   async function alternarNotificar() {
     setOcupado(true)
@@ -29,10 +34,10 @@ export function FilaAlerta({
   }
 
   async function borrar() {
-    if (!window.confirm('¿Borrar esta alerta? No se puede deshacer.')) return
     setOcupado(true)
     try {
       await eliminarAlerta(alerta.id)
+      setConfirmando(false)
       onCambio()
     } finally {
       setOcupado(false)
@@ -54,32 +59,51 @@ export function FilaAlerta({
           {alerta.ultimo_valor !== null ? `Último: ${medida(alerta.ultimo_valor, unidad)}` : 'Sin lecturas evaluadas'}
         </span>
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        <button
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+        <Boton
           type="button"
+          variante="texto"
           disabled={ocupado}
           onClick={alternarNotificar}
-          className="rounded-tile px-2 py-1 text-note font-medium text-text-muted hover:bg-surface-2 hover:text-text disabled:opacity-50 cursor-pointer"
           title="Sólo afecta tus propias notificaciones, no las de los demás usuarios con acceso"
         >
           {alerta.notificar ? 'Notificándome' : 'Sin notificar'}
-        </button>
-        <button
-          type="button"
-          onClick={onEditar}
-          className="rounded-tile px-2 py-1 text-note font-medium text-accent hover:bg-accent-soft cursor-pointer"
-        >
-          Editar
-        </button>
-        <button
-          type="button"
-          disabled={ocupado}
-          onClick={borrar}
-          className="rounded-tile px-2 py-1 text-note font-medium text-danger hover:bg-danger-soft disabled:opacity-50 cursor-pointer"
-        >
-          Borrar
-        </button>
+        </Boton>
+        {/* "Notificándome" queda para todos: es la preferencia de mails del
+            usuario, no una edición de la regla. Editar y borrar no. */}
+        {puedeEditar && (
+          <>
+            <Boton type="button" variante="texto" onClick={onEditar}>
+              Editar
+            </Boton>
+            <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
+              Borrar
+            </Boton>
+          </>
+        )}
       </div>
+
+      {/* El <dialog> de la app y no window.confirm: era el único diálogo que se
+          salía del sistema, y el nativo no puede decir qué alerta se está por
+          borrar cuando hay varias en la lista. */}
+      {confirmando && (
+        <Modal abierto onCerrar={() => setConfirmando(false)} titulo="Borrar alerta">
+          <div className="flex flex-col gap-3.5">
+            <p className="text-label text-text-muted">
+              Se borra <strong className="font-medium text-text">{alerta.nombre || condicionTexto(alerta)}</strong> y
+              su historial de eventos deja de estar asociado a una regla. No se puede deshacer.
+            </p>
+            <div className="mt-1 flex justify-end gap-2">
+              <Boton type="button" variante="fantasma" onClick={() => setConfirmando(false)}>
+                Cancelar
+              </Boton>
+              <Boton type="button" disabled={ocupado} onClick={borrar}>
+                {ocupado ? 'Borrando…' : 'Borrar alerta'}
+              </Boton>
+            </div>
+          </div>
+        </Modal>
+      )}
     </li>
   )
 }

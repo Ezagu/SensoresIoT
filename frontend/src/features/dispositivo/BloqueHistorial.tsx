@@ -7,7 +7,7 @@ import { Segmentado } from '@/components/ui/Segmentado'
 import { Vacio } from '@/components/ui/Vacio'
 import { useHistorial, type FiltroHistorial } from './usarHistorial'
 import { medida } from '@/lib/formato'
-import { fechaHora } from '@/lib/tiempo'
+import { fechaHoraSegundos } from '@/lib/tiempo'
 
 const OPCIONES_FILAS = [
   { valor: '50', etiqueta: '50' },
@@ -124,7 +124,7 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
             <tbody className={`divide-y divide-border ${refrescando ? 'opacity-60' : ''}`}>
               {datos.mediciones.map((m) => (
                 <tr key={m.time}>
-                  <td className="py-1.5 text-text-muted">{fechaHora(m.time)}</td>
+                  <td className="py-1.5 text-text-muted">{fechaHoraSegundos(m.time)}</td>
                   <td className="num py-1.5 text-right font-medium text-text">{medida(m.value, unidad)}</td>
                 </tr>
               ))}

@@ -36,6 +36,16 @@ export const IconoAlerta = ({ className }: Props) => (
   </svg>
 )
 
+/* Campana rellena, distinta de IconoAlerta: en el nav esa campana significa
+   "la sección Alertas" y acá significa "esta regla está sonando". El mismo
+   glifo para las dos cosas obligaba a deducir cuál era por el contexto. */
+export const IconoAlertaSonando = ({ className }: Props) => (
+  <svg {...base(className)} fill="currentColor">
+    <path d="M12 2a6 6 0 00-6 6c0 5-2 6-2 8h16c0-2-2-3-2-8a6 6 0 00-6-6z" />
+    <path d="M10 20a2 2 0 004 0" fill="none" />
+  </svg>
+)
+
 export const IconoPlan = ({ className }: Props) => (
   <svg {...base(className)}>
     <path d="M12 2l2.4 5.1 5.6.6-4.2 3.8 1.2 5.5L12 14.8 6.9 17l1.3-5.5L4 7.7l5.6-.6z" />

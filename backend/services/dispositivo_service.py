@@ -40,6 +40,14 @@ def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
         dispositivo = _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
         dispositivo["rol"] = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
         dispositivo["owner_nombre"] = dispositivo_repo.buscar_nombre_owner(cur, dispositivo_id)
+        # Del plan del dueño, no del de quien consulta: es el mismo criterio que
+        # aplica alerta_service al gatear la creación de reglas.
+        limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
+        dispositivo["limites"] = {
+            "puede_alertas": limites["puede_alertas"],
+            "max_alertas": limites["max_alertas"],
+            "intervalo_minimo_seg": limites["intervalo_minimo_seg"],
+        }
         return dispositivo
 
 def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { listarTiposSensor, obtenerDispositivo, obtenerGrafico, obtenerHistorial } from '@/lib/consultas'
 import { useCarga } from '@/lib/usarCarga'
 import { pollDeVentana, resolverVentana, type Ventana } from '@/lib/ventana'
-import type { AlertaConNotificar, DatosGrafico, Dispositivo, Medicion } from '@/lib/tipos'
+import type { DatosGrafico, DispositivoDetalle, Medicion } from '@/lib/tipos'
 import { cargarSensoresConMeta, type SensorConMeta } from './cargarSensores'
 
 /* `estadoHttp` (lib/api.ts) sólo reconoce AxiosError: un sensorId ajeno al
@@ -15,9 +15,8 @@ export class SensorNoEncontradoError extends Error {
 }
 
 export type DetalleSensorEstatico = {
-  dispositivo: Dispositivo
+  dispositivo: DispositivoDetalle
   sensor: SensorConMeta
-  alertas: AlertaConNotificar[]
 }
 
 /* El dispositivo_id sale de la URL (ruta anidada): un sensorId que no está
@@ -31,15 +30,11 @@ export function useDetalleSensorEstatico(dispositivoId: string, sensorId: string
         listarTiposSensor(signal),
       ])
 
-      const { sensores, alertas } = await cargarSensoresConMeta(dispositivoId, tipos, signal)
+      const sensores = await cargarSensoresConMeta(dispositivoId, tipos, signal)
       const sensor = sensores.find((s) => s.id === sensorId)
       if (!sensor) throw new SensorNoEncontradoError()
 
-      return {
-        dispositivo,
-        sensor,
-        alertas: alertas.filter((a) => a.sensor_id === sensorId),
-      }
+      return { dispositivo, sensor }
     },
     [dispositivoId, sensorId],
   )
