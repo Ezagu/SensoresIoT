@@ -12,6 +12,8 @@ import { useSesion } from '@/lib/auth'
 import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/lib/tiempo'
 import { bordesDeVentana, esTiempoReal, useVentanaConZoom } from '@/lib/ventana'
 import { ETIQUETA_ROL, intervaloEfectivo, nombreDeDispositivo, ultimoReporteEfectivo } from '@/lib/dispositivos'
+import { limiteDeVentana } from '@/lib/retencion'
+import { useTituloPagina } from '@/lib/titulo'
 import { useDetalleDispositivo, useGraficosDeSensores } from './usarDetalleDispositivo'
 import type { SensorConDatos } from './cargarSensores'
 import { BloqueSensor } from './BloqueSensor'
@@ -19,6 +21,7 @@ import { BloqueAlertas } from './BloqueAlertas'
 import { BloqueExport } from './BloqueExport'
 import { BloqueIntervalo } from './BloqueIntervalo'
 import { BarraVentana } from './BarraVentana'
+import { AvisoVentana } from './AvisoVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 
 function EsqueletoDetalle() {
@@ -49,6 +52,8 @@ export function DetalleDispositivo() {
 
   const enVivo = esTiempoReal(ventana)
   const hasta = useAhora(enVivo && graficos.intervaloSeg ? graficos.intervaloSeg * 1000 : TIC_RELOJ_MS)
+
+  useTituloPagina(datos ? nombreDeDispositivo(datos.dispositivo.id, datos.dispositivo.nombre) : null)
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" volverA="/" />
 
@@ -84,11 +89,14 @@ export function DetalleDispositivo() {
   const intervaloSeg = graficos.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
   const ultimoReporte = ultimoReporteEfectivo(dispositivo, sensoresConDatos)
   const estado = estadoDispositivo(ultimoReporte, intervaloSeg)
-  // Todos los sensores del dispositivo comparten plan, así que cualquiera sirve
-  const retencionDias = sensoresConDatos.find((s) => s.datos)?.datos?.retencion_dias ?? null
+  // Todos los sensores del dispositivo comparten plan y ventana pedida, así que
+  // el primero que traiga datos contesta por todos (recorte y retención).
+  const graficoRef = sensoresConDatos.find((s) => s.datos)?.datos ?? null
+  const retencionDias = graficoRef?.retencion_dias ?? null
   const disparadas = alertas.filter((a) => a.activa && a.estado === 'disparada').length
   // Ventana única para todas las tarjetas: zoomear en una mueve a todas por igual.
-  const { desdeMs, hastaMs } = bordesDeVentana(ventana, hasta)
+  const { desdeMs: desdePedidoMs, hastaMs } = bordesDeVentana(ventana, hasta)
+  const limite = limiteDeVentana(graficoRef, dispositivo.first_connected_at, desdePedidoMs)
 
   return (
     <div className="flex flex-col gap-5">
@@ -166,8 +174,15 @@ export function DetalleDispositivo() {
         enVivo={enVivo}
         refrescar={graficos.refrescar}
         refrescando={graficos.refrescando}
+        desactualizado={graficos.desactualizado}
         hayZoom={hayZoom}
         onRestablecer={restablecer}
+      />
+
+      <AvisoVentana
+        grafico={graficoRef}
+        primeraConexion={dispositivo.first_connected_at}
+        desdePedidoMs={desdePedidoMs}
       />
 
       {sensoresConDatos.length === 0 ? (
@@ -182,10 +197,12 @@ export function DetalleDispositivo() {
               dispositivoId={dispositivo.id}
               sensor={sensor}
               alertas={alertas}
-              desdeMs={desdeMs}
+              desdeMs={limite.desdeMs}
               hastaMs={hastaMs}
+              corteDePlanMs={limite.corteDePlanMs}
               enVivo={enVivo}
               intervaloSeg={intervaloSeg}
+              desactualizado={graficos.desactualizado}
               onZoom={zoomear}
               onRestablecer={restablecer}
             />

@@ -52,6 +52,9 @@ export type DatosSensor = {
   /* Última lectura cruda, independiente de la ventana elegida: no puede
      salir del último bucket del gráfico porque ese es un promedio. */
   ultima: Medicion | null
+  /* La ventana que pidió este lote, para poder detectar que lo dibujado ya no
+     corresponde al rango elegido (ver `desactualizado`). */
+  ventana: Ventana
 }
 
 /* Único hook que pollea acá. La cadencia se aprende de `intervalo_seg` del
@@ -69,7 +72,7 @@ export function useDatosSensor(sensorId: string, ventana: Ventana) {
           .then((r) => r.mediciones[0] ?? null)
           .catch(() => null),
       ])
-      return { datos, ultima }
+      return { datos, ultima, ventana }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sensorId, ventana],
@@ -82,5 +85,9 @@ export function useDatosSensor(sensorId: string, ventana: Ventana) {
     if (actual !== undefined && actual !== intervaloSeg) setIntervaloSeg(actual)
   }, [estado.datos, intervaloSeg])
 
-  return { ...estado, intervaloSeg }
+  // Mismo criterio que useGraficosDeSensores: identidad de la ventana, que sólo
+  // cambia cuando alguien elige otro rango, no en cada poll.
+  const desactualizado = estado.datos !== null && estado.datos.ventana !== ventana
+
+  return { ...estado, intervaloSeg, desactualizado }
 }

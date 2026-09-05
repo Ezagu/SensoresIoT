@@ -14,9 +14,12 @@ import { estadoDispositivo, TIC_RELOJ_MS } from '@/lib/tiempo'
 import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
 import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
 import { anclaEnCero } from '@/lib/sensores'
+import { limiteDeVentana } from '@/lib/retencion'
 import { reglaDestacada } from '@/lib/alertas'
+import { useTituloPagina } from '@/lib/titulo'
 import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
 import { BarraVentana } from './BarraVentana'
+import { AvisoVentana } from './AvisoVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { BloqueHistorial } from './BloqueHistorial'
 
@@ -43,6 +46,12 @@ export function DetalleSensor() {
   const polling = useDatosSensor(sensorId ?? '', ventana)
   const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_RELOJ_MS)
 
+  useTituloPagina(
+    estatico.datos
+      ? `${estatico.datos.sensor.etiqueta} — ${nombreDeDispositivo(estatico.datos.dispositivo.id, estatico.datos.dispositivo.nombre)}`
+      : null,
+  )
+
   if (!id || !sensorId) return <Navegable titulo="Sensor no encontrado" volverA="/" />
 
   if (estatico.cargando || polling.cargando) return <EsqueletoSensor />
@@ -65,7 +74,8 @@ export function DetalleSensor() {
   if (!estatico.datos) return null
 
   const { dispositivo, sensor, alertas } = estatico.datos
-  const { datos: datosGrafico, ultima } = polling.datos ?? { datos: null, ultima: null }
+  const datosGrafico = polling.datos?.datos ?? null
+  const ultima = polling.datos?.ultima ?? null
   const regla = reglaDestacada(alertas, sensor.id)
   const disparada = regla?.estado === 'disparada'
   const { desde } = resolverVentana(ventana)
@@ -79,6 +89,7 @@ export function DetalleSensor() {
   const hayResumen = resumen && (resumen.promedio !== null || resumen.minimo !== null || resumen.maximo !== null)
   const hayDatos = datosGrafico !== null && datosGrafico.puntos.length > 0
   const retencionDias = datosGrafico?.retencion_dias ?? null
+  const limite = limiteDeVentana(datosGrafico, dispositivo.first_connected_at, desde.getTime())
 
   const pisoPlan = plan?.plan.intervalo_minimo_seg
   const intervaloSeg = polling.intervaloSeg ?? intervaloEfectivo(dispositivo, pisoPlan)
@@ -139,19 +150,28 @@ export function DetalleSensor() {
         enVivo={enVivo}
         refrescar={polling.refrescar}
         refrescando={polling.refrescando}
+        desactualizado={polling.desactualizado}
         hayZoom={hayZoom}
         onRestablecer={restablecer}
       />
 
+      <AvisoVentana
+        grafico={datosGrafico}
+        primeraConexion={dispositivo.first_connected_at}
+        desdePedidoMs={desde.getTime()}
+      />
+
       <Card className="p-4">
-        <div className="h-96">
+        <div className={`h-96 transition-opacity duration-150 ${polling.desactualizado ? 'opacity-60' : ''}`}>
           {hayDatos ? (
             <Grafico
               puntos={grilla}
               color={sensor.color}
               unidad={sensor.unidad}
-              desdeMs={new Date(datosGrafico?.desde_efectivo ?? desde).getTime()}
+              etiqueta={sensor.etiqueta}
+              desdeMs={limite.desdeMs}
               hastaMs={hastaGrilla}
+              corteDePlanMs={limite.corteDePlanMs}
               umbral={regla?.umbral}
               condicion={regla?.condicion}
               desdeCero={anclaEnCero(sensor.tipo)}

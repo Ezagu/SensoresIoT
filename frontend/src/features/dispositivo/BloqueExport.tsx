@@ -1,8 +1,9 @@
 import { useState, type SubmitEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Boton } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
 import { Modal } from '@/components/ui/Modal'
-import { exportarHistorial } from '@/lib/consultas'
+import { exportarHistorial, type ResultadoExport } from '@/lib/consultas'
 import { mensajeDeErrorBlob } from '@/lib/api'
 import { fecha } from '@/lib/tiempo'
 
@@ -31,10 +32,12 @@ export function BloqueExport({
   const [excel, setExcel] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [resultado, setResultado] = useState<ResultadoExport | null>(null)
 
   async function enviar(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
+    setResultado(null)
     setEnviando(true)
     try {
       const res = await exportarHistorial(dispositivoId, {
@@ -43,11 +46,7 @@ export function BloqueExport({
         excel,
       })
       dispararDescarga(res.archivo, res.nombreArchivo)
-
-      const partes = [`Resolución: ${res.resolucion}`]
-      if (res.recortado && res.retencionDias !== null) {
-        partes.push(`Tu plan sólo exporta los últimos ${res.retencionDias} días (desde ${fecha(res.desdeEfectivo)})`)
-      }
+      setResultado(res)
     } catch (err) {
       setError(await mensajeDeErrorBlob(err, 'No pudimos generar el export.'))
     } finally {
@@ -86,6 +85,29 @@ export function BloqueExport({
           <p role="alert" className="text-label text-danger">
             {error}
           </p>
+        )}
+
+        {/* El archivo baja por <a download>: la única pista de que salió, y de
+            qué salió, es esto. El recorte por plan sobre todo — un CSV truncado
+            en silencio se descubre recién al abrirlo. */}
+        {resultado && (
+          <div role="status" className="flex flex-col gap-1.5 rounded-control border border-border bg-surface-2 p-3">
+            <p className="text-label text-text">
+              Descargado <strong className="font-medium">{resultado.nombreArchivo}</strong> — resolución{' '}
+              {resultado.resolucion}.
+            </p>
+            {resultado.recortado && (
+              <p className="text-label text-warn">
+                Arranca el {fecha(resultado.desdeEfectivo)}
+                {resultado.retencionDias !== null &&
+                  `: tu plan sólo exporta los últimos ${resultado.retencionDias} días`}
+                .{' '}
+                <Link to="/plan" className="font-medium underline">
+                  Ver planes
+                </Link>
+              </p>
+            )}
+          </div>
         )}
 
         <div className="mt-1 flex justify-end gap-2">

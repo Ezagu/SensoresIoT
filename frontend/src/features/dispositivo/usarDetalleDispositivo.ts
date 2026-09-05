@@ -30,6 +30,10 @@ export function useDetalleDispositivo(dispositivoId: string) {
   return useCarga(cargar)
 }
 
+/* El lote viaja con la ventana que lo pidió: sin eso no hay forma de saber si
+   lo que está en pantalla corresponde al rango que el usuario tiene elegido. */
+type LoteGraficos = { porSensor: Map<string, DatosGrafico | null>; ventana: Ventana }
+
 /* Único hook que pollea en el detalle, y sólo pide /grafico por sensor. El
    intervalo de poll se aprende del propio resultado (`intervalo_seg` del
    primer gráfico que vuelve, todos los sensores de un equipo lo comparten). */
@@ -38,7 +42,7 @@ export function useGraficosDeSensores(sensores: SensorConMeta[], ventana: Ventan
   const [intervaloSeg, setIntervaloSeg] = useState<number | undefined>(undefined)
 
   const cargar = useCallback(
-    async (signal: AbortSignal): Promise<Map<string, DatosGrafico | null>> => {
+    async (signal: AbortSignal): Promise<LoteGraficos> => {
       const ids = idsKey ? idsKey.split(',') : []
       const { desde, hasta } = resolverVentana(ventana)
       const entradas = await Promise.all(
@@ -51,7 +55,7 @@ export function useGraficosDeSensores(sensores: SensorConMeta[], ventana: Ventan
           }
         }),
       )
-      return new Map(entradas)
+      return { porSensor: new Map(entradas), ventana }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [idsKey, ventana],
@@ -63,12 +67,19 @@ export function useGraficosDeSensores(sensores: SensorConMeta[], ventana: Ventan
 
   useEffect(() => {
     if (!datos) return
-    const primero = [...datos.values()].find((d) => d !== null)
+    const primero = [...datos.porSensor.values()].find((d) => d !== null)
     if (primero && primero.intervalo_seg !== intervaloSeg) setIntervaloSeg(primero.intervalo_seg)
   }, [datos, intervaloSeg])
 
   return {
-    porSensor: datos ?? new Map<string, DatosGrafico | null>(),
+    porSensor: datos?.porSensor ?? new Map<string, DatosGrafico | null>(),
+    /* Lo dibujado es de otra ventana que la elegida. `useCarga` conserva los
+       datos viejos a propósito, pero una hora de lecturas sobre un eje de 30
+       días se ve exactamente igual que un equipo muerto un mes: hay que
+       marcarlo hasta que llegue el lote nuevo. Alcanza con comparar identidad
+       porque `ventana` sólo cambia de objeto cuando alguien la cambia — un
+       poll en tiempo real reusa el mismo. */
+    desactualizado: datos !== null && datos.ventana !== ventana,
     intervaloSeg,
     cargando,
     refrescando,

@@ -114,17 +114,19 @@
   --color-text-muted: #475163;
   --color-text-faint: #656e7e;
 
-  --color-accent: #2b5ce6;
-  --color-accent-strong: #2b5ce6;
+  --color-accent: #1f53e5;
+  --color-accent-strong: #1f53e5;
   --color-accent-ink: #ffffff;
 
   /* Más oscuros que su equivalente en el tema oscuro: acá el color va sobre su
-     propio -soft (Pill, Card tono="warn"), que sobre blanco casi no baja el
-     fondo, así que el 4.5:1 se mide contra ese compuesto y no contra surface. */
-  --color-ok: #007c44;
-  --color-warn: #9b5d00;
-  --color-danger: #c73129;
-  --color-premium: #7c3aed;
+     propio -soft (Pill, Boton sutil, Card tono="warn"), que es translúcido, así
+     que el 4.5:1 se mide contra ese compuesto. Y el fondo que se compone atrás
+     es surface-2 —las filas de alerta, no las cards blancas—, que es el más
+     oscuro de los que las pills pisan y por lo tanto el peor caso. */
+  --color-ok: #00713e;
+  --color-warn: #8e5500;
+  --color-danger: #b62d26;
+  --color-premium: #7530ec;
 
   --color-accent-soft: color-mix(in oklab, var(--color-accent) 10%, transparent);
   --color-ok-soft: color-mix(in oklab, var(--color-ok) 10%, transparent);

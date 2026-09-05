@@ -5,20 +5,18 @@ export function Segmentado<T extends string>({
   opciones,
   onCambiar,
   etiqueta,
-  bloqueada,
-  onBloqueada,
+  fueraDelPlan,
 }: {
   valor: T | null
   opciones: { valor: T; etiqueta: string }[]
   onCambiar: (valor: T) => void
   etiqueta: string
-  /* Opción visible pero fuera del plan del dueño: se pinta violeta y no se
-     puede elegir — el click no llama a onCambiar, dispara onBloqueada (la app
-     lo usa para mandar a /plan). Sin esta prop el comportamiento es el de
-     siempre, así que los otros consumidores (tema, filas por página) no la
-     necesitan. */
-  bloqueada?: (valor: T) => boolean
-  onBloqueada?: (valor: T) => void
+  /* Opción que excede el plan del dueño: se pinta violeta pero se elige igual,
+     y quien la consume explica después qué parte quedó afuera. Marcar sin
+     bloquear, no al revés: el candado deja al usuario sin ver nunca su propio
+     límite. Sin esta prop no hay marca, que es lo que necesitan los otros
+     consumidores (tema, filas por página). */
+  fueraDelPlan?: (valor: T) => boolean
 }) {
   const botones = useRef<(HTMLButtonElement | null)[]>([])
   const seleccionada = opciones.findIndex((o) => o.valor === valor)
@@ -30,11 +28,8 @@ export function Segmentado<T extends string>({
   function mover(desde: number, delta: number) {
     const destino = (desde + delta + opciones.length) % opciones.length
     botones.current[destino]?.focus()
-    /* Las flechas seleccionan, como en cualquier grupo de radios — salvo en una
-       opción fuera del plan: ahí sólo mueven el foco, porque elegirla dispara
-       la navegación a /plan y nadie quiere eso por rozar una tecla. */
-    const opcion = opciones[destino]
-    if (!(bloqueada?.(opcion.valor) ?? false)) onCambiar(opcion.valor)
+    // Las flechas seleccionan, como en cualquier grupo de radios.
+    onCambiar(opciones[destino].valor)
   }
 
   function alTeclado(evento: KeyboardEvent<HTMLButtonElement>, indice: number) {
@@ -57,10 +52,13 @@ export function Segmentado<T extends string>({
     <div
       role="radiogroup"
       aria-label={etiqueta}
-      className="inline-flex shrink-0 rounded-group border border-border bg-surface-2 p-0.5"
+      /* Envuelve en vez de desbordar: siete rangos miden ~400px y en un celular
+         de 360px las últimas opciones quedaban fuera de pantalla o arrastraban
+         scroll horizontal a la página entera. */
+      className="flex w-fit max-w-full flex-wrap gap-0.5 rounded-group border border-border bg-surface-2 p-1"
     >
       {opciones.map((o, indice) => {
-        const esBloqueada = bloqueada?.(o.valor) ?? false
+        const excede = fueraDelPlan?.(o.valor) ?? false
         return (
           <button
             key={o.valor}
@@ -69,17 +67,19 @@ export function Segmentado<T extends string>({
             }}
             type="button"
             role="radio"
-            aria-checked={!esBloqueada && o.valor === valor}
-            aria-label={esBloqueada ? `${o.etiqueta} — función premium, ver planes` : undefined}
-            title={esBloqueada ? 'Es una función premium — ver planes' : undefined}
+            aria-checked={o.valor === valor}
+            aria-label={excede ? `${o.etiqueta} — tu plan no cubre todo este rango` : undefined}
+            title={excede ? 'Tu plan no cubre todo este rango: vas a ver la parte disponible' : undefined}
             tabIndex={indice === conFoco ? 0 : -1}
             onKeyDown={(evento) => alTeclado(evento, indice)}
-            onClick={() => (esBloqueada ? onBloqueada?.(o.valor) : onCambiar(o.valor))}
-            className={`flex min-h-8 items-center gap-1 rounded-tile px-3 text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer ${
-              esBloqueada
-                ? 'text-premium hover:bg-premium-soft'
-                : o.valor === valor
-                  ? 'bg-surface text-text shadow-sm'
+            onClick={() => onCambiar(o.valor)}
+            /* 44px con el dedo (pointer-coarse), 32px con mouse: la densidad de
+               escritorio no tiene por qué pagar el tamaño de toque. */
+            className={`flex min-h-8 items-center gap-1 rounded-tile px-3 text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer pointer-coarse:min-h-11 ${
+              o.valor === valor
+                ? `bg-surface shadow-sm ${excede ? 'text-premium' : 'text-text'}`
+                : excede
+                  ? 'text-premium hover:bg-premium-soft'
                   : 'text-text-muted hover:text-text'
             }`}
           >

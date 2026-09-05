@@ -19,8 +19,10 @@ export function BloqueSensor({
   alertas,
   desdeMs,
   hastaMs,
+  corteDePlanMs,
   enVivo,
   intervaloSeg,
+  desactualizado,
   onZoom,
   onRestablecer,
 }: {
@@ -29,8 +31,13 @@ export function BloqueSensor({
   alertas: AlertaConNotificar[]
   desdeMs: number
   hastaMs: number
+  corteDePlanMs: number | null
   enVivo: boolean
   intervaloSeg: number
+  /* El trazo todavía es del rango anterior: se atenúa hasta que llegue el
+     nuevo, porque una hora de lecturas sobre un eje de 30 días es
+     indistinguible de un equipo que estuvo mudo un mes. */
+  desactualizado: boolean
   onZoom?: (desdeMs: number, hastaMs: number) => void
   onRestablecer?: () => void
 }) {
@@ -90,14 +97,16 @@ export function BloqueSensor({
 
       {hayDatos && resumen && !enVivo && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
 
-      <div className="h-56">
+      <div className={`h-56 transition-opacity duration-150 ${desactualizado ? 'opacity-60' : ''}`}>
         {hayDatos ? (
           <Grafico
             puntos={grilla}
             color={sensor.color}
             unidad={sensor.unidad}
+            etiqueta={sensor.etiqueta}
             desdeMs={desdeMs}
             hastaMs={hastaMs}
+            corteDePlanMs={corteDePlanMs}
             umbral={regla?.umbral}
             condicion={regla?.condicion}
             desdeCero={anclaEnCero(sensor.tipo)}

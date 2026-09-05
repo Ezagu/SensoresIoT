@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSesion } from '@/lib/auth'
+import { ContextoTitulo, MARCA } from '@/lib/titulo'
 import { useMediaQuery } from '@/lib/medios'
 import { Logo } from './Logo'
 import {
@@ -82,6 +83,14 @@ export function Layout({ titulo }: { titulo: string }) {
      lado que no corresponde en cada estado. */
   const sidebarInerte = overlay && !abierto
   const fondoInerte = overlay && abierto
+
+  /* Sin esto toda la app es una fila de pestañas que dicen lo mismo, y el
+     historial del navegador no distingue una pantalla de otra. La pantalla
+     puede afinarlo (el nombre del equipo, no "Dispositivos"). */
+  const [especifico, setEspecifico] = useState<string | null>(null)
+  useEffect(() => {
+    document.title = `${especifico ?? titulo} · ${MARCA}`
+  }, [especifico, titulo])
 
   return (
     <>
@@ -190,7 +199,9 @@ export function Layout({ titulo }: { titulo: string }) {
           </div>
 
           <div className="mx-auto w-full max-w-340 px-4 pt-4.5 pb-24 md:px-5.5 md:pt-5.5 lg:pb-16">
-            <Outlet />
+            <ContextoTitulo.Provider value={setEspecifico}>
+              <Outlet />
+            </ContextoTitulo.Provider>
           </div>
         </main>
       </div>

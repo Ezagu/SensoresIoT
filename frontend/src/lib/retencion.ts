@@ -1,3 +1,4 @@
+import type { DatosGrafico } from './tipos'
 import { duracionMsDeRango, type RangoGrafico } from './ventana'
 
 /* Margen por desfase de reloj cliente/servidor, para no marcar como recortado
@@ -10,7 +11,8 @@ function excedeRetencion(desde: Date, retencionDias: number | null) {
   return desde.getTime() < piso - MARGEN_RELOJ_MS
 }
 
-/* Gate premium de las opciones preset de SelectorVentana. */
+/* Marca (no candado) de las opciones preset de SelectorVentana: el rango se
+   puede elegir igual y AvisoVentana explica qué parte quedó afuera. */
 export function rangoExcedeRetencion(rango: RangoGrafico, retencionDias: number | null) {
   return excedeRetencion(new Date(Date.now() - duracionMsDeRango(rango)), retencionDias)
 }
@@ -19,4 +21,50 @@ export function rangoExcedeRetencion(rango: RangoGrafico, retencionDias: number 
    viaja en la respuesta del gráfico; no hay flag propio en el catálogo. */
 export function permiteHistorialCompleto(retencionDias: number | null) {
   return retencionDias === null
+}
+
+/* El backend marca `recortado` con un `<` estricto contra su propio now(),
+   siempre posterior al que usó el cliente para armar el `desde`: pedir 7 d con
+   7 d de retención da recortado=true sin que falte un solo dato. Sólo cuenta si
+   movió el borde más allá del desfase de reloj. */
+export function recorteEsMaterial(desdeEfectivo: string, desdePedidoMs: number) {
+  return new Date(desdeEfectivo).getTime() - desdePedidoMs > MARGEN_RELOJ_MS
+}
+
+export type LimiteDeVentana = {
+  /* Borde izquierdo que tiene que dibujar el eje X. */
+  desdeMs: number
+  /* Dónde va la pared del plan, o null si el plan no es lo que limita. */
+  corteDePlanMs: number | null
+  /* Fecha del primer reporte, sólo cuando es ella la que limita. */
+  primeraConexion: string | null
+}
+
+/* Qué limita el borde izquierdo del gráfico, en un solo lugar: lo consumen el
+   eje, la marca del corte y el aviso de arriba, y las tres tienen que contestar
+   lo mismo.
+
+   El eje arranca en `desde_efectivo` cuando el plan recortó: dibujar la ventana
+   pedida deja el tramo recortado en blanco, indistinguible de un equipo que
+   estuvo mudo — y con 7 días de retención, pedir un año dejaría el 98% del
+   cuadro vacío y las lecturas apretadas contra el borde derecho.
+
+   Si el equipo empezó a reportar después del piso del plan, el que limita es el
+   equipo: ahí lo que falta no existe en ninguna suscripción. */
+export function limiteDeVentana(
+  grafico: DatosGrafico | null,
+  primeraConexion: string | null,
+  desdePedidoMs: number,
+): LimiteDeVentana {
+  const primeraMs = primeraConexion ? new Date(primeraConexion).getTime() : null
+  const efectivoMs = grafico ? new Date(grafico.desde_efectivo).getTime() : desdePedidoMs
+  const recortado = !!grafico?.recortado && recorteEsMaterial(grafico.desde_efectivo, desdePedidoMs)
+  const desdeMs = recortado ? efectivoMs : desdePedidoMs
+  const mandaElEquipo = primeraMs !== null && primeraMs > desdeMs
+
+  return {
+    desdeMs,
+    corteDePlanMs: recortado && !mandaElEquipo ? efectivoMs : null,
+    primeraConexion: mandaElEquipo ? primeraConexion : null,
+  }
 }

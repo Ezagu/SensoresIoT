@@ -252,7 +252,6 @@ void conectarWiFi() {
     ESP.restart();
   }
 
-  WiFi.setSleep(false); // ← EVITA QUE EL WI-FI ENTRE EN MODO DE AHORRO DE ENERGÍA
   Serial.printf("[WiFi] Conectado a %s. IP: %s\n",
                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 

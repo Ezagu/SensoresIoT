@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { Segmentado } from '@/components/ui/Segmentado'
 import { RANGOS, type RangoGrafico, type Ventana } from '@/lib/ventana'
 import { permiteHistorialCompleto, rangoExcedeRetencion } from '@/lib/retencion'
@@ -18,7 +17,6 @@ export function SelectorVentana({
   retencionDias: number | null
   primeraConexion: string | null
 }) {
-  const navigate = useNavigate()
   const permiteMaximo = permiteHistorialCompleto(retencionDias)
   const opcion: Opcion | null = ventana.tipo === 'preset' ? ventana.rango : ventana.tipo === 'maximo' ? 'maximo' : null
 
@@ -39,8 +37,7 @@ export function SelectorVentana({
         valor={opcion}
         opciones={OPCIONES}
         onCambiar={elegir}
-        bloqueada={(v) => (v === 'maximo' ? !permiteMaximo : rangoExcedeRetencion(v, retencionDias))}
-        onBloqueada={() => navigate('/plan')}
+        fueraDelPlan={(v) => (v === 'maximo' ? !permiteMaximo : rangoExcedeRetencion(v, retencionDias))}
       />
     </div>
   )

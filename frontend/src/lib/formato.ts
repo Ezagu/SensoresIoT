@@ -9,6 +9,23 @@ export function entero(valor: number): string {
   return fmtEntero.format(valor)
 }
 
+const fmtPorDecimales = new Map<number, Intl.NumberFormat>()
+
+/* Cantidad de decimales fija, para ejes: "1.016" y "1.015,8" alternados no se
+   leen como una escala, y los formatters de arriba recortan a un decimal como
+   máximo, que no alcanza para un paso más fino. */
+export function numeroCon(valor: number, decimales: number): string {
+  let fmt = fmtPorDecimales.get(decimales)
+  if (!fmt) {
+    fmt = new Intl.NumberFormat('es-AR', {
+      minimumFractionDigits: decimales,
+      maximumFractionDigits: decimales,
+    })
+    fmtPorDecimales.set(decimales, fmt)
+  }
+  return fmt.format(valor)
+}
+
 /* Las unidades van con espacio duro para que no queden colgadas del número */
 export function medida(valor: number, unidad: string): string {
   return `${fmt.format(valor)} ${unidad}`

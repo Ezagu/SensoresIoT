@@ -28,7 +28,14 @@ export function fecha(iso: string): string {
 }
 
 export function fechaHora(iso: string): string {
-  const d = new Date(iso)
+  return fechaHoraMs(new Date(iso).getTime())
+}
+
+/* Fecha y hora completas desde ms. Los formatters del eje X omiten el año o la
+   hora a propósito, pero donde no hay ticks alrededor que desambigüen (la
+   alternativa textual del gráfico) hace falta el timestamp entero. */
+export function fechaHoraMs(ms: number): string {
+  const d = new Date(ms)
   return `${fmtFecha.format(d)} ${fmtHora.format(d)}`
 }
 
