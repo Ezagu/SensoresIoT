@@ -11,9 +11,8 @@ export function entero(valor: number): string {
 
 const fmtPorDecimales = new Map<number, Intl.NumberFormat>()
 
-/* Cantidad de decimales fija, para ejes: "1.016" y "1.015,8" alternados no se
-   leen como una escala, y los formatters de arriba recortan a un decimal como
-   máximo, que no alcanza para un paso más fino. */
+/* Decimales fijos para ejes: "1.016" y "1.015,8" alternados no se leen como una
+   escala, y los formatters de arriba recortan a un decimal. */
 export function numeroCon(valor: number, decimales: number): string {
   let fmt = fmtPorDecimales.get(decimales)
   if (!fmt) {

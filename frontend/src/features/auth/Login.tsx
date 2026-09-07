@@ -1,10 +1,13 @@
 import { useState, type SubmitEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useSesion } from '@/lib/auth'
-import { esCuentaBloqueada, mensajeDeError } from '@/lib/api'
-import { esquemaLogin, useFormulario } from '@/lib/formularios'
+import { useSesion } from '@/features/auth/sesion'
+import { esCuentaBloqueada, mensajeDeError } from '@/services/api'
+import { esquemaLogin } from '@/utils/validacion'
+import { useFormulario } from '@/hooks/usarFormulario'
 import { Boton } from '@/components/ui/Boton'
-import { MarcoAuth, Campo, CampoPassword } from './MarcoAuth'
+import { Campo, CampoPassword } from '@/components/ui/Campo'
+import { MarcoAuth } from './MarcoAuth'
+import { TextoError } from '@/components/ui/TextoError'
 
 export function Login() {
   const { login } = useSesion()
@@ -54,9 +57,9 @@ export function Login() {
         />
 
         {error && (
-          <p role="alert" className="text-label text-danger">
+          <TextoError>
             {error}
-          </p>
+          </TextoError>
         )}
 
         <Boton type="submit" disabled={enviando} className="mt-1 w-full">

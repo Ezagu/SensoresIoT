@@ -3,20 +3,27 @@ import { Card } from '@/components/ui/Card'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlertaSonando, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
-import { medida } from '@/lib/formato'
-import { ETIQUETA_ESTADO, estadoDispositivo, type EstadoDispositivo } from '@/lib/tiempo'
-import { nombreDeDispositivo } from '@/lib/dispositivos'
-import type { DispositivoPanel, SensorPanel } from './usarPanel'
+import { medida } from '@/utils/formato'
+import { ETIQUETA_ESTADO, estadoDispositivo, type EstadoDispositivo } from '@/utils/tiempo'
+import { nombreDeDispositivo } from '@/utils/dispositivos'
+import { etiquetarSensores, type SensorEtiquetado } from '@/utils/sensores'
+import type { DispositivoResumen, SensorResumen } from '@/tipos'
 
-/* 'retraso' no apaga la fila: arranca a 3 intervalos y estos dispositivos
-   pierden WiFi y se ponen al día solos, así que apagarla ahí la haría parpadear
-   por algo que casi nunca es una falla. */
+/* 'retraso' no apaga la fila: arranca a 3 intervalos y estos equipos se ponen al
+   día solos, así que parpadearía por algo que casi nunca es una falla. */
 const ESTADOS_APAGADOS: EstadoDispositivo[] = ['sin-reportar', 'nunca']
 
-/* Desactualizado: el hue del sensor y el valor se apagan a gris, para que el
-   número se siga leyendo pero no como una lectura de ahora. El ícono de alerta
-   no se apaga: es el estado de una regla, no una medición. */
-function Fila({ sensor, desactualizado }: { sensor: SensorPanel; desactualizado: boolean }) {
+/* Desactualizado apaga el hue y el valor a gris. El ícono de alerta no: es el
+   estado de una regla, no una medición. */
+function Fila({
+  sensor,
+  meta,
+  desactualizado,
+}: {
+  sensor: SensorResumen
+  meta: SensorEtiquetado
+  desactualizado: boolean
+}) {
   const tonoValor = desactualizado
     ? 'text-text-muted'
     : sensor.disparada
@@ -29,36 +36,35 @@ function Fila({ sensor, desactualizado }: { sensor: SensorPanel; desactualizado:
         <span
           aria-hidden="true"
           className={`size-2 shrink-0 rounded-full ${desactualizado ? 'bg-text-faint' : ''}`}
-          style={desactualizado ? undefined : { background: sensor.color }}
+          style={desactualizado ? undefined : { background: meta.color }}
         />
-        <span className="truncate">{sensor.etiqueta}</span>
+        <span className="truncate">{meta.etiqueta}</span>
         {sensor.disparada && <IconoAlertaSonando className="size-3.25 shrink-0 text-danger" />}
       </span>
       <span className={`num shrink-0 text-heading-lg font-semibold ${tonoValor}`}>
-        {sensor.ultimo === null ? '—' : medida(sensor.ultimo, sensor.unidad)}
+        {sensor.ultimo_valor === null ? '—' : medida(sensor.ultimo_valor, sensor.unidad)}
       </span>
     </li>
   )
 }
 
 export function TarjetaDispositivo({
-  datos,
+  dispositivo,
   estado,
-  intervaloSeg,
   ahora,
 }: {
-  datos: DispositivoPanel
+  dispositivo: DispositivoResumen
   estado: EstadoDispositivo
-  intervaloSeg: number
   ahora: number
 }) {
-  const { dispositivo, sensores } = datos
+  const { sensores, intervalo_efectivo_seg: intervaloSeg } = dispositivo
   const inactivo = !dispositivo.activo
+  const etiquetas = etiquetarSensores(sensores)
 
   /* Por sensor y no por dispositivo: el pill de arriba habla del equipo, pero
      cada lectura tiene su propia antigüedad. */
-  const estaDesactualizado = (sensor: SensorPanel) =>
-    inactivo || ESTADOS_APAGADOS.includes(estadoDispositivo(sensor.ultimoAt, intervaloSeg, ahora))
+  const estaDesactualizado = (sensor: SensorResumen) =>
+    inactivo || ESTADOS_APAGADOS.includes(estadoDispositivo(sensor.ultimo_at, intervaloSeg, ahora))
 
   return (
     <Card className="flex h-full flex-col gap-3 p-3.5">
@@ -90,7 +96,12 @@ export function TarjetaDispositivo({
       ) : (
         <ul className="flex flex-col gap-2">
           {sensores.map((s) => (
-            <Fila key={s.id} sensor={s} desactualizado={estaDesactualizado(s)} />
+            <Fila
+              key={s.id}
+              sensor={s}
+              meta={etiquetas.get(s.id)!}
+              desactualizado={estaDesactualizado(s)}
+            />
           ))}
         </ul>
       )}

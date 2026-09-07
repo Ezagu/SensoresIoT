@@ -1,16 +1,19 @@
-import { useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
+import {
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react'
 import { IconoOjo, IconoOjoTachado } from '@/components/layout/iconos'
 
-export const CLASES_INPUT =
+const CLASES_INPUT =
   'min-h-10 w-full rounded-control border bg-surface-2 px-3 text-body text-text placeholder:text-text-faint ' +
-  /* Deshabilitado: la superficie se hunde a surface-inert para perder el "pozo"
-     que hace ver editable a un campo, y el valor baja a text-muted — sigue
-     siendo información legible (el intervalo que rige, p. ej.), no un dato
-     tachado. Sin opacidad sobre todo el campo: dejaría el valor por debajo del
-     contraste mínimo. */
+  /* Deshabilitado pierde el "pozo" pero el valor sigue legible: no es un dato
+     tachado. Sin opacidad, que dejaría el valor bajo el contraste mínimo. */
   'disabled:cursor-not-allowed disabled:bg-surface-inert disabled:text-text-muted'
 
-export const borde = (error?: string) =>
+const borde = (error?: string) =>
   error ? 'border-danger focus-visible:border-danger' : 'border-border focus-visible:border-accent'
 
 /* La etiqueta acompaña el estado del control: deshabilitada baja un escalón
@@ -46,7 +49,7 @@ function Pie({ id, error, ayuda }: { id: string; error?: string; ayuda?: string 
   return null
 }
 
-export function descrito(id: string, error?: string, ayuda?: string) {
+function descrito(id: string, error?: string, ayuda?: string) {
   if (error) return `${id}-error`
   if (ayuda) return `${id}-ayuda`
   return undefined
@@ -109,6 +112,32 @@ export function CampoPassword({ id, etiqueta, ayuda, error, className = '', ...p
           {visible ? <IconoOjoTachado className="size-4" /> : <IconoOjo className="size-4" />}
         </button>
       </div>
+      <Pie id={id} error={error} ayuda={ayuda} />
+    </div>
+  )
+}
+
+type AreaTextoProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  id: string
+  etiqueta: string
+  ayuda?: string
+  error?: string
+}
+
+export function AreaTexto({ id, etiqueta, ayuda, error, className = '', ...props }: AreaTextoProps) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Etiqueta id={id} disabled={props.disabled}>
+        {etiqueta}
+      </Etiqueta>
+      <textarea
+        id={id}
+        name={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={descrito(id, error, ayuda)}
+        className={`${CLASES_INPUT} min-h-20 resize-y py-2 ${borde(error)} ${className}`}
+        {...props}
+      />
       <Pie id={id} error={error} ayuda={ayuda} />
     </div>
   )

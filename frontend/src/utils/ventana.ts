@@ -1,5 +1,3 @@
-import { useState } from 'react'
-
 export type RangoGrafico = 'tiempo-real' | '24h' | '7d' | '30d' | '6m' | '1a'
 
 /* Orden y etiquetas del selector de rango del detalle, en un solo lugar. */
@@ -18,9 +16,8 @@ export function duracionMsDeRango(rango: RangoGrafico): number {
   return HORAS_POR_RANGO[rango] * 3600_000
 }
 
-/* Preset, rango de "Máx" (desde el primer reporte del equipo) o rango de
-   fechas fijo (sólo lo produce el zoom del gráfico). Sólo "En tiempo real"
-   pollea (el resto se refresca a mano). */
+/* Preset, "Máx" (desde el primer reporte) o rango fijo (sólo lo produce el
+   zoom). Sólo "En tiempo real" pollea; el resto se refresca a mano. */
 export type Ventana =
   | { tipo: 'preset'; rango: RangoGrafico }
   | { tipo: 'maximo'; desde: Date }
@@ -54,28 +51,4 @@ export function bordesDeVentana(ventana: Ventana, tic: number): { desdeMs: numbe
     return { desdeMs: ventana.desde.getTime(), hastaMs: tic }
   }
   return { desdeMs: tic - duracionMsDeRango(ventana.rango), hastaMs: tic }
-}
-
-/* Estado de ventana con zoom. La previa se guarda sólo en el primer zoom, así
-   "restablecer" siempre vuelve al punto de partida y no a un paso intermedio. */
-export function useVentanaConZoom(inicial: Ventana) {
-  const [ventana, setVentana] = useState<Ventana>(inicial)
-  const [previa, setPrevia] = useState<Ventana | null>(null)
-
-  function elegir(v: Ventana) {
-    setPrevia(null)
-    setVentana(v)
-  }
-
-  function zoomear(desdeMs: number, hastaMs: number) {
-    setPrevia((p) => p ?? ventana)
-    setVentana({ tipo: 'fechas', desde: new Date(desdeMs), hasta: new Date(hastaMs) })
-  }
-
-  function restablecer() {
-    if (previa) setVentana(previa)
-    setPrevia(null)
-  }
-
-  return { ventana, elegir, zoomear, restablecer, hayZoom: previa !== null }
 }

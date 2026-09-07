@@ -1,4 +1,4 @@
-import type { AlertaConNotificar } from '@/lib/tipos'
+import type { AlertaConNotificar } from '@/tipos'
 
 export const ETIQUETA_CONDICION = { mayor: 'Mayor a', menor: 'Menor a' } as const
 

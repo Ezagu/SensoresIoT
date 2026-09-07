@@ -36,9 +36,8 @@ export const IconoAlerta = ({ className }: Props) => (
   </svg>
 )
 
-/* Campana rellena, distinta de IconoAlerta: en el nav esa campana significa
-   "la sección Alertas" y acá significa "esta regla está sonando". El mismo
-   glifo para las dos cosas obligaba a deducir cuál era por el contexto. */
+/* Distinta de IconoAlerta: en el nav esa campana es la sección, acá es "esta
+   regla está sonando". */
 export const IconoAlertaSonando = ({ className }: Props) => (
   <svg {...base(className)} fill="currentColor">
     <path d="M12 2a6 6 0 00-6 6c0 5-2 6-2 8h16c0-2-2-3-2-8a6 6 0 00-6-6z" />
@@ -140,5 +139,18 @@ export const IconoCompartido = ({ className }: Props) => (
 export const IconoActualizar = ({ className }: Props) => (
   <svg {...base(className)}>
     <path d="M21 12a9 9 0 10-2.6 6.4M21 12v-5M21 12h-5" />
+  </svg>
+)
+
+export const IconoCopiar = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <rect x="9" y="9" width="12" height="12" rx="1.5" />
+    <path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1" />
+  </svg>
+)
+
+export const IconoTilde = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M20 6L9 17l-5-5" />
   </svg>
 )

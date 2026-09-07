@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
 import { Pill } from '@/components/ui/Pill'
-import { eliminarAlerta, actualizarPreferenciaAlerta } from '@/lib/consultas'
-import { medida } from '@/lib/formato'
-import type { AlertaConNotificar } from '@/lib/tipos'
+import { eliminarAlerta, actualizarPreferenciaAlerta } from '@/services/consultas'
+import { medida } from '@/utils/formato'
+import type { AlertaConNotificar } from '@/tipos'
 import { condicionTexto } from './condicion'
 
 export function FilaAlerta({
@@ -83,9 +83,8 @@ export function FilaAlerta({
         )}
       </div>
 
-      {/* El <dialog> de la app y no window.confirm: era el único diálogo que se
-          salía del sistema, y el nativo no puede decir qué alerta se está por
-          borrar cuando hay varias en la lista. */}
+      {/* El <dialog> de la app y no window.confirm: el nativo no puede decir qué
+          alerta se está por borrar cuando hay varias en la lista. */}
       {confirmando && (
         <Modal abierto onCerrar={() => setConfirmando(false)} titulo="Borrar alerta">
           <div className="flex flex-col gap-3.5">

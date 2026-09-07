@@ -1,9 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { IconoCerrar } from '@/components/layout/iconos'
 
-/* Sobre <dialog> nativo: focus trap, Escape y backdrop (::backdrop) vienen
-   gratis del navegador, mismo criterio que ya usa Layout con `inert` en vez de
-   un focus trap a mano. */
+/* <dialog> nativo: focus trap, Escape y ::backdrop vienen del navegador. */
 export function Modal({
   abierto,
   onCerrar,
@@ -34,12 +32,9 @@ export function Modal({
         // click fuera del contenido cae directo sobre el elemento raíz.
         if (e.target === ref.current) onCerrar()
       }}
-      /* El alto se acota igual que el ancho: sin `max-h` un formulario más alto
-         que la ventana (el alta de alerta en un celular apaisado) se corta sin
-         forma de llegar al botón. La cabecera queda pegada arriba con su propio
-         fondo, no con el del <dialog>. No se usa flex acá: `display:flex` de
-         autor le gana al `display:none` que el navegador aplica al <dialog>
-         cerrado, y el modal quedaría visible siempre. */
+      /* Sin `max-h` un formulario más alto que la ventana se corta sin forma de
+         llegar al botón. No se usa flex: `display:flex` de autor le gana al
+         `display:none` que el navegador aplica al <dialog> cerrado. */
       className="m-auto max-h-[92dvh] w-[min(92vw,420px)] overflow-y-auto overscroll-contain rounded-card border border-border bg-surface p-0 text-text shadow-lg backdrop:bg-overlay"
     >
       <div className="sticky top-0 z-1 flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">

@@ -1,4 +1,4 @@
-import type { DatosGrafico } from './tipos'
+import type { DatosGrafico } from '@/tipos'
 import { duracionMsDeRango, type RangoGrafico } from './ventana'
 
 /* Margen por desfase de reloj cliente/servidor, para no marcar como recortado
@@ -23,10 +23,8 @@ export function permiteHistorialCompleto(retencionDias: number | null) {
   return retencionDias === null
 }
 
-/* El backend marca `recortado` con un `<` estricto contra su propio now(),
-   siempre posterior al que usó el cliente para armar el `desde`: pedir 7 d con
-   7 d de retención da recortado=true sin que falte un solo dato. Sólo cuenta si
-   movió el borde más allá del desfase de reloj. */
+/* El backend compara contra su propio now(), siempre posterior al del cliente:
+   pedir 7 d con 7 d de retención da recortado=true sin que falte un dato. */
 export function recorteEsMaterial(desdeEfectivo: string, desdePedidoMs: number) {
   return new Date(desdeEfectivo).getTime() - desdePedidoMs > MARGEN_RELOJ_MS
 }
@@ -40,17 +38,11 @@ export type LimiteDeVentana = {
   primeraConexion: string | null
 }
 
-/* Qué limita el borde izquierdo del gráfico, en un solo lugar: lo consumen el
-   eje, la marca del corte y el aviso de arriba, y las tres tienen que contestar
-   lo mismo.
-
-   El eje arranca en `desde_efectivo` cuando el plan recortó: dibujar la ventana
-   pedida deja el tramo recortado en blanco, indistinguible de un equipo que
-   estuvo mudo — y con 7 días de retención, pedir un año dejaría el 98% del
-   cuadro vacío y las lecturas apretadas contra el borde derecho.
-
-   Si el equipo empezó a reportar después del piso del plan, el que limita es el
-   equipo: ahí lo que falta no existe en ninguna suscripción. */
+/* Qué limita el borde izquierdo, en un solo lugar: lo consumen el eje, la marca
+   del corte y el aviso, y las tres tienen que contestar lo mismo. El eje arranca
+   en `desde_efectivo` cuando el plan recortó, porque dibujar la ventana pedida
+   dejaría ese tramo en blanco, igual que un equipo mudo. Si el equipo empezó a
+   reportar después del piso del plan, el que limita es el equipo. */
 export function limiteDeVentana(
   grafico: DatosGrafico | null,
   primeraConexion: string | null,

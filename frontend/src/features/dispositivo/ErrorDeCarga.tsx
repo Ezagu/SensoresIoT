@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Boton } from '@/components/ui/Boton'
 import { Vacio } from '@/components/ui/Vacio'
-import { estadoHttp } from '@/lib/api'
+import { estadoHttp } from '@/services/api'
 
 export function Navegable({ titulo, detalle, volverA }: { titulo: string; detalle?: string; volverA: string }) {
   return (
@@ -20,43 +20,49 @@ export function Navegable({ titulo, detalle, volverA }: { titulo: string; detall
   )
 }
 
-/* Escalera 404 / 403 / error genérico compartida por las dos pantallas de
-   detalle, sólo mientras no hay datos que mostrar. */
+const TEXTOS = {
+  dispositivo: {
+    noEncontrado: 'Este dispositivo no existe',
+    detalleNoEncontrado: 'Puede que lo hayas desvinculado, o el link esté mal.',
+    generico: 'No pudimos cargar este dispositivo',
+  },
+  sensor: {
+    noEncontrado: 'Este sensor no existe',
+    detalleNoEncontrado: undefined,
+    generico: 'No pudimos cargar el sensor',
+  },
+}
+
+/* Escalera 404 / 403 / error genérico de las dos pantallas de detalle, sólo
+   mientras no hay datos que mostrar. */
 export function ErrorDeCarga({
   error,
   errorCrudo,
-  esNoEncontrado,
+  recurso,
   volverA,
-  tituloNoEncontrado,
-  detalleNoEncontrado,
-  tituloSinAcceso,
-  tituloGenerico,
   onReintentar,
 }: {
   error: string
   errorCrudo: unknown
-  /* Fuerza el caso 404 aunque errorCrudo no traiga un status http (p. ej. un
-     sensorId ajeno al dispositivo, resuelto sin red — SensorNoEncontradoError). */
-  esNoEncontrado?: boolean
+  recurso: keyof typeof TEXTOS
   volverA: string
-  tituloNoEncontrado: string
-  detalleNoEncontrado?: string
-  tituloSinAcceso: string
-  tituloGenerico: string
   onReintentar: () => void
 }) {
-  const status = esNoEncontrado ? 404 : estadoHttp(errorCrudo)
+  const textos = TEXTOS[recurso]
+  const status = estadoHttp(errorCrudo)
 
   if (status === 404) {
-    return <Navegable titulo={tituloNoEncontrado} detalle={detalleNoEncontrado} volverA={volverA} />
+    return (
+      <Navegable titulo={textos.noEncontrado} detalle={textos.detalleNoEncontrado} volverA={volverA} />
+    )
   }
   if (status === 403) {
-    return <Navegable titulo={tituloSinAcceso} volverA={volverA} />
+    return <Navegable titulo="No tenés acceso a este dispositivo" volverA={volverA} />
   }
   return (
     <Card>
       <Vacio
-        titulo={tituloGenerico}
+        titulo={textos.generico}
         detalle={error}
         accion={
           <Boton variante="sutil" onClick={onReintentar}>

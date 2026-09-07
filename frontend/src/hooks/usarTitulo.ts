@@ -2,9 +2,8 @@ import { createContext, useContext, useEffect } from 'react'
 
 export const MARCA = 'Bitácora'
 
-/* Título de pestaña más específico que el de la sección. Va por contexto y no
-   escribiendo `document.title` desde la pantalla, porque los efectos corren de
-   hijo a padre: el Layout pisaría lo que la pantalla acaba de poner. */
+/* Por contexto y no escribiendo `document.title` desde la pantalla: los efectos
+   corren de hijo a padre y el Layout pisaría lo que la pantalla puso. */
 export const ContextoTitulo = createContext<(titulo: string | null) => void>(() => {})
 
 export function useTituloPagina(titulo: string | null) {

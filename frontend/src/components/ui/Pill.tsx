@@ -1,4 +1,4 @@
-import type { EstadoDispositivo } from '@/lib/tiempo'
+import type { EstadoDispositivo } from '@/utils/tiempo'
 
 type Tono = 'ok' | 'warn' | 'danger' | 'faint'
 

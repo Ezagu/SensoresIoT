@@ -1,10 +1,12 @@
 import { useState, type SubmitEvent } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Campo, Select } from '@/components/ui/Campo'
-import { crearAlerta } from '@/lib/consultas'
-import { mensajeDeError } from '@/lib/api'
-import { esquemaAlertaNueva, useFormulario } from '@/lib/formularios'
-import type { SensorConMeta } from '../cargarSensores'
+import { crearAlerta } from '@/services/consultas'
+import { mensajeDeError } from '@/services/api'
+import { esquemaAlertaNueva } from '@/utils/validacion'
+import { useFormulario } from '@/hooks/usarFormulario'
+import type { SensorConMeta } from '../usarDispositivo'
+import { TextoError } from '@/components/ui/TextoError'
 
 export function FormularioNuevaAlerta({
   sensores,
@@ -15,7 +17,7 @@ export function FormularioNuevaAlerta({
   onCreada: () => void
   onCancelar: () => void
 }) {
-  const { campo, campoSelect, validar } = useFormulario(esquemaAlertaNueva, {
+  const { campo, validar } = useFormulario(esquemaAlertaNueva, {
     sensorId: sensores[0]?.id ?? '',
     nombre: '',
     condicion: 'mayor',
@@ -50,7 +52,7 @@ export function FormularioNuevaAlerta({
 
   return (
     <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
-      <Select etiqueta="Sensor" {...campoSelect('sensorId')}>
+      <Select etiqueta="Sensor" {...campo('sensorId')}>
         {sensores.map((s) => (
           <option key={s.id} value={s.id}>
             {s.etiqueta}
@@ -59,7 +61,7 @@ export function FormularioNuevaAlerta({
       </Select>
       <Campo etiqueta="Nombre (opcional)" placeholder="Ej: Temperatura alta" {...campo('nombre')} />
       <div className="grid grid-cols-2 gap-3">
-        <Select etiqueta="Condición" {...campoSelect('condicion')}>
+        <Select etiqueta="Condición" {...campo('condicion')}>
           <option value="mayor">Mayor a</option>
           <option value="menor">Menor a</option>
         </Select>
@@ -76,9 +78,9 @@ export function FormularioNuevaAlerta({
       />
 
       {error && (
-        <p role="alert" className="text-label text-danger">
+        <TextoError>
           {error}
-        </p>
+        </TextoError>
       )}
 
       <div className="mt-1 flex justify-end gap-2">

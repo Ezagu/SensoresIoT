@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api, mensajeDeError } from '@/lib/api'
+import { api, mensajeDeError } from '@/services/api'
 import { MarcoAuth } from './MarcoAuth'
 
 type Estado = 'verificando' | 'ok' | 'error'
@@ -13,19 +13,18 @@ export function Verificar() {
   const token = params.get('token')
   const [resultado, setResultado] = useState<Resultado | null>(null)
 
+  /* El backend borra el token al usarlo, así que un segundo POST con el mismo
+     token responde 400: se manda una sola vez (StrictMode remonta en dev). */
+  const pedidoPara = useRef<string | null>(null)
   useEffect(() => {
-    if (!token) return
-    let vigente = true
+    if (!token || pedidoPara.current === token) return
+    pedidoPara.current = token
     api
       .post('/auth/verify-email', { token })
-      .then(() => vigente && setResultado({ ok: true }))
-      .catch((err) => {
-        if (!vigente) return
-        setResultado({ ok: false, error: mensajeDeError(err, 'No pudimos verificar la cuenta.') })
-      })
-    return () => {
-      vigente = false
-    }
+      .then(() => setResultado({ ok: true }))
+      .catch((err) =>
+        setResultado({ ok: false, error: mensajeDeError(err, 'No pudimos verificar la cuenta.') }),
+      )
   }, [token])
 
   /* Un link sin token se resuelve en render: el estado guarda sólo el resultado

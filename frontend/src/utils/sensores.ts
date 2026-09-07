@@ -1,5 +1,3 @@
-import type { TipoSensor } from './tipos'
-
 export type ClaveSensor =
   | 'temperatura'
   | 'humedad'
@@ -36,7 +34,7 @@ const SIN_TILDE: Record<string, string> = {
   ü: 'u',
 }
 
-export function claveDeTipo(nombre: string): ClaveSensor {
+function claveDeTipo(nombre: string): ClaveSensor {
   const limpio = nombre
     .trim()
     .toLowerCase()
@@ -51,58 +49,41 @@ export function claveDeTipo(nombre: string): ClaveSensor {
   return 'desconocido'
 }
 
-export function metaDeTipo(nombre: string): MetaSensor {
+function metaDeTipo(nombre: string): MetaSensor {
   return META[claveDeTipo(nombre)]
 }
 
-/* Tipos cuyas lecturas llegan de verdad al cero (oscuridad, silencio): ahí el
-   eje anclado en 0 informa. En temperatura, humedad, presión o CO₂ el cero es
-   arbitrario y anclar aplasta la serie contra el borde superior. */
+/* Tipos cuyas lecturas llegan de verdad al cero. En temperatura o presión el
+   cero es arbitrario y anclar aplasta la serie contra el borde superior. */
 const DESDE_CERO: ClaveSensor[] = ['luz', 'ruido']
 
 export function anclaEnCero(nombre: string): boolean {
   return DESDE_CERO.includes(claveDeTipo(nombre))
 }
 
-export function colorDeTipo(nombre: string): string {
-  return metaDeTipo(nombre).color
-}
+export type SensorEtiquetado = { etiqueta: string; unidad: string; color: string; tipo: string }
 
-/* El sensor no tiene nombre propio en el modelo: se lo identifica por tipo +
-   unidad, desambiguando con índice cuando el dispositivo repite tipo. Mismo criterio
-   que ya usa el export CSV del backend. */
+/* El sensor no tiene nombre propio: se lo identifica por tipo, con índice cuando
+   el equipo repite tipo. Mismo criterio que el export CSV del backend. */
 export function etiquetarSensores(
-  sensores: { id: string; tipo_sensor_id: number }[],
-  tipos: TipoSensor[],
-): Map<string, { etiqueta: string; unidad: string; color: string; tipo: string }> {
-  const porId = new Map(tipos.map((t) => [t.id, t]))
-  const vistos = new Map<number, number>()
+  sensores: { id: string; tipo_sensor_id: number; tipo_nombre: string; unidad: string }[],
+): Map<string, SensorEtiquetado> {
   const total = new Map<number, number>()
-
   for (const s of sensores) {
     total.set(s.tipo_sensor_id, (total.get(s.tipo_sensor_id) ?? 0) + 1)
   }
 
-  const salida = new Map<string, { etiqueta: string; unidad: string; color: string; tipo: string }>()
+  const vistos = new Map<number, number>()
+  const salida = new Map<string, SensorEtiquetado>()
   for (const s of sensores) {
-    const tipo = porId.get(s.tipo_sensor_id)
-    const nombre = tipo?.nombre ?? 'Sensor'
-    const meta = metaDeTipo(nombre)
-    const repetido = (total.get(s.tipo_sensor_id) ?? 0) > 1
-
+    const meta = metaDeTipo(s.tipo_nombre)
     let etiqueta = meta.etiqueta
-    if (repetido) {
+    if ((total.get(s.tipo_sensor_id) ?? 0) > 1) {
       const n = (vistos.get(s.tipo_sensor_id) ?? 0) + 1
       vistos.set(s.tipo_sensor_id, n)
       etiqueta = `${meta.etiqueta} ${n}`
     }
-
-    salida.set(s.id, {
-      etiqueta,
-      unidad: tipo?.unidad ?? '',
-      color: meta.color,
-      tipo: nombre,
-    })
+    salida.set(s.id, { etiqueta, unidad: s.unidad, color: meta.color, tipo: s.tipo_nombre })
   }
   return salida
 }

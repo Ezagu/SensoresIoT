@@ -6,22 +6,24 @@ import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { ResumenStats } from '@/components/ui/ResumenStats'
 import { Grafico } from '@/components/graficos/Grafico'
-import { useAhora } from '@/lib/usarCarga'
-import { serieDeGrafico } from '@/lib/series'
-import { medida } from '@/lib/formato'
-import { estadoDispositivo, TIC_RELOJ_MS } from '@/lib/tiempo'
-import { bordesDeVentana, esTiempoReal, resolverVentana, useVentanaConZoom } from '@/lib/ventana'
-import { intervaloEfectivo, nombreDeDispositivo } from '@/lib/dispositivos'
-import { anclaEnCero } from '@/lib/sensores'
-import { limiteDeVentana } from '@/lib/retencion'
-import { reglaDestacada, umbralesDeSensor } from '@/lib/alertas'
-import { useTituloPagina } from '@/lib/titulo'
-import { useAlertasDispositivo } from './usarDetalleDispositivo'
-import { SensorNoEncontradoError, useDatosSensor, useDetalleSensorEstatico } from './usarDetalleSensor'
+import { useAhora } from '@/hooks/usarAhora'
+import { serieDeGrafico } from '@/utils/series'
+import { medida } from '@/utils/formato'
+import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
+import { bordesDeVentana, esTiempoReal, resolverVentana } from '@/utils/ventana'
+import { useVentanaConZoom } from './usarVentana'
+import { intervaloEfectivo, nombreDeDispositivo } from '@/utils/dispositivos'
+import { anclaEnCero } from '@/utils/sensores'
+import { limiteDeVentana } from '@/utils/retencion'
+import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
+import { useTituloPagina } from '@/hooks/usarTitulo'
+import { useAlertasDispositivo, useDispositivo, useSensoresConMeta } from './usarDispositivo'
+import { useDatosSensor } from './usarGraficos'
 import { BarraVentana } from './BarraVentana'
 import { AvisoVentana } from './AvisoVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { BloqueHistorial } from './BloqueHistorial'
+import { TextoError } from '@/components/ui/TextoError'
 
 function EsqueletoSensor() {
   return (
@@ -41,39 +43,46 @@ export function DetalleSensor() {
   })
   const enVivo = esTiempoReal(ventana)
 
-  const estatico = useDetalleSensorEstatico(id ?? '', sensorId ?? '')
-  const polling = useDatosSensor(sensorId ?? '', ventana)
-  const tic = useAhora(enVivo && polling.intervaloSeg ? polling.intervaloSeg * 1000 : TIC_RELOJ_MS)
-  const { alertas: alertasDelEquipo } = useAlertasDispositivo(id ?? '', polling.intervaloSeg)
+  const equipo = useDispositivo(id ?? '')
+  const sensores = useSensoresConMeta(id ?? '')
+  const polling = useDatosSensor(sensorId ?? '', ventana, equipo.intervaloSeg)
+  const tic = useAhora(enVivo && equipo.intervaloSeg ? equipo.intervaloSeg * 1000 : TIC_RELOJ_MS)
+  const { alertas: alertasDelEquipo } = useAlertasDispositivo(id ?? '', equipo.intervaloSeg)
+
+  const dispositivo = equipo.datos
+  const sensor = sensores.datos?.find((s) => s.id === sensorId)
 
   useTituloPagina(
-    estatico.datos
-      ? `${estatico.datos.sensor.etiqueta} — ${nombreDeDispositivo(estatico.datos.dispositivo.id, estatico.datos.dispositivo.nombre)}`
+    dispositivo && sensor
+      ? `${sensor.etiqueta} — ${nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}`
       : null,
   )
 
   if (!id || !sensorId) return <Navegable titulo="Sensor no encontrado" volverA="/" />
 
-  if (estatico.cargando || polling.cargando) return <EsqueletoSensor />
+  if (equipo.cargando || sensores.cargando || polling.cargando) return <EsqueletoSensor />
 
-  if (estatico.error && !estatico.datos) {
+  const error = equipo.error ?? sensores.error
+  if (error && !(dispositivo && sensores.datos)) {
     return (
       <ErrorDeCarga
-        error={estatico.error}
-        errorCrudo={estatico.errorCrudo}
-        esNoEncontrado={estatico.errorCrudo instanceof SensorNoEncontradoError}
+        error={error}
+        errorCrudo={equipo.errorCrudo ?? sensores.errorCrudo}
+        recurso="sensor"
         volverA={`/dispositivos/${id}`}
-        tituloNoEncontrado="Este sensor no existe"
-        tituloSinAcceso="No tenés acceso a este dispositivo"
-        tituloGenerico="No pudimos cargar el sensor"
-        onReintentar={estatico.refrescar}
+        onReintentar={equipo.refrescar}
       />
     )
   }
 
-  if (!estatico.datos) return null
+  if (!dispositivo || !sensores.datos) return null
 
-  const { dispositivo, sensor } = estatico.datos
+  /* Un sensorId que no está entre los del equipo es un 404, igual que un
+     dispositivo inexistente. */
+  if (!sensor) {
+    return <Navegable titulo="Este sensor no existe" volverA={`/dispositivos/${id}`} />
+  }
+
   const alertas = alertasDelEquipo.filter((a) => a.sensor_id === sensor.id)
   const datosGrafico = polling.datos?.datos ?? null
   const ultima = polling.datos?.ultima ?? null
@@ -93,8 +102,7 @@ export function DetalleSensor() {
   const retencionDias = datosGrafico?.retencion_dias ?? null
   const limite = limiteDeVentana(datosGrafico, dispositivo.first_connected_at, desde.getTime())
 
-  const intervaloSeg =
-    polling.intervaloSeg ?? intervaloEfectivo(dispositivo, dispositivo.limites.intervalo_minimo_seg)
+  const intervaloSeg = intervaloEfectivo(dispositivo, dispositivo.limites.intervalo_minimo_seg)
   const estado = ultima ? estadoDispositivo(ultima.time, intervaloSeg, tic) : 'nunca'
   const valorApagado = estado !== 'en-linea'
 
@@ -138,10 +146,10 @@ export function DetalleSensor() {
         {hayResumen && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" />}
       </div>
 
-      {estatico.error && (
-        <p role="alert" className="text-label text-danger">
-          No pudimos actualizar: {estatico.error}
-        </p>
+      {error && (
+        <TextoError>
+          No pudimos actualizar: {error}
+        </TextoError>
       )}
 
       <BarraVentana

@@ -1,12 +1,10 @@
-import type { DatosGrafico } from './tipos'
+import type { DatosGrafico } from '@/tipos'
 
 export type PuntoGrilla = { t: number; valor: number | null }
 
-/* El paso esperado lo dice el backend: el bucket si agregó, el intervalo de
-   muestreo del equipo si devolvió las lecturas crudas (bucket_seg null). Una
-   separación mayor a FACTOR_HUECO veces ese paso es un corte de reporte, no
-   jitter del muestreo, y se intercala como null para cortar el trazo — sigue
-   siendo la única señal visible de que un dispositivo se calló. */
+/* El paso lo dice el backend: el bucket si agregó, el intervalo de muestreo si
+   devolvió lecturas crudas. Una separación mayor es un corte de reporte y no
+   jitter, y corta el trazo: es la única señal de que un equipo se calló. */
 const FACTOR_HUECO = 1.8
 
 export function serieDeGrafico(datos: DatosGrafico): PuntoGrilla[] {

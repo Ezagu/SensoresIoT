@@ -6,8 +6,9 @@ import { Campo } from '@/components/ui/Campo'
 import { Segmentado } from '@/components/ui/Segmentado'
 import { Vacio } from '@/components/ui/Vacio'
 import { useHistorial, type FiltroHistorial } from './usarHistorial'
-import { medida } from '@/lib/formato'
-import { fechaHoraSegundos } from '@/lib/tiempo'
+import { medida } from '@/utils/formato'
+import { fechaHoraSegundos } from '@/utils/tiempo'
+import { TextoError } from '@/components/ui/TextoError'
 
 const OPCIONES_FILAS = [
   { valor: '50', etiqueta: '50' },
@@ -96,9 +97,9 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
       </div>
 
       {error && (
-        <p role="alert" className="text-label text-danger">
+        <TextoError>
           No pudimos cargar el historial: {error}
-        </p>
+        </TextoError>
       )}
 
       {cargando ? (

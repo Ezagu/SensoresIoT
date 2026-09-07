@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/Card'
 import { Pendiente } from '@/components/ui/Pendiente'
-import { useSesion } from '@/lib/auth'
+import { useSesion } from '@/features/auth/sesion'
 
 export function Cuenta() {
   const { sesion, plan } = useSesion()

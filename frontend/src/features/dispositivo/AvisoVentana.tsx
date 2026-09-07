@@ -1,14 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Boton } from '@/components/ui/Boton'
 import { Card } from '@/components/ui/Card'
-import { limiteDeVentana } from '@/lib/retencion'
-import { fecha } from '@/lib/tiempo'
-import type { DatosGrafico } from '@/lib/tipos'
+import { limiteDeVentana } from '@/utils/retencion'
+import { fecha } from '@/utils/tiempo'
+import type { DatosGrafico } from '@/tipos'
 
-/* Una región vacía del gráfico significa cuatro cosas distintas —el equipo
-   estuvo mudo, se instaló después, el plan no llega hasta ahí, o todavía
-   carga— y ninguna se distingue de las otras mirando el trazo. Esto nombra las
-   dos que la respuesta del backend ya permite afirmar. */
+/* Una región vacía puede ser silencio del equipo, instalación posterior, corte
+   del plan o carga en curso. Esto nombra las dos que el backend deja afirmar. */
 export function AvisoVentana({
   grafico,
   primeraConexion,

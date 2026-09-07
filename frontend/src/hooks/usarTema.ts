@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useMediaQuery } from './medios'
+import { useMediaQuery } from '@/hooks/usarMedios'
 
 export type Tema = 'sistema' | 'claro' | 'oscuro'
 
 const CLAVE = 'bitacora-tema'
 const CLARO_DEL_SISTEMA = '(prefers-color-scheme: light)'
 
-/* data-theme queda siempre puesto con un tema concreto: así el CSS define la
-   paleta clara en un solo lugar, sin duplicarla en un @media. El stamp previo
-   al primer paint lo hace el script inline de index.html. */
+/* data-theme siempre con un tema concreto: el CSS define la paleta clara en un
+   solo lugar. El stamp previo al primer paint lo hace el script de index.html. */
 function aplicar(tema: Tema, claroDelSistema: boolean) {
   const claro = tema === 'claro' || (tema === 'sistema' && claroDelSistema)
   document.documentElement.dataset.theme = claro ? 'light' : 'dark'

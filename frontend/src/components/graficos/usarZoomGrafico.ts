@@ -9,9 +9,8 @@ const FACTOR_ALEJAR = 1.25
 /* Sin este debounce, un solo gesto de rueda dispara un refetch por tick. */
 const DEBOUNCE_RUEDA_MS = 200
 
-/* Arrastre + ctrl-rueda para el zoom del gráfico: arrastrar selecciona un
-   rango y dispara onZoom(desdeMs, hastaMs); ctrl+rueda acerca/aleja
-   centrado en el cursor. Sin onZoom el gráfico queda de sólo lectura. */
+/* Arrastrar selecciona un rango; ctrl+rueda acerca centrado en el cursor.
+   Sin onZoom el gráfico queda de sólo lectura. */
 export function useZoomGrafico({
   desdeMs,
   hastaMs,
@@ -69,9 +68,8 @@ export function useZoomGrafico({
     setArrastre(null)
   }
 
-  /* Ctrl+rueda no puede ir por onWheel de React: desde React 17 ese listener
-     se registra pasivo en el root, así que preventDefault() es un no-op (y
-     tira warning en consola) — hace falta un listener nativo no-pasivo. */
+  /* onWheel de React se registra pasivo en el root: preventDefault() sería un
+     no-op, hace falta un listener nativo. */
   useEffect(() => {
     if (!puedeZoom) return
     const el = contenedorRef.current

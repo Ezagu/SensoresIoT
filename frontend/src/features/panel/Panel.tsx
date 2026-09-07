@@ -6,11 +6,13 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlertaSonando, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
-import { useDispositivos, type DispositivoPanel } from './usarPanel'
-import { useAhora } from '@/lib/usarCarga'
-import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/lib/tiempo'
+import { useDispositivos } from './usarPanel'
+import { useAhora } from '@/hooks/usarAhora'
+import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/utils/tiempo'
 import { TarjetaDispositivo } from './TarjetaDispositivo'
+import type { DispositivoResumen } from '@/tipos'
 import type { ReactNode } from 'react'
+import { TextoError } from '@/components/ui/TextoError'
 
 /* Los 3 indicadores del resumen. Nada de deltas porcentuales: un +5% sobre una
    temperatura no significa nada (el cero de la escala es arbitrario). */
@@ -54,19 +56,14 @@ function EsqueletoDispositivo() {
   )
 }
 
-type Fila = { datos: DispositivoPanel; estado: EstadoDispositivo; intervaloSeg: number }
+type Fila = { dispositivo: DispositivoResumen; estado: EstadoDispositivo }
 
 function Grilla({ filas, ahora }: { filas: Fila[]; ahora: number }) {
   return (
     <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {filas.map(({ datos, estado, intervaloSeg }) => (
-        <li key={datos.dispositivo.id} className="min-w-0">
-          <TarjetaDispositivo
-            datos={datos}
-            estado={estado}
-            intervaloSeg={intervaloSeg}
-            ahora={ahora}
-          />
+      {filas.map(({ dispositivo, estado }) => (
+        <li key={dispositivo.id} className="min-w-0">
+          <TarjetaDispositivo dispositivo={dispositivo} estado={estado} ahora={ahora} />
         </li>
       ))}
     </ul>
@@ -74,27 +71,23 @@ function Grilla({ filas, ahora }: { filas: Fila[]; ahora: number }) {
 }
 
 export function Panel() {
-  const { datos: dispositivos, cargando, refrescando, error, refrescar } = useDispositivos()
+  const { datos: dispositivos, cargando, refrescando, error, refrescar, cadenciaSeg } = useDispositivos()
 
   // El tic del reloj nunca es más lento que el poll del panel: si el equipo
   // más rápido de la cartera reporta cada 15 s, el "hace X" también.
-  const ticMs = useMemo(() => {
-    if (!dispositivos || dispositivos.length === 0) return TIC_RELOJ_MS
-    const menorSeg = Math.min(...dispositivos.map((d) => d.intervaloEfectivoSeg))
-    return Math.min(TIC_RELOJ_MS, menorSeg * 1000)
-  }, [dispositivos])
-  const ahora = useAhora(ticMs)
+  const ahora = useAhora(
+    cadenciaSeg !== undefined ? Math.min(TIC_RELOJ_MS, cadenciaSeg * 1000) : TIC_RELOJ_MS,
+  )
 
   const resumen = useMemo(() => {
     const lista = dispositivos ?? []
-    const estados = lista.map((e) => ({
-      datos: e,
-      intervaloSeg: e.intervaloEfectivoSeg,
-      estado: estadoDispositivo(e.dispositivo.last_seen_at, e.intervaloEfectivoSeg, ahora),
+    const filas: Fila[] = lista.map((d) => ({
+      dispositivo: d,
+      estado: estadoDispositivo(d.last_seen_at, d.intervalo_efectivo_seg, ahora),
     }))
 
-    const ultimoReporte = lista.reduce<string | null>((max, e) => {
-      const visto = e.dispositivo.last_seen_at
+    const ultimoReporte = lista.reduce<string | null>((max, d) => {
+      const visto = d.last_seen_at
       if (!visto) return max
       return !max || Date.parse(visto) > Date.parse(max) ? visto : max
     }, null)
@@ -102,14 +95,12 @@ export function Panel() {
     return {
       /* El rol del vínculo es lo único que separa un dispositivo propio de uno
          que alguien compartió: 'owner' es dueño, editor y viewer son invitados. */
-      propios: estados.filter((e) => e.datos.dispositivo.rol === 'owner'),
-      compartidos: estados.filter((e) => e.datos.dispositivo.rol !== 'owner'),
-      total: estados.length,
-      alertas: lista.reduce((total, e) => total + e.alertasDisparadas, 0),
+      propios: filas.filter((f) => f.dispositivo.rol === 'owner'),
+      compartidos: filas.filter((f) => f.dispositivo.rol !== 'owner'),
+      total: filas.length,
+      alertas: lista.reduce((total, d) => total + d.alertas_disparadas, 0),
       // "Con problemas" es sólo conectividad: las alertas ya tienen su propio KPI
-      conProblemas: estados.filter(
-        (e) => e.datos.dispositivo.activo && e.estado === 'sin-reportar',
-      ).length,
+      conProblemas: filas.filter((f) => f.dispositivo.activo && f.estado === 'sin-reportar').length,
       ultimoReporte,
     }
   }, [dispositivos, ahora])
@@ -159,9 +150,9 @@ export function Panel() {
         {/* Un fallo de poll con datos ya en pantalla es un aviso al costado, no
             un reemplazo: la última foto buena sigue siendo útil. */}
         {error && dispositivos && (
-          <p role="alert" className="mb-3 text-label text-danger">
+          <TextoError className="mb-3">
             No pudimos actualizar: {error}
-          </p>
+          </TextoError>
         )}
 
         {cargando ? (

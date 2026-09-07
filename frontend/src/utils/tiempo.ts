@@ -19,10 +19,7 @@ const fmtHoraSeg = new Intl.DateTimeFormat('es-AR', {
 export function haceCuanto(iso: string | null, ahora: number = Date.now()): string {
   if (!iso) return 'nunca'
   const seg = Math.round((ahora - new Date(iso).getTime()) / 1000)
-  /* Un timestamp futuro es un reloj desfasado (el del equipo por SNTP, o el del
-     navegador contra el now() del servidor), no un dato del futuro: "dentro de
-     X" no significaría nada acá. Cae en el mismo caso el 0, que como "hace 0 s"
-     se lee peor. */
+  /* Un timestamp futuro es un reloj desfasado, no un dato del futuro. */
   if (seg <= 0) return 'recién'
   if (seg < 60) return `hace ${seg} s`
   if (seg < 3600) return rtf.format(-Math.round(seg / 60), 'minute')
@@ -38,17 +35,15 @@ export function fechaHora(iso: string): string {
   return fechaHoraMs(new Date(iso).getTime())
 }
 
-/* Fecha y hora completas desde ms. Los formatters del eje X omiten el año o la
-   hora a propósito, pero donde no hay ticks alrededor que desambigüen (la
-   alternativa textual del gráfico) hace falta el timestamp entero. */
+/* Los formatters del eje X omiten el año o la hora; donde no hay ticks alrededor
+   que desambigüen hace falta el timestamp entero. */
 export function fechaHoraMs(ms: number): string {
   const d = new Date(ms)
   return `${fmtFecha.format(d)} ${fmtHora.format(d)}`
 }
 
-/* Con segundos, para listas de lecturas crudas: estos equipos muestrean cada
-   15-30 s, así que al minuto dos filas seguidas quedan con la misma fecha y se
-   leen como una fila duplicada. */
+/* Con segundos: estos equipos muestrean cada 15-30 s y al minuto dos filas
+   seguidas se leerían como duplicadas. */
 export function fechaHoraSegundos(iso: string): string {
   const d = new Date(iso)
   return `${fmtFecha.format(d)} ${fmtHoraSeg.format(d)}`
@@ -72,21 +67,16 @@ export function fechaConAnio(ms: number): string {
   return fmtFecha.format(new Date(ms))
 }
 
-/* Tic compartido para todo lo que se deriva de la hora actual ("hace X",
-   estado de conexión): nunca más lento que el poll más rápido en pantalla,
-   para que esos textos no envejezcan mintiendo entre un poll y el siguiente. */
+/* Nunca más lento que el poll más rápido en pantalla, para que estos textos no
+   envejezcan entre un poll y el siguiente. */
 export const TIC_RELOJ_MS = 30_000
 
 export type EstadoDispositivo = 'nunca' | 'en-linea' | 'retraso' | 'sin-reportar'
 
 /* No existe online/offline en el backend: se deriva de last_seen_at, que es el
-   now() del servidor en cada POST aceptado (nunca el time de la lectura, para
-   que un flush de datos viejos no marque como caído a un dispositivo que acaba de
-   reportar).
-   Tres estados y no un booleano porque así fallan estos dispositivos: pierden WiFi,
-   bufferean y se ponen al día — "con retraso" casi nunca es una falla real.
-   El piso real sale del plan del DUEÑO y no se expone, así que intervaloSeg es
-   una aproximación; hoy es exacta porque todo vínculo es 'owner'. */
+   now() del servidor en cada POST aceptado, nunca el time de la lectura. Tres
+   estados y no un booleano porque estos equipos pierden WiFi, bufferean y se
+   ponen al día: "con retraso" casi nunca es una falla. */
 export function estadoDispositivo(
   lastSeenAt: string | null,
   intervaloSeg: number,
@@ -100,14 +90,8 @@ export function estadoDispositivo(
 }
 
 export const ETIQUETA_ESTADO: Record<EstadoDispositivo, string> = {
-  // Misma palabra que el resto de la app ("Reportó hace X", "Sin reportar"):
-  // "conectado" y "reportó" describían el mismo hecho a centímetros de distancia.
   nunca: 'Nunca reportó',
   'en-linea': 'En línea',
   retraso: 'Con retraso',
   'sin-reportar': 'Sin reportar',
-}
-
-export function isoDesdeAhora(horas: number): string {
-  return new Date(Date.now() - horas * 3600 * 1000).toISOString()
 }

@@ -1,6 +1,6 @@
-import type { PuntoGrilla } from '@/lib/series'
-import { medida } from '@/lib/formato'
-import { fechaHora } from '@/lib/tiempo'
+import type { PuntoGrilla } from '@/utils/series'
+import { medida } from '@/utils/formato'
+import { fechaHora } from '@/utils/tiempo'
 
 export function TooltipGrafico({
   active,

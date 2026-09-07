@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom'
 import { Boton } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
 import { Modal } from '@/components/ui/Modal'
-import { exportarHistorial, type ResultadoExport } from '@/lib/consultas'
-import { mensajeDeErrorBlob } from '@/lib/api'
-import { fecha } from '@/lib/tiempo'
+import { exportarHistorial, type ResultadoExport } from '@/services/consultas'
+import { mensajeDeErrorBlob } from '@/services/api'
+import { fecha } from '@/utils/tiempo'
+import { TextoError } from '@/components/ui/TextoError'
 
 /* Descarga = <a download> temporal sobre un blob: la respuesta pide el header
    Authorization (JWT), así que no puede ser una navegación <a href> directa. */
@@ -82,14 +83,13 @@ export function BloqueExport({
         </label>
 
         {error && (
-          <p role="alert" className="text-label text-danger">
+          <TextoError>
             {error}
-          </p>
+          </TextoError>
         )}
 
-        {/* El archivo baja por <a download>: la única pista de que salió, y de
-            qué salió, es esto. El recorte por plan sobre todo — un CSV truncado
-            en silencio se descubre recién al abrirlo. */}
+        {/* El archivo baja por <a download>: esto es la única pista de qué salió,
+            y sobre todo del recorte por plan. */}
         {resultado && (
           <div role="status" className="flex flex-col gap-1.5 rounded-control border border-border bg-surface-2 p-3">
             <p className="text-label text-text">

@@ -1,9 +1,12 @@
 import { useState, type SubmitEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { api, mensajeDeError } from '@/lib/api'
-import { esquemaRegistro, useFormulario } from '@/lib/formularios'
+import { api, mensajeDeError } from '@/services/api'
+import { esquemaRegistro } from '@/utils/validacion'
+import { useFormulario } from '@/hooks/usarFormulario'
 import { Boton } from '@/components/ui/Boton'
-import { MarcoAuth, Campo, CampoPassword } from './MarcoAuth'
+import { Campo, CampoPassword } from '@/components/ui/Campo'
+import { MarcoAuth } from './MarcoAuth'
+import { TextoError } from '@/components/ui/TextoError'
 
 export function Registro() {
   const { campo, validar } = useFormulario(esquemaRegistro, {
@@ -69,9 +72,9 @@ export function Registro() {
         />
 
         {error && (
-          <p role="alert" className="text-label text-danger">
+          <TextoError>
             {error}
-          </p>
+          </TextoError>
         )}
 
         <Boton type="submit" disabled={enviando} className="mt-1 w-full">

@@ -6,26 +6,29 @@ export function Segmentado<T extends string>({
   onCambiar,
   etiqueta,
   fueraDelPlan,
+  mensajeFueraDelPlan,
+  disabled,
 }: {
   valor: T | null
   opciones: { valor: T; etiqueta: string }[]
   onCambiar: (valor: T) => void
   etiqueta: string
-  /* Opción que excede el plan del dueño: se pinta violeta pero se elige igual,
-     y quien la consume explica después qué parte quedó afuera. Marcar sin
-     bloquear, no al revés: el candado deja al usuario sin ver nunca su propio
-     límite. Sin esta prop no hay marca, que es lo que necesitan los otros
-     consumidores (tema, filas por página). */
+  /* Opción que excede el plan del dueño: se marca pero se elige igual, y quien
+     la consume explica qué parte quedó afuera. Sin la prop no hay marca. */
   fueraDelPlan?: (valor: T) => boolean
+  /* Qué implica esa marca acá: no es lo mismo "vas a ver la parte disponible"
+     (un rango) que "tu plan no permite bajar de esto" (un piso). Default =
+     caso de rango, el primer consumidor que existió. */
+  mensajeFueraDelPlan?: (valor: T) => string
+  disabled?: boolean
 }) {
   const botones = useRef<(HTMLButtonElement | null)[]>([])
   const seleccionada = opciones.findIndex((o) => o.valor === valor)
-  /* Un radiogroup expone un solo punto de entrada al tab y se recorre con las
-     flechas. Sin selección (una ventana por fechas, por ejemplo) entra por la
-     primera opción. */
+  /* Sin selección (una ventana por fechas) el tab entra por la primera opción. */
   const conFoco = seleccionada === -1 ? 0 : seleccionada
 
   function mover(desde: number, delta: number) {
+    if (disabled) return
     const destino = (desde + delta + opciones.length) % opciones.length
     botones.current[destino]?.focus()
     // Las flechas seleccionan, como en cualquier grupo de radios.
@@ -52,13 +55,14 @@ export function Segmentado<T extends string>({
     <div
       role="radiogroup"
       aria-label={etiqueta}
-      /* Envuelve en vez de desbordar: siete rangos miden ~400px y en un celular
-         de 360px las últimas opciones quedaban fuera de pantalla o arrastraban
-         scroll horizontal a la página entera. */
+      /* Envuelve en vez de desbordar: siete rangos no entran en 360px. */
       className="flex w-fit max-w-full flex-wrap gap-0.5 rounded-group border border-border bg-surface-2 p-1"
     >
       {opciones.map((o, indice) => {
         const excede = fueraDelPlan?.(o.valor) ?? false
+        const mensaje = excede
+          ? (mensajeFueraDelPlan?.(o.valor) ?? 'Tu plan no cubre todo este rango: vas a ver la parte disponible')
+          : undefined
         return (
           <button
             key={o.valor}
@@ -68,14 +72,15 @@ export function Segmentado<T extends string>({
             type="button"
             role="radio"
             aria-checked={o.valor === valor}
-            aria-label={excede ? `${o.etiqueta} — tu plan no cubre todo este rango` : undefined}
-            title={excede ? 'Tu plan no cubre todo este rango: vas a ver la parte disponible' : undefined}
+            aria-label={mensaje ? `${o.etiqueta} — ${mensaje}` : undefined}
+            title={mensaje}
+            disabled={disabled}
             tabIndex={indice === conFoco ? 0 : -1}
             onKeyDown={(evento) => alTeclado(evento, indice)}
-            onClick={() => onCambiar(o.valor)}
+            onClick={() => !disabled && onCambiar(o.valor)}
             /* 44px con el dedo (pointer-coarse), 32px con mouse: la densidad de
                escritorio no tiene por qué pagar el tamaño de toque. */
-            className={`flex min-h-8 items-center gap-1 rounded-tile px-3 text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer pointer-coarse:min-h-11 ${
+            className={`flex min-h-8 items-center gap-1 rounded-tile px-3 text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer pointer-coarse:min-h-11 disabled:cursor-not-allowed disabled:opacity-50 ${
               o.valor === valor
                 ? `bg-surface shadow-sm ${excede ? 'text-premium' : 'text-text'}`
                 : excede

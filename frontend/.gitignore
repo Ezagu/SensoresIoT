@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Lockfile de skills de agentes, no es parte de la app
+skills-lock.json

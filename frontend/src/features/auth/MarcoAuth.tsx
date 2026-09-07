@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
 import { Logo } from '@/components/layout/Logo'
 
-export { Campo, CampoPassword } from '@/components/ui/Campo'
-
 export function MarcoAuth({
   titulo,
   subtitulo,

@@ -1,8 +1,8 @@
 import { Card } from '@/components/ui/Card'
 import { Boton } from '@/components/ui/Boton'
 import { Segmentado } from '@/components/ui/Segmentado'
-import { useTema, type Tema } from '@/lib/tema'
-import { useSesion } from '@/lib/auth'
+import { useTema, type Tema } from '@/hooks/usarTema'
+import { useSesion } from '@/features/auth/sesion'
 
 const OPCIONES: { valor: Tema; etiqueta: string }[] = [
   { valor: 'sistema', etiqueta: 'Sistema' },

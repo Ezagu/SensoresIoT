@@ -15,10 +15,6 @@ export function setAccessToken(token: string | null) {
   accessToken = token
 }
 
-export function getAccessToken() {
-  return accessToken
-}
-
 api.interceptors.request.use((config) => {
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`
@@ -26,9 +22,8 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-/* Un solo refresh en vuelo: si expiran varias requests a la vez, todas esperan
-   el mismo POST /auth/refresh en lugar de dispararlo N veces (y rotar el token
-   N veces, invalidándose entre sí). */
+/* Un solo refresh en vuelo: si expiran varias requests juntas, rotar el token N
+   veces las invalidaría entre sí. */
 let refreshEnVuelo: Promise<string> | null = null
 let alExpirar: (() => void) | null = null
 
@@ -88,10 +83,9 @@ export function estadoHttp(error: unknown): number | undefined {
   return axios.isAxiosError(error) ? error.response?.status : undefined
 }
 
-/* Con `responseType: 'blob'` (export CSV) el cuerpo de un error también llega
-   como Blob: mensajeDeError no encuentra `detail` ahí y devuelve el texto por
-   default. El endpoint tiene rate limit (20/hora), así que perder el mensaje
-   real hace indistinguible un 429 de un fallo genérico. */
+/* Con `responseType: 'blob'` el cuerpo del error también llega como Blob y
+   mensajeDeError no encuentra `detail`. El endpoint tiene rate limit, así que
+   perder el mensaje real hace indistinguible un 429 de un fallo genérico. */
 export async function mensajeDeErrorBlob(
   error: unknown,
   porDefecto = 'Algo falló. Probá de nuevo.',

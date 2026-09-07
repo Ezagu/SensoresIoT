@@ -1,35 +1,32 @@
-import { api } from './api'
+import { api } from '@/services/api'
 import type {
+  AccesoCreatePayload,
+  AccesoDispositivo,
+  AccesoUpdatePayload,
   Alerta,
   AlertaConNotificar,
   AlertaCreatePayload,
   AlertaUpdatePayload,
   DatosGrafico,
-  DispositivoConRol,
   DispositivoDetalle,
+  DispositivoUpdatePayload,
   Historial,
   IntervaloActualizado,
   PanelResumen,
   PreferenciaUpdatePayload,
   Sensor,
   TipoSensor,
-} from './tipos'
+} from '@/tipos'
 
 /* Envoltorios tipados de la API. Nada de estado ni de React acá: sólo la URL,
    el tipo de vuelta y la señal de cancelación. */
-
-export function listarDispositivos(usuarioId: string, signal?: AbortSignal) {
-  return api
-    .get<DispositivoConRol[]>(`/usuarios/${usuarioId}/dispositivos`, { signal })
-    .then((r) => r.data)
-}
 
 export function obtenerDispositivo(dispositivoId: string, signal?: AbortSignal) {
   return api.get<DispositivoDetalle>(`/dispositivos/${dispositivoId}`, { signal }).then((r) => r.data)
 }
 
 /* Todos los dispositivos del usuario con sensores + última lectura + alertas
-   disparadas, resuelto en un solo request (ver "Panel" en lib/dispositivos.ts). */
+   disparadas, resuelto en un solo request. */
 export function obtenerPanel(usuarioId: string, signal?: AbortSignal) {
   return api.get<PanelResumen>(`/usuarios/${usuarioId}/panel`, { signal }).then((r) => r.data)
 }
@@ -104,6 +101,29 @@ export function configurarIntervalo(dispositivoId: string, intervaloSeg: number 
     .then((r) => r.data)
 }
 
+export function actualizarDispositivo(dispositivoId: string, payload: DispositivoUpdatePayload) {
+  return api.patch<DispositivoDetalle>(`/dispositivos/${dispositivoId}`, payload).then((r) => r.data)
+}
+
+/* /accesos y no /usuarios: no colisiona con el router de usuarios existente. */
+export function listarAccesos(dispositivoId: string, signal?: AbortSignal) {
+  return api.get<AccesoDispositivo[]>(`/dispositivos/${dispositivoId}/accesos`, { signal }).then((r) => r.data)
+}
+
+export function invitarAcceso(dispositivoId: string, payload: AccesoCreatePayload) {
+  return api.post<AccesoDispositivo>(`/dispositivos/${dispositivoId}/accesos`, payload).then((r) => r.data)
+}
+
+export function actualizarAcceso(dispositivoId: string, usuarioId: string, payload: AccesoUpdatePayload) {
+  return api
+    .patch<AccesoDispositivo>(`/dispositivos/${dispositivoId}/accesos/${usuarioId}`, payload)
+    .then((r) => r.data)
+}
+
+export function quitarAcceso(dispositivoId: string, usuarioId: string) {
+  return api.delete(`/dispositivos/${dispositivoId}/accesos/${usuarioId}`)
+}
+
 export type ParametrosExport = {
   desde?: Date
   hasta?: Date
@@ -122,9 +142,8 @@ export type ResultadoExport = {
   intervaloSeg: number | null
 }
 
-/* Content-Disposition/X-* están en expose_headers (main.py) justo para que un
-   fetch cross-... same-origin como este pueda leerlos; una navegación <a href>
-   no podría, y tampoco llevaría el Authorization que pide el JWT. */
+/* Content-Disposition y los X-* están en expose_headers (main.py) para que este
+   fetch pueda leerlos: una navegación <a href> no llevaría el Authorization. */
 export async function exportarHistorial(
   dispositivoId: string,
   { desde, hasta, intervaloSeg, excel }: ParametrosExport,

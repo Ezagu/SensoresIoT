@@ -1,7 +1,12 @@
 import { Boton } from '@/components/ui/Boton'
+import { Segmentado } from '@/components/ui/Segmentado'
 import { IconoActualizar } from '@/components/layout/iconos'
-import type { Ventana } from '@/lib/ventana'
-import { SelectorVentana } from './SelectorVentana'
+import { RANGOS, type RangoGrafico, type Ventana } from '@/utils/ventana'
+import { permiteHistorialCompleto, rangoExcedeRetencion } from '@/utils/retencion'
+
+type Opcion = RangoGrafico | 'maximo'
+
+const OPCIONES: { valor: Opcion; etiqueta: string }[] = [...RANGOS, { valor: 'maximo', etiqueta: 'Máx' }]
 
 export function BarraVentana({
   ventana,
@@ -27,18 +32,33 @@ export function BarraVentana({
   onCambiar: (v: Ventana) => void
   onRestablecer: () => void
 }) {
-  /* En vivo el poll refresca solo cada pocos segundos y anunciarlo sería puro
-     parpadeo; lo que sí hay que decir es que el rango recién elegido todavía no
-     llegó, y que un "Actualizar" a mano está en curso. */
+  const opcion: Opcion | null =
+    ventana.tipo === 'preset' ? ventana.rango : ventana.tipo === 'maximo' ? 'maximo' : null
+
+  function elegir(valor: Opcion) {
+    if (valor === 'maximo') {
+      // Sin primeraConexion (nunca reportó) cae a 24h: sale vacío igual.
+      const desde = primeraConexion ? new Date(primeraConexion) : new Date(Date.now() - 24 * 3600_000)
+      onCambiar({ tipo: 'maximo', desde })
+      return
+    }
+    onCambiar({ tipo: 'preset', rango: valor })
+  }
+
+  /* En vivo el poll refresca solo y anunciarlo sería parpadeo; lo que sí hay que
+     decir es que el rango recién elegido todavía no llegó. */
   const avisando = desactualizado || (refrescando && !enVivo)
 
   return (
     <div className="flex flex-wrap items-end gap-2">
-      <SelectorVentana
-        ventana={ventana}
-        onCambiar={onCambiar}
-        retencionDias={retencionDias}
-        primeraConexion={primeraConexion}
+      <Segmentado
+        etiqueta="Rango del gráfico"
+        valor={opcion}
+        opciones={OPCIONES}
+        onCambiar={elegir}
+        fueraDelPlan={(v) =>
+          v === 'maximo' ? !permiteHistorialCompleto(retencionDias) : rangoExcedeRetencion(v, retencionDias)
+        }
       />
       {!enVivo && (
         <Boton variante="fantasma" onClick={refrescar} disabled={refrescando}>

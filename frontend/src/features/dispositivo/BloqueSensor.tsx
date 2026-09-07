@@ -5,13 +5,13 @@ import { Vacio } from '@/components/ui/Vacio'
 import { ResumenStats } from '@/components/ui/ResumenStats'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Grafico } from '@/components/graficos/Grafico'
-import { serieDeGrafico } from '@/lib/series'
-import { medida } from '@/lib/formato'
-import { estadoDispositivo } from '@/lib/tiempo'
-import { anclaEnCero } from '@/lib/sensores'
-import { reglaDestacada, umbralesDeSensor } from '@/lib/alertas'
-import type { SensorConDatos } from './cargarSensores'
-import type { AlertaConNotificar } from '@/lib/tipos'
+import { serieDeGrafico } from '@/utils/series'
+import { medida } from '@/utils/formato'
+import { estadoDispositivo } from '@/utils/tiempo'
+import { anclaEnCero } from '@/utils/sensores'
+import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
+import type { SensorConDatos } from './usarDispositivo'
+import type { AlertaConNotificar } from '@/tipos'
 
 export function BloqueSensor({
   dispositivoId,
@@ -34,9 +34,8 @@ export function BloqueSensor({
   corteDePlanMs: number | null
   enVivo: boolean
   intervaloSeg: number
-  /* El trazo todavía es del rango anterior: se atenúa hasta que llegue el
-     nuevo, porque una hora de lecturas sobre un eje de 30 días es
-     indistinguible de un equipo que estuvo mudo un mes. */
+  /* El trazo es todavía del rango anterior: una hora de lecturas sobre un eje de
+     30 días es indistinguible de un equipo mudo un mes. */
   desactualizado: boolean
   onZoom?: (desdeMs: number, hastaMs: number) => void
   onRestablecer?: () => void
@@ -74,10 +73,8 @@ export function BloqueSensor({
       {enVivo && ultimo && (
         <div className="flex flex-col gap-0.5">
           <div className='flex gap-3 justify-between'>
-            {/* role="status": la lectura se renueva sola por polling, sin ninguna
-                acción del usuario, así que un lector de pantalla no se entera si
-                no se la anuncia. El nombre del sensor va adentro para que el
-                anuncio diga de cuál habla. */}
+            {/* role="status": la lectura se renueva sola por polling. El nombre del
+                sensor va adentro para que el anuncio diga de cuál habla. */}
             <span
               role="status"
               aria-atomic="true"

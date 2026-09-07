@@ -1,4 +1,4 @@
-import type { AlertaConNotificar, CondicionAlerta } from './tipos'
+import type { AlertaConNotificar, CondicionAlerta } from '@/tipos'
 
 /* Para el detalle (BloqueAlertas): todas las reglas del sensor, activas o no
    — el usuario administra ambas. */
@@ -25,8 +25,7 @@ function reglasPorSensor(alertas: AlertaConNotificar[]) {
   return mapa
 }
 
-/* Regla a resaltar: la disparada si hay alguna, si no la primera activa. Ya no
-   decide qué se dibuja en el gráfico (se dibujan todas), sólo el estado que
+/* La disparada si hay alguna, si no la primera activa: decide el estado que
    pinta el valor en rojo. Mismo criterio en panel y detalle. */
 export function reglaDestacada(alertas: AlertaConNotificar[], sensorId: string) {
   const reglas = reglasPorSensor(alertas).get(sensorId) ?? []
@@ -39,11 +38,8 @@ export type UmbralGrafico = {
   disparada: boolean
 }
 
-/* Una línea por regla activa del sensor. Deduplicado por condición+umbral: dos
-   reglas con el mismo corte (nombres o destinatarios distintos) son una sola
-   línea en pantalla, y superponerlas sólo engrosaría el trazo y pisaría la
-   etiqueta contra sí misma. Si alguna de esas gemelas está disparada, la línea
-   lo está. */
+/* Una línea por regla activa, deduplicada por condición+umbral: dos reglas con
+   el mismo corte son una sola línea. Si alguna gemela está disparada, lo está. */
 export function umbralesDeSensor(
   alertas: AlertaConNotificar[],
   sensorId: string,

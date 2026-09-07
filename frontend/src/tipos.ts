@@ -1,17 +1,7 @@
-/* Tipado espejo de backend/schemas/*.py. Los nombres de campo son los que
-   devuelve la API tal cual (español, snake_case): no se renombran acá para que
-   un cambio de contrato salte en el type-check y no en runtime. */
+/* Espejo de backend/schemas/*.py: los nombres de campo son los de la API tal
+   cual, para que un cambio de contrato salte en el type-check y no en runtime. */
 
 export type Rol = 'user' | 'admin'
-
-export type Usuario = {
-  id: string
-  nombre: string
-  email: string
-  rol: Rol
-  created_at: string
-  is_verified: boolean
-}
 
 /* GET /auth/me. nombre y email salen de la fila; rol sale del JWT, que es el
    que efectivamente rige en la autorización hasta que expire el access token. */
@@ -36,9 +26,7 @@ export type Dispositivo = {
 
 export type RolDispositivo = 'owner' | 'editor' | 'viewer'
 
-/* GET /usuarios/{id}/panel. Un dispositivo con sus sensores y la última lectura
-   de cada uno resueltos en el propio backend (una sola query cada uno), en vez
-   del fan-out que hacía el front antes (2 requests por dispositivo + 1 por sensor). */
+/* GET /usuarios/{id}/panel: sensores y última lectura resueltos en el backend. */
 export type SensorResumen = {
   id: string
   tipo_sensor_id: number
@@ -49,9 +37,8 @@ export type SensorResumen = {
   disparada: boolean
 }
 
-/* intervalo_efectivo_seg ya viene resuelto con el plan del DUEÑO del
-   dispositivo (max(intervalo_configurado_seg, piso del plan)): a diferencia de
-   intervalo_configurado_seg, es exacto también para un dispositivo compartido. */
+/* intervalo_efectivo_seg = max(intervalo_configurado_seg, piso del plan del
+   DUEÑO): a diferencia del configurado, es exacto para un equipo compartido. */
 export type DispositivoResumen = Dispositivo & {
   rol: RolDispositivo
   intervalo_efectivo_seg: number
@@ -67,21 +54,17 @@ export type PanelResumen = {
    usuario_dispositivo del join, sin resolver nada. */
 export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }
 
-/* GET /dispositivos/{id}. Acá el rol lo resuelve el backend (rol_en_dispositivo),
-   así que además de owner/editor/viewer puede ser 'admin' (soporte, sin fila
-   propia en usuario_dispositivo). owner_nombre es null sólo si el dispositivo
-   quedó sin vincular. */
+/* GET /dispositivos/{id}. El rol lo resuelve el backend, así que acá también
+   puede ser 'admin'. owner_nombre es null sólo si quedó sin vincular. */
 export type DispositivoDetalle = Dispositivo & {
   rol: RolDispositivo | 'admin'
   owner_nombre: string | null
   limites: LimitesDispositivo
 }
 
-/* Límites que rigen sobre el dispositivo: salen del plan de su DUEÑO. No
-   confundir con `useSesion().plan`, que es el plan de la cuenta propia y
-   gobierna otras cosas (compartir los equipos de uno). Un free con acceso
-   compartido a un equipo premium ve acá lo mismo que ve el dueño, que es
-   exactamente lo que el backend le va a aceptar. */
+/* Salen del plan del DUEÑO del equipo. No confundir con `useSesion().plan`, que
+   es el de la cuenta propia y gobierna otras cosas (compartir los equipos
+   propios). Un free con acceso a un equipo premium ve acá lo del dueño. */
 export type LimitesDispositivo = {
   puede_alertas: boolean
   /* null = sin tope. Se cuenta por dispositivo, no por cuenta ni por sensor. */
@@ -90,10 +73,8 @@ export type LimitesDispositivo = {
   intervalo_minimo_seg: number
 }
 
-/* PATCH /dispositivos/{id}/intervalo. No es un DispositivoOut: el dispositivo
-   recién aplica el cambio en su próxima conexión (viaja como
-   intervalo_sugerido en la respuesta de POST /mediciones/), así que la
-   respuesta trae el valor pedido y el que rige mientras tanto por separado. */
+/* PATCH /dispositivos/{id}/intervalo. El equipo aplica el cambio en su próxima
+   conexión, así que viajan el valor pedido y el que rige mientras tanto. */
 export type IntervaloActualizado = {
   intervalo_configurado_seg: number | null
   intervalo_efectivo_seg: number
@@ -111,11 +92,6 @@ export type Sensor = {
   tipo_sensor_id: number
   activo: boolean
   created_at: string
-}
-
-/* GET /sensores/{id} sí resuelve el tipo; el listado por dispositivo no. */
-export type SensorConTipo = Sensor & {
-  tipo_sensor: { nombre: string; unidad: string }
 }
 
 export type PuntoGrafico = {
@@ -193,36 +169,36 @@ export type AlertaUpdatePayload = {
 
 export type PreferenciaUpdatePayload = { notificar: boolean }
 
-export type TipoEvento = 'disparada' | 'normalizada'
-
-export type EventoAlerta = {
-  id: string
-  alerta_id: string
-  tipo: TipoEvento
-  valor: number
-  medicion_at: string
-  detectado_at: string
-  /* la lectura llegó >5 min tarde (flush del buffer del dispositivo) */
-  tardio: boolean
-  /* destinatarios = 0 significa "no se intentó enviar" (es historia de un lote
-     tardío), no un fallo. El fallo parcial es notificados < destinatarios. */
-  destinatarios: number
-  notificados: number
+/* PATCH /dispositivos/{id}. Sólo identificación: intervalo tiene su propio
+   endpoint y accesos el suyo, cada uno con su propia autorización. */
+export type DispositivoUpdatePayload = {
+  nombre?: string
+  ubicacion?: string | null
+  descripcion?: string | null
+  activo?: boolean
 }
 
-export type EventoAlertaConContexto = EventoAlerta & {
-  alerta_nombre: string | null
-  condicion: CondicionAlerta
-  umbral: number
-  dispositivo_id: string
-  dispositivo_nombre: string
-  tipo_sensor_nombre: string
-  tipo_sensor_unidad: string
+/* 'owner' nunca se manda en el payload de alta: lo asigna /vinculate, y sólo
+   puede haber uno por equipo. */
+export type RolCompartido = 'editor' | 'viewer'
+
+/* GET /dispositivos/{id}/accesos. Una fila por usuario con acceso, dueño
+   incluido, para que la lista no tenga que combinar dos fuentes. */
+export type AccesoDispositivo = {
+  usuario_id: string
+  nombre: string
+  email: string
+  rol: RolDispositivo
+  created_at: string
 }
 
-export type PaginaEventos<T> = {
-  eventos: T[]
-  siguiente_cursor: string | null
+export type AccesoCreatePayload = {
+  email: string
+  rol: RolCompartido
+}
+
+export type AccesoUpdatePayload = {
+  rol: RolCompartido
 }
 
 export type Plan = {

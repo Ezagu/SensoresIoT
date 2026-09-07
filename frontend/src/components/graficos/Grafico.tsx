@@ -11,10 +11,10 @@ import {
   YAxis,
 } from 'recharts'
 import type { DotItemDotProps } from 'recharts'
-import type { UmbralGrafico } from '@/lib/alertas'
-import type { PuntoGrilla } from '@/lib/series'
-import { fechaConAnio, fechaCorta, fechaHoraMs, hora } from '@/lib/tiempo'
-import { medida, numero, numeroCon } from '@/lib/formato'
+import type { UmbralGrafico } from '@/utils/alertas'
+import type { PuntoGrilla } from '@/utils/series'
+import { fechaConAnio, fechaCorta, fechaHoraMs, hora } from '@/utils/tiempo'
+import { medida, numero, numeroCon } from '@/utils/formato'
 import { useZoomGrafico } from './usarZoomGrafico'
 import { TooltipGrafico } from './TooltipGrafico'
 
@@ -24,20 +24,17 @@ type Props = {
   unidad: string
   /* Nombre del sensor: entra en la alternativa textual del gráfico. */
   etiqueta: string
-  /* Bordes de la ventana mostrada, no un preset: fijan el dominio del eje X
-     (así el silencio al principio o al final se ve como espacio vacío) y
-     gobiernan el formato de sus ticks. */
+  /* Bordes de la ventana mostrada: fijan el dominio del eje X y el formato de sus ticks. */
   desdeMs: number
   hastaMs: number
   /* Todas las reglas activas del sensor, no sólo la disparada: un umbral que
      no se ve no explica por qué la lectura está donde está. */
   umbrales?: UmbralGrafico[]
-  /* Instante donde el plan corta el historial, cuando el eje arranca ahí porque
-     el backend recortó. Se dibuja como pared: el trazo no empieza ahí, está
-     cortado ahí. */
+  /* Instante donde el plan corta el historial. Se dibuja como pared: el trazo no
+     empieza ahí, está cortado ahí. */
   corteDePlanMs?: number | null
   /* Sólo para magnitudes donde el cero es una lectura real (ver
-     lib/sensores.ts:anclaEnCero). */
+     utils/sensores.ts:anclaEnCero). */
   desdeCero?: boolean
   onZoom?: (desdeMs: number, hastaMs: number) => void
   onRestablecer?: () => void
@@ -55,15 +52,13 @@ function formatterDeEje(duracionMs: number) {
   return fechaConAnio
 }
 
-/* El paso decide los decimales, y los decimales tienen que ser los mismos en
-   todos los ticks: es lo que hace que la columna se lea como una escala y no
-   como valores sueltos. */
+/* Los decimales son los mismos en todos los ticks: es lo que hace que la columna
+   se lea como una escala y no como valores sueltos. */
 type Escala = { dominio: [number, number]; decimales: number }
 
-/* Bordes redondeados al múltiplo de un paso "lindo" (1, 2 o 5 por década).
-   Sin esto los bordes arrastran la basura decimal del aire (19,7806332) y
-   Recharts reparte los ticks entre esos valores: números que ni caben en el
-   ancho del eje ni significan nada. */
+/* Redondeo al múltiplo de un paso "lindo" (1, 2 o 5 por década): sin esto los
+   bordes arrastran la basura decimal del aire (19,7806332) y Recharts reparte
+   los ticks entre esos valores. */
 function bordesLindos(min: number, max: number, desdeCero: boolean): Escala {
   const objetivo = (max - min) / 4
   const magnitud = Math.pow(10, Math.floor(Math.log10(objetivo)))
@@ -77,11 +72,9 @@ function bordesLindos(min: number, max: number, desdeCero: boolean): Escala {
   }
 }
 
-/* El default de Recharts es [0, dataMax], que en una serie de 19,9 a 20,4 °C
-   deja el trazo aplastado contra el borde de arriba y el resto del cuadro
-   relleno. El dominio sale de la serie con aire proporcional, y los umbrales de
-   las reglas entran al cálculo para que sus líneas nunca queden fuera de cuadro.
-   Devuelve undefined sin datos numéricos: ahí manda el default. */
+/* El default de Recharts ([0, dataMax]) aplasta una serie de 19,9 a 20,4 °C
+   contra el borde de arriba. Los umbrales entran al cálculo para que sus líneas
+   no queden fuera de cuadro. undefined = sin datos numéricos, manda el default. */
 function dominioY(
   puntos: PuntoGrilla[],
   umbrales: UmbralGrafico[],
@@ -107,9 +100,8 @@ function dominioY(
   return bordesLindos(min - aire, max + aire, desdeCero)
 }
 
-/* Dos umbrales cercanos apilarían sus etiquetas en el mismo lugar. El de abajo
-   la manda debajo de su línea y el de arriba la deja encima, así se separan en
-   vez de pisarse. */
+/* Dos umbrales cercanos apilarían sus etiquetas: el de abajo la manda debajo de
+   su línea para que se separen. */
 function lineasDeUmbral(umbrales: UmbralGrafico[], escala: Escala | undefined) {
   const separacion = escala ? (escala.dominio[1] - escala.dominio[0]) * SEPARACION_ETIQUETA : 0
   const orden = [...umbrales].sort((a, b) => a.umbral - b.umbral)
@@ -121,9 +113,7 @@ function lineasDeUmbral(umbrales: UmbralGrafico[], escala: Escala | undefined) {
   })
 }
 
-/* Recharts emite un SVG con role="application" y nada legible adentro: sin una
-   alternativa textual el elemento central de la pantalla —y toda la página del
-   sensor— no existe para un lector de pantalla. */
+/* Recharts emite un SVG con role="application" y nada legible adentro. */
 function descripcionDe(
   puntos: PuntoGrilla[],
   etiqueta: string,
@@ -147,8 +137,8 @@ function descripcionDe(
 }
 
 /* Wrapper de Recharts: nada de la app importa la librería directo.
-   isAnimationActive={false} porque Recharts anima por JS (prefers-reduced-motion
-   no lo alcanza) y re-animar en cada poll sería insoportable. */
+   isAnimationActive={false} porque anima por JS (prefers-reduced-motion no lo
+   alcanza) y re-animaría en cada poll. */
 export function Grafico({
   puntos,
   color,
@@ -171,14 +161,16 @@ export function Grafico({
 
   // Una lectura sin vecino de ningún lado (rodeada de huecos, o sola en la
   // ventana) no dibuja trazo: sin un punto explícito sería invisible.
-  const renderPunto = ({ key, cx, cy, index }: DotItemDotProps) => {
-    if (puntos[index]?.valor === null) return <g key={key} />
-    const anterior = puntos[index - 1]
-    const siguiente = puntos[index + 1]
-    const aislado = (anterior?.valor ?? null) === null && (siguiente?.valor ?? null) === null
-    if (!aislado) return <g key={key} />
-    return <circle key={key} cx={cx} cy={cy} r={3} fill={color} />
-  }
+  const esAislado = (i: number) =>
+    puntos[i]?.valor !== null &&
+    (puntos[i - 1]?.valor ?? null) === null &&
+    (puntos[i + 1]?.valor ?? null) === null
+
+  // Sin ninguno, `dot={false}`: si no, Recharts emite un <g/> vacío por punto.
+  const hayAislados = puntos.some((_, i) => esAislado(i))
+
+  const renderPunto = ({ key, cx, cy, index }: DotItemDotProps) =>
+    esAislado(index) ? <circle key={key} cx={cx} cy={cy} r={3} fill={color} /> : <g key={key} />
 
   return (
     <div
@@ -189,8 +181,7 @@ export function Grafico({
     >
       <ResponsiveContainer width="100%" height="100%">
         {/* El margen de arriba le hace lugar a la unidad del eje Y, que se dibuja
-            por fuera del área de trazado: con menos, queda cortada contra el borde
-            del SVG y no se ve. */}
+            por fuera del área de trazado. */}
         <AreaChart data={puntos} margin={{ top: 16, right: 8, bottom: 0, left: 0 }} {...manejadores}>
           <defs>
             <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
@@ -210,13 +201,8 @@ export function Grafico({
             axisLine={{ stroke: 'var(--color-border)' }}
             minTickGap={40}
           />
-          {/* width="auto" y no un ancho fijo: una presión ronda los 1.015 hPa y
-              con 40px los ticks salían recortados a "015,8". El formateo va en
-              es-AR como el resto de la app; el default de Recharts imprime el
-              número crudo, con punto decimal. La unidad va una vez arriba de la
-              escala y no repetida en cada tick: una captura de este gráfico
-              circula sin el resto de la pantalla y sin eso no dice de qué
-              magnitud habla. */}
+          {/* width="auto": con ancho fijo una presión de 1.015 hPa sale recortada.
+              La unidad va una vez arriba de la escala y no en cada tick. */}
           <YAxis
             domain={escala?.dominio}
             stroke="var(--color-text-faint)"
@@ -243,9 +229,8 @@ export function Grafico({
               /* La regla disparada marcada más fuerte: con varias líneas iguales
                  no se distingue cuál es la que está sonando. */
               strokeOpacity={disparada ? 0.9 : 0.5}
-              /* A la derecha y no a la izquierda: ahí colisionaba con los ticks
-                 del eje Y y con la franja del recorte de plan. Con unidad, que
-                 "> 20" no dice si son grados o por ciento. */
+              /* A la derecha: a la izquierda colisiona con los ticks del eje Y y
+                 con la franja del recorte de plan. */
               label={{
                 value: `${condicion === 'menor' ? '<' : '>'} ${medida(umbral, unidad)}`,
                 position: posicion,
@@ -254,9 +239,8 @@ export function Grafico({
               }}
             />
           ))}
-          {/* Pared en el borde: el eje ya arranca acá porque el backend recortó,
-              y sin la marca esto se lee como "el equipo empezó a reportar en esta
-              fecha". El violeta es el mismo del resto de los límites de plan. */}
+          {/* El eje ya arranca acá porque el backend recortó; sin la marca se lee
+              como "el equipo empezó a reportar en esta fecha". */}
           {corteDePlanMs !== null && corteDePlanMs !== undefined && (
             <ReferenceArea
               x1={corteDePlanMs}
@@ -284,7 +268,7 @@ export function Grafico({
             fill={`url(#${uid})`}
             connectNulls={false}
             isAnimationActive={false}
-            dot={renderPunto}
+            dot={hayAislados ? renderPunto : false}
             activeDot={{ r: 3 }}
           />
         </AreaChart>

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { useSesion } from '@/lib/auth'
-import { ContextoTitulo, MARCA } from '@/lib/titulo'
-import { useMediaQuery } from '@/lib/medios'
+import { useSesion } from '@/features/auth/sesion'
+import { ContextoTitulo, MARCA } from '@/hooks/usarTitulo'
+import { useMediaQuery } from '@/hooks/usarMedios'
 import { Logo } from './Logo'
 import {
   IconoAjustes,
@@ -18,7 +18,7 @@ const ESCRITORIO = '(min-width: 1024px)'
 
 /* Iniciales para el avatar: dos como máximo, y el fallback es una interrogación
    porque el nombre puede no haber llegado todavía. */
-function iniciales(nombre?: string) {
+export function iniciales(nombre?: string) {
   const partes = (nombre ?? '').trim().split(/\s+/).filter(Boolean)
   if (partes.length === 0) return '?'
   return partes
@@ -51,9 +51,8 @@ export function Layout({ titulo }: { titulo: string }) {
   /* Bajo 1024px la sidebar es un overlay; arriba es una columna fija. */
   const overlay = !useMediaQuery(ESCRITORIO)
 
-  /* Se guarda en qué ruta se abrió el drawer y "abierto" se deriva de ahí, en
-     vez de cerrarlo desde un efecto: navegar a otra pantalla (que si no queda
-     tapada) y pasar a escritorio lo cierran solos, sin un render de más. */
+  /* "abierto" se deriva de la ruta en que se abrió: navegar o pasar a escritorio
+     lo cierran solos, sin un efecto. */
   const [abiertoEn, setAbiertoEn] = useState<string | null>(null)
   const abierto = overlay && abiertoEn === location.pathname
 
@@ -78,15 +77,12 @@ export function Layout({ titulo }: { titulo: string }) {
     else trigger.current?.focus({ preventScroll: true })
   }, [abierto])
 
-  /* Cerrada, los botones de la sidebar seguirían siendo focusables fuera de
-     pantalla; abierta, el fondo seguiría siendo tabulable. `inert` apaga el
-     lado que no corresponde en cada estado. */
+  /* `inert` apaga el lado que no corresponde: la sidebar fuera de pantalla, o el
+     fondo con el drawer abierto. */
   const sidebarInerte = overlay && !abierto
   const fondoInerte = overlay && abierto
 
-  /* Sin esto toda la app es una fila de pestañas que dicen lo mismo, y el
-     historial del navegador no distingue una pantalla de otra. La pantalla
-     puede afinarlo (el nombre del equipo, no "Dispositivos"). */
+  /* La pantalla puede afinarlo (el nombre del equipo, no "Dispositivos"). */
   const [especifico, setEspecifico] = useState<string | null>(null)
   useEffect(() => {
     document.title = `${especifico ?? titulo} · ${MARCA}`

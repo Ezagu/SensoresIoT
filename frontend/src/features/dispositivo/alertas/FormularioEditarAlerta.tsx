@@ -1,11 +1,13 @@
 import { useState, type SubmitEvent } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
-import { actualizarAlerta } from '@/lib/consultas'
-import { mensajeDeError } from '@/lib/api'
-import { esquemaAlertaEdicion, useFormulario } from '@/lib/formularios'
-import type { AlertaConNotificar } from '@/lib/tipos'
+import { actualizarAlerta } from '@/services/consultas'
+import { mensajeDeError } from '@/services/api'
+import { esquemaAlertaEdicion } from '@/utils/validacion'
+import { useFormulario } from '@/hooks/usarFormulario'
+import type { AlertaConNotificar } from '@/tipos'
 import { ETIQUETA_CONDICION } from './condicion'
+import { TextoError } from '@/components/ui/TextoError'
 
 export function FormularioEditarAlerta({
   alerta,
@@ -57,9 +59,9 @@ export function FormularioEditarAlerta({
       </div>
 
       {error && (
-        <p role="alert" className="text-label text-danger">
+        <TextoError>
           {error}
-        </p>
+        </TextoError>
       )}
 
       <div className="mt-1 flex justify-end gap-2">

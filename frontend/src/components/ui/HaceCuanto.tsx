@@ -1,20 +1,16 @@
 import { useEffect, useState } from 'react'
-import { haceCuanto } from '@/lib/tiempo'
+import { haceCuanto } from '@/utils/tiempo'
 
-/* Cadencia según la edad: recién pasado se nota cada segundo, un equipo caído
-   hace días no necesita recalcular más que una vez por hora. Se reevalúa en
-   cada vuelta del timer, así que se acelera o desacelera sola sin que `iso`
-   cambie. */
+/* Recién pasado se nota cada segundo; un equipo caído hace días, una vez por
+   hora. Se reevalúa en cada vuelta del timer. */
 function proximoTic(segTranscurridos: number): number {
   if (segTranscurridos < 60) return 1_000
   if (segTranscurridos < 3600) return 60_000
   return 3_600_000
 }
 
-/* Componente y no hook: así sólo este nodo se re-renderiza cada tic, no el
-   componente que lo usa (el panel entero, con todas sus tarjetas, si fuera un
-   hook consumido ahí). Sin <span> propio: hereda el estilo del contenedor y no
-   rompe el truncate de la tarjeta ni el layout del KPI. */
+/* Componente y no hook: así sólo este nodo se repinta cada tic, no el panel
+   entero. Sin <span> propio, para no romper el truncate del contenedor. */
 export function HaceCuanto({ iso }: { iso: string | null }) {
   const [, forzar] = useState(0)
 
