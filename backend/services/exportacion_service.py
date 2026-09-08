@@ -4,7 +4,7 @@ import unicodedata
 from uuid import uuid4
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from repositories import sensor_repo, medicion_repo, dispositivo_repo
+from repositories import sensor_repo, medicion_repo
 from services import dispositivo_service, plan_service
 from core.tiempo import a_utc
 from db import get_cursor, get_cursor_streaming
@@ -106,11 +106,7 @@ def preparar_export_dispositivo(dispositivo_id, desde, hasta, usuario_id, rol, e
         raise HTTPException(400, "El intervalo de agregación tiene que ser mayor a cero")
 
     with get_cursor() as cur:
-        dispositivo = dispositivo_repo.buscar_por_id_publico(cur, dispositivo_id)
-        if dispositivo is None:
-            raise HTTPException(404, "dispositivo no existe")
-        if not dispositivo_service.tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
-            raise HTTPException(403, "No tienes acceso a este recurso")
+        dispositivo = dispositivo_service.validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
 
         sensores = sensor_repo.buscar_con_tipo_por_dispositivo(cur, dispositivo_id)
 

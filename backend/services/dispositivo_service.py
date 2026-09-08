@@ -7,22 +7,29 @@ from db import get_cursor
 INTERVALO_MAXIMO_SEG = 24 * 60 * 60
 ROLES_EDICION = ("admin", "owner", "editor")
 
-def _validar_que_exista_dispositivo(cur, dispositivo_id) -> dict:
+def validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict:
+    # Valida que exista el dispositivo, que el usuario esté vinculado y tenga permiso de edición
+    dispositivo = validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
+    rol_disp = rol_en_dispositivo(cur, dispositivo["id"], usuario_id, rol)
+    if rol_disp not in ROLES_EDICION:
+        raise HTTPException(403, "Tu rol en este dispositivo no te permite realizar esta acción")
+    return dispositivo
+
+
+def validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict:
+    # Valida que exista el dispositivo y que el usuario esté vinculado
+    dispositivo = validar_que_exista_dispositivo(cur, dispositivo_id)
+    rol_disp = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+    if not rol_disp:
+        raise HTTPException(403, "No tienes acceso a este recurso")
+    return dispositivo
+
+def validar_que_exista_dispositivo(cur, dispositivo_id) -> dict:
+    # Valida que exista el dispositivo y lo devuelve
     dispositivo = dispositivo_repo.buscar_por_id_publico(cur, dispositivo_id)
     if dispositivo is None:
         raise HTTPException(404, "dispositivo no existe")
     return dispositivo
-
-def _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol) -> dict:
-    dispositivo = _validar_que_exista_dispositivo(cur, dispositivo_id)
-    if not tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
-        raise HTTPException(403, "No tienes acceso a este recurso")
-    return dispositivo
-
-def tiene_acceso_a_dispositivo(cur, dispositivo_id, usuario_id, rol):
-    es_owner = dispositivo_repo.verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id)
-    es_admin = rol == "admin"
-    return es_owner or es_admin
 
 def rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> str | None:
     # 'admin' | 'owner' | 'editor' | 'viewer' | None (sin acceso). Admin
@@ -37,7 +44,7 @@ def crear_dispositivo(dispositivo) -> dict:
 
 def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
-        dispositivo = _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
+        dispositivo = validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         dispositivo["rol"] = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
         dispositivo["owner_nombre"] = dispositivo_repo.buscar_nombre_owner(cur, dispositivo_id)
         # Del plan del dueño, no del de quien consulta: es el mismo criterio que
@@ -52,39 +59,27 @@ def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
 
 def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:
     with get_cursor() as cur:
-        _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
+        validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         return sensor_repo.buscar_por_dispositivo_id(cur, dispositivo_id)
 
-def regenerar_secret_dispositivo(dispositivo_id) -> dict:
+def crear_vinculacion_owner(usuario_id, dispositivo_id):
+    # Vincular un dispositivo a una cuenta como dueño
     with get_cursor() as cur:
-        _validar_que_exista_dispositivo(cur, dispositivo_id)
-        secret = dispositivo_repo.actualizar_secret(cur, dispositivo_id)
-        return {"secret": secret}
+        validar_que_exista_dispositivo(cur, dispositivo_id)
 
-def crear_vinculacion(usuario_id, dispositivo_id, rol):
-    with get_cursor() as cur:
-        _validar_que_exista_dispositivo(cur, dispositivo_id)
-
-        if rol == "owner":
-            has_owner = dispositivo_repo.buscar_owner_de_dispositivo(cur, dispositivo_id)
-            if has_owner is not None:
-                raise HTTPException(409, "el dispositivo ya tiene un dueño")
+        owner = dispositivo_repo.buscar_owner_de_dispositivo(cur, dispositivo_id)
+        if owner is not None:
+            raise HTTPException(409, "el dispositivo ya tiene un dueño")
 
         try:
-            return dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, rol)
+            return dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, "owner")
         except psycopg2.errors.UniqueViolation:
             raise HTTPException(409, "el dispositivo ya tiene un dueño")  # condición de carrera
 
-def rotar_secret_dispositivo(dispositivo_id) -> dict:
-    # No valida ownership: el dispositivo ya se autenticó a sí mismo y sólo puede
-    # rotar el suyo (el id sale del token, no de la URL).
-    with get_cursor() as cur:
-        secret = dispositivo_repo.rotar_secret(cur, dispositivo_id)
-        return {"secret": secret}
-
 def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict:
+    # Cambiar intervalo de medición del dispositivo, se devuelve como respuesta en la medición
     with get_cursor() as cur:
-        _obtener_dispositivo_con_acceso(cur, dispositivo_id, usuario_id, rol)
+        validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
 
         piso = plan_service.limites_de_dispositivo(cur, dispositivo_id)["intervalo_minimo_seg"]
 
@@ -99,8 +94,23 @@ def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict
 
     return {"intervalo_configurado_seg": intervalo_seg, "intervalo_efectivo_seg": efectivo}
 
+#------------SECRET-------------
+
+def regenerar_secret_dispositivo(dispositivo_id) -> dict:
+    # Uso solo de admin, reflashear firmware manualmente con secret nuevo
+    with get_cursor() as cur:
+        validar_que_exista_dispositivo(cur, dispositivo_id)
+        secret = dispositivo_repo.actualizar_secret(cur, dispositivo_id)
+        return {"secret": secret}
+
 def marcar_rotacion_pendiente(dispositivo_id) -> dict:
-    # Uso interno/admin: fuerza a que el dispositivo rote su secret en la próxima conexión
+    # Activar flag para que dispositivo rote de secret
     with get_cursor() as cur:
         dispositivo_repo.marcar_rotacion_pendiente(cur, dispositivo_id)
         return {"detail": "El dispositivo va a rotar su secret en la próxima conexión"}
+
+def rotar_secret_dispositivo(dispositivo_id) -> dict:
+    # Mismo dispositivo solicita rotar secret mediante una flag recibida
+    with get_cursor() as cur:
+        secret = dispositivo_repo.rotar_secret(cur, dispositivo_id)
+        return {"secret": secret}

@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import timedelta
 from fastapi import HTTPException
-from repositories import alerta_repo, sensor_repo, dispositivo_repo
+from repositories import alerta_repo, sensor_repo
 from services import dispositivo_service, plan_service, sensor_service
 from core.tiempo import a_utc
 from core.email import enviar_email_alerta
@@ -28,29 +28,20 @@ def _transicion(estado, condicion, umbral, histeresis, valor) -> str:
             return "normal"
     return estado
 
-def _validar_que_exista_dispositivo(cur, dispositivo_id) -> dict:
-    dispositivo = dispositivo_repo.buscar_por_id_publico(cur, dispositivo_id)
-    if dispositivo is None:
-        raise HTTPException(404, "El dispositivo no existe")
-    return dispositivo
-
-def _validar_que_exista_alerta(cur, alerta_id) -> dict:
+def validar_que_exista_alerta(cur, alerta_id) -> dict:
     alerta = alerta_repo.buscar_por_id(cur, alerta_id)
     if alerta is None:
         raise HTTPException(404, "La alerta no existe")
     return alerta
 
-def _obtener_alerta_con_rol(cur, alerta_id, usuario_id, rol, roles_permitidos=None) -> tuple[dict, str]:
-    # Una alerta es del dispositivo, no de quien la creó: el permiso sale del
-    # rol en usuario_dispositivo del dispositivo dueño del sensor de la regla.
-    alerta = _validar_que_exista_alerta(cur, alerta_id)
+def validar_alerta_con_rol(cur, alerta_id, usuario_id, rol, edicion = False) -> tuple[dict, str]:
+    alerta = validar_que_exista_alerta(cur, alerta_id)
     sensor = sensor_repo.buscar_por_id(cur, alerta["sensor_id"])
-    rol_disp = dispositivo_service.rol_en_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol)
-    if rol_disp is None:
-        raise HTTPException(403, "No tienes acceso a este recurso")
-    if roles_permitidos is not None and rol_disp not in roles_permitidos:
-        raise HTTPException(403, "No tienes permisos para modificar alertas de este dispositivo")
-    return alerta, rol_disp
+    if edicion:
+        dispositivo_service.validar_edicion_en_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol)
+    else:
+        dispositivo_service.validar_acceso_al_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol)
+    return alerta
 
 # --------------------------------------------------------------------------
 # Evaluación inline (llamada desde medicion_service.crear_medicion)
@@ -173,14 +164,10 @@ def crear_alerta(alerta, usuario_id, rol) -> dict:
         sensor = sensor_service.validar_que_exista_sensor(cur, alerta.sensor_id)
         dispositivo_id = sensor["dispositivo_id"]
 
-        rol_disp = dispositivo_service.rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        if rol_disp not in dispositivo_service.ROLES_EDICION:
-            raise HTTPException(403, "No tienes permisos para crear alertas en este dispositivo")
+        dispositivo_service.validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
 
-        # Límites de datos del dispositivo salen del plan de su dueño, no de
-        # quien crea la alerta: un editor free puede crear en un equipo premium,
-        # igual que hoy ya ve el historial completo de ese equipo.
         limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
+        
         if not limites["puede_alertas"]:
             raise HTTPException(403, "El plan de este dispositivo no incluye alertas")
         if limites["max_alertas"] is not None and alerta_repo.contar_por_dispositivo(cur, dispositivo_id) >= limites["max_alertas"]:
@@ -193,31 +180,28 @@ def crear_alerta(alerta, usuario_id, rol) -> dict:
 
 def listar_por_dispositivo(dispositivo_id, usuario_id, rol) -> list[dict]:
     with get_cursor() as cur:
-        _validar_que_exista_dispositivo(cur, dispositivo_id)
-        if dispositivo_service.rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) is None:
-            raise HTTPException(403, "No tienes acceso a este recurso")
+        dispositivo_service.validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         return alerta_repo.listar_por_dispositivo(cur, dispositivo_id, usuario_id)
 
 def obtener_alerta(alerta_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
-        alerta, _ = _obtener_alerta_con_rol(cur, alerta_id, usuario_id, rol)
-        return alerta
+        return validar_alerta_con_rol(cur, alerta_id, usuario_id, rol)
 
 def actualizar_alerta(alerta_id, usuario_id, rol, cambios) -> dict:
     with get_cursor() as cur:
-        _obtener_alerta_con_rol(cur, alerta_id, usuario_id, rol, dispositivo_service.ROLES_EDICION)
+        validar_alerta_con_rol(cur, alerta_id, usuario_id, rol, edicion=True)
         return alerta_repo.actualizar(cur, alerta_id, cambios.nombre, cambios.umbral, cambios.histeresis, cambios.activa)
 
 def eliminar_alerta(alerta_id, usuario_id, rol) -> None:
     with get_cursor() as cur:
-        _obtener_alerta_con_rol(cur, alerta_id, usuario_id, rol, dispositivo_service.ROLES_EDICION)
+        validar_alerta_con_rol(cur, alerta_id, usuario_id, rol, edicion=True)
         alerta_repo.eliminar(cur, alerta_id)
 
 def actualizar_preferencia(alerta_id, usuario_id, rol, notificar: bool) -> dict:
     # Cualquier rol con acceso (viewer incluido) decide si quiere sus propios
     # mails de esta alerta, sin necesitar permiso de edición sobre la regla.
     with get_cursor() as cur:
-        _obtener_alerta_con_rol(cur, alerta_id, usuario_id, rol)
+        validar_alerta_con_rol(cur, alerta_id, usuario_id, rol)
         alerta_repo.upsert_preferencia(cur, alerta_id, usuario_id, notificar)
     return {"alerta_id": alerta_id, "notificar": notificar}
 
@@ -227,7 +211,7 @@ def obtener_eventos(alerta_id, usuario_id, rol, hasta, cursor, limite) -> dict:
     cursor = a_utc(cursor)
 
     with get_cursor() as cur:
-        _obtener_alerta_con_rol(cur, alerta_id, usuario_id, rol)
+        validar_alerta_con_rol(cur, alerta_id, usuario_id, rol)
         filas = alerta_repo.listar_eventos_por_alerta(cur, alerta_id, hasta, cursor, limite)
 
     siguiente_cursor = filas[-1]["medicion_at"] if len(filas) == limite else None
@@ -239,9 +223,7 @@ def eventos_por_dispositivo(dispositivo_id, usuario_id, rol, hasta, cursor, limi
     cursor = a_utc(cursor)
 
     with get_cursor() as cur:
-        _validar_que_exista_dispositivo(cur, dispositivo_id)
-        if dispositivo_service.rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) is None:
-            raise HTTPException(403, "No tienes acceso a este recurso")
+        dispositivo_service.validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         filas = alerta_repo.listar_eventos_por_dispositivo(cur, dispositivo_id, hasta, cursor, limite)
 
     siguiente_cursor = filas[-1]["medicion_at"] if len(filas) == limite else None

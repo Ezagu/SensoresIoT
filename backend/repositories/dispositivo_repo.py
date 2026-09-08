@@ -12,16 +12,6 @@ def buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id) -> str | None:
     fila = cur.fetchone()
     return fila["rol"] if fila else None
 
-def verificar_ownership_dispositivo(cur, dispositivo_id, usuario_id) -> bool:
-    cur.execute(
-        """
-        SELECT 1 FROM usuario_dispositivo
-        WHERE usuario_id = %s AND dispositivo_id = %s
-        """,
-        (usuario_id, dispositivo_id)
-    )
-    return cur.fetchone() is not None
-
 def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
     # El secret sólo sale en texto plano acá; se persiste únicamente el hash.
     secret, secret_hash = generar_secret()

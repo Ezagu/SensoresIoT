@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from datetime import datetime, timezone, timedelta
-from repositories import sensor_repo, tipo_sensor_repo, medicion_repo, dispositivo_repo
+from repositories import sensor_repo, tipo_sensor_repo, medicion_repo
 from services import dispositivo_service, plan_service
 from core.tiempo import a_utc
 from db import get_cursor
@@ -14,11 +14,10 @@ def validar_que_exista_sensor(cur, sensor_id) -> dict:
         raise HTTPException(404, "El sensor no existe")
     return sensor
 
-def _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol) -> dict:
+def _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol) -> tuple[dict, dict]:
     sensor = validar_que_exista_sensor(cur, sensor_id)
-    if not dispositivo_service.tiene_acceso_a_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol):
-        raise HTTPException(403, "No tienes acceso a este recurso")
-    return sensor
+    dispositivo = dispositivo_service.validar_acceso_al_dispositivo(cur, sensor["dispositivo_id"], usuario_id, rol)
+    return sensor, dispositivo
 
 def crear_sensor(sensor) -> dict:
     with get_cursor() as cur:
@@ -26,7 +25,7 @@ def crear_sensor(sensor) -> dict:
 
 def obtener_sensor(sensor_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
-        sensor = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
+        sensor, _ = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
         sensor["tipo_sensor"] = tipo_sensor_repo.obtener_tipo_sensor_por_sensor_id(cur, sensor_id)
         return sensor
 
@@ -38,9 +37,8 @@ def obtener_grafico(sensor_id, desde, hasta, usuario_id, rol) -> dict:
         raise HTTPException(400, "El rango de fechas seleccionado es incorrecto")
 
     with get_cursor() as cur:
-        sensor = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
+        sensor, dispositivo = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
 
-        dispositivo = dispositivo_repo.buscar_por_id(cur, sensor["dispositivo_id"])
         limites = plan_service.limites_de_dispositivo(cur, sensor["dispositivo_id"])
         intervalo_seg = plan_service.intervalo_efectivo_seg(
             dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"]
@@ -78,7 +76,7 @@ def obtener_historial(sensor_id, hasta, cursor, limite, usuario_id, rol) -> dict
     cursor = a_utc(cursor)
 
     with get_cursor() as cur:
-        sensor = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
+        sensor, _ = _obtener_sensor_con_acceso(cur, sensor_id, usuario_id, rol)
 
         ventana = plan_service.ventana_de_consulta(cur, sensor["dispositivo_id"], rol)
         filas = medicion_repo.buscar_historial(cur, sensor_id, hasta, cursor, limite, ventana["piso"])

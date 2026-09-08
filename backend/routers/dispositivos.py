@@ -110,4 +110,4 @@ def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual
 @router.post("/{dispositivo_id}/vinculate")
 @limiter.limit("5/10minutes")
 def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.crear_vinculacion(usuario_actual["sub"], dispositivo_id, "owner")
+    return dispositivo_service.crear_vinculacion_owner(usuario_actual["sub"], dispositivo_id)
