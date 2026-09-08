@@ -28,17 +28,16 @@ function Kpi({
   tono?: 'ok' | 'warn' | 'danger'
 }) {
   const color = tono ? { ok: 'text-ok', warn: 'text-warn', danger: 'text-danger' }[tono] : ''
+  /* Fila y no columna: apilar la etiqueta arriba del número la deja con un tercio
+     del ancho en mobile, donde "Dispositivos con problemas" se recorta hasta
+     dejar de significar algo. La etiqueta es el indicador, no el adorno. */
   return (
-    <Card className="flex min-w-0 flex-col gap-1.5 p-3 md:flex-row md:items-center md:gap-3 md:p-3.5">
+    <Card className="flex min-w-0 items-center gap-2.5 p-3 md:gap-3 md:p-3.5">
       <span className="flex size-6.5 shrink-0 items-center justify-center rounded-tile bg-surface-2 text-text-muted">
         {icono}
       </span>
-      <span className="min-w-0 truncate text-note text-text-muted md:flex-1 md:whitespace-normal">
-        {etiqueta}
-      </span>
-      <span className={`num max-w-full truncate text-metric leading-tight font-semibold md:text-right ${color}`}>
-        {valor}
-      </span>
+      <span className="min-w-0 flex-1 text-note text-text-muted">{etiqueta}</span>
+      <span className={`num shrink-0 text-metric leading-tight font-semibold ${color}`}>{valor}</span>
     </Card>
   )
 }
@@ -108,7 +107,7 @@ export function Panel() {
   return (
     <div className="flex flex-col gap-7">
       <section aria-label="Resumen">
-        <div className="grid grid-cols-3 gap-2 md:gap-3">
+        <div className="grid gap-2 md:grid-cols-3 md:gap-3">
           <Kpi
             icono={<IconoAlertaSonando className="size-3.5" />}
             etiqueta="Alertas disparadas"
@@ -134,7 +133,7 @@ export function Panel() {
       </section>
 
       <section aria-label="Tus dispositivos">
-        <div className="mb-3 flex items-baseline justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
           <h2 className="flex items-baseline gap-2 text-heading-lg">
             Tus dispositivos
             {refrescando && <span className="text-note font-normal text-text-faint">actualizando…</span>}

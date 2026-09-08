@@ -8,17 +8,20 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
+/* pointer-coarse sube el alto a 44px: 36 alcanza con un mouse, no con un dedo.
+   Las variantes de fila ya lo traían; las de pantalla no, y son las que más se
+   tocan en mobile. */
 const BASE =
   'inline-flex items-center justify-center gap-1.5 rounded-control font-semibold whitespace-nowrap cursor-pointer ' +
   'transition-[filter,background-color,color] duration-150 disabled:opacity-50 disabled:cursor-not-allowed'
 
 const VARIANTES: Record<Variante, string> = {
   primario:
-    'bg-accent-strong text-accent-ink text-label-lg min-h-9 px-3.5 shadow-sm hover:brightness-110 active:translate-y-px',
+    'bg-accent-strong text-accent-ink text-label-lg min-h-9 px-3.5 pointer-coarse:min-h-11 shadow-sm hover:brightness-110 active:translate-y-px',
   sutil:
-    'bg-accent-soft text-accent text-note-lg min-h-9 px-3.5 hover:bg-border',
+    'bg-accent-soft text-accent text-note-lg min-h-9 px-3.5 pointer-coarse:min-h-11 hover:bg-border',
   fantasma:
-    'bg-transparent text-text-muted text-label-lg min-h-9 px-3 border border-border hover:text-text hover:border-border-strong',
+    'bg-transparent text-text-muted text-label-lg min-h-9 px-3 pointer-coarse:min-h-11 border border-border hover:text-text hover:border-border-strong',
   /* Acciones dentro de una fila de lista: pesan menos que un botón de pantalla. */
   texto: 'bg-transparent text-text-muted text-note min-h-8 px-2 pointer-coarse:min-h-11 hover:bg-surface-2 hover:text-text',
   /* Se pinta de rojo recién con el puntero o el foco: en reposo, la más llamativa

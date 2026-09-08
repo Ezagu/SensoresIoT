@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent } from 'react'
+import { useRef, type CSSProperties, type KeyboardEvent } from 'react'
 
 export function Segmentado<T extends string>({
   valor,
@@ -7,6 +7,7 @@ export function Segmentado<T extends string>({
   etiqueta,
   fueraDelPlan,
   mensajeFueraDelPlan,
+  columnasAngosto,
   disabled,
 }: {
   valor: T | null
@@ -20,6 +21,12 @@ export function Segmentado<T extends string>({
      (un rango) que "tu plan no permite bajar de esto" (un piso). Default =
      caso de rango, el primer consumidor que existió. */
   mensajeFueraDelPlan?: (valor: T) => string
+  /* Columnas del grupo mientras la pantalla es angosta. Envolver como texto deja
+     sola en su renglón a la última opción cuando una etiqueta es mucho más ancha
+     que el resto; en columnas iguales el grupo se lee como una escala, y la
+     primera —el modo por defecto, no un valor más de esa escala— se lleva la
+     fila entera. */
+  columnasAngosto?: number
   disabled?: boolean
 }) {
   const botones = useRef<(HTMLButtonElement | null)[]>([])
@@ -55,8 +62,18 @@ export function Segmentado<T extends string>({
     <div
       role="radiogroup"
       aria-label={etiqueta}
-      /* Envuelve en vez de desbordar: siete rangos no entran en 360px. */
-      className="flex w-fit max-w-full flex-wrap gap-0.5 rounded-group border border-border bg-surface-2 p-1"
+      style={
+        columnasAngosto
+          ? ({ '--columnas': `repeat(${columnasAngosto}, minmax(0, 1fr))` } as CSSProperties)
+          : undefined
+      }
+      /* Nunca desborda: o envuelve, o va en columnas iguales. Siete rangos no
+         entran en 360px de ninguna manera. */
+      className={`gap-0.5 rounded-group border border-border bg-surface-2 p-1 ${
+        columnasAngosto
+          ? 'grid w-full grid-cols-(--columnas) sm:flex sm:w-fit sm:max-w-full sm:flex-wrap'
+          : 'flex w-fit max-w-full flex-wrap'
+      }`}
     >
       {opciones.map((o, indice) => {
         const excede = fueraDelPlan?.(o.valor) ?? false
@@ -80,7 +97,11 @@ export function Segmentado<T extends string>({
             onClick={() => !disabled && onCambiar(o.valor)}
             /* 44px con el dedo (pointer-coarse), 32px con mouse: la densidad de
                escritorio no tiene por qué pagar el tamaño de toque. */
-            className={`flex min-h-8 items-center gap-1 rounded-tile px-3 text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer pointer-coarse:min-h-11 disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex min-h-8 items-center justify-center gap-1 rounded-tile text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer pointer-coarse:min-h-11 disabled:cursor-not-allowed disabled:opacity-50 ${
+              columnasAngosto
+                ? `px-1.5 sm:px-3 ${indice === 0 ? 'col-span-full sm:col-auto' : ''}`
+                : 'px-3'
+            } ${
               o.valor === valor
                 ? `bg-surface shadow-sm ${excede ? 'text-premium' : 'text-text'}`
                 : excede

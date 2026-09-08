@@ -51,7 +51,10 @@ export function BloqueSensor({
   const apagado = ultimo ? estadoDispositivo(ultimo.bucket, intervaloSeg, hastaMs) !== 'en-linea' : true
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    /* @container y no breakpoints de viewport: la misma tarjeta va a una columna
+       en mobile y a dos desde md, y a 768px una columna es más angosta que la
+       pantalla de un celular. Lo que decide es el ancho de la tarjeta. */
+    <Card className="@container flex min-w-0 flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"
@@ -71,8 +74,8 @@ export function BloqueSensor({
 
       {/* Sólo en vivo: en un rango histórico el valor "actual" no aplica. */}
       {enVivo && ultimo && (
-        <div className="flex flex-col gap-0.5">
-          <div className='flex gap-3 justify-between'>
+        <div className="flex flex-col gap-2 @md:flex-row @md:items-start @md:justify-between @md:gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
             {/* role="status": la lectura se renueva sola por polling. El nombre del
                 sensor va adentro para que el anuncio diga de cuál habla. */}
             <span
@@ -85,11 +88,11 @@ export function BloqueSensor({
               <span className="sr-only">{sensor.etiqueta}: </span>
               {medida(ultimo.promedio, sensor.unidad)}
             </span>
-            {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
+            <span className="text-note text-text-faint">
+              Reportó <HaceCuanto iso={ultimo.bucket} />
+            </span>
           </div>
-          <span className="text-note text-text-faint">
-            Reportó <HaceCuanto iso={ultimo.bucket} />
-          </span>
+          {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
         </div>
       )}
 

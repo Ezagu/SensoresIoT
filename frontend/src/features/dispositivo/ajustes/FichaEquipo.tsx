@@ -34,9 +34,12 @@ export function FichaEquipo({
   return (
     <SeccionAjustes titulo="Ficha del equipo">
       <dl className="grid gap-x-6 gap-y-3 text-label sm:grid-cols-2">
-        <div>
+        {/* min-w-0 en los dos niveles: el UUID va en una sola línea, así que sin
+            esto su ancho mínimo estira la columna de la grilla y con ella la
+            página, y el truncate nunca llega a aplicarse. */}
+        <div className="min-w-0">
           <dt className="text-text-faint">ID del equipo</dt>
-          <dd className="flex items-center gap-1.5">
+          <dd className="flex min-w-0 items-center gap-1.5">
             <span className="num truncate text-text">{dispositivo.id}</span>
             <button
               type="button"

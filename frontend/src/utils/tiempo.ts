@@ -49,6 +49,13 @@ export function fechaHoraSegundos(iso: string): string {
   return `${fmtFecha.format(d)} ${fmtHoraSeg.format(d)}`
 }
 
+/* Sólo la hora con segundos: en una tabla agrupada por día, la fecha ya la dice
+   el encabezado del grupo y repetirla en cada fila es ruido que además se come
+   el ancho útil en mobile. */
+export function horaSegundos(iso: string): string {
+  return fmtHoraSeg.format(new Date(iso))
+}
+
 /* Sólo la hora, para el eje X del gráfico en el rango de 24 h (la fecha ahí es
    ruido: todo el rango cae en el mismo día o el anterior). */
 export function hora(ms: number): string {

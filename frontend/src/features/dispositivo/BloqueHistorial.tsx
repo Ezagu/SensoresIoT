@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Boton } from '@/components/ui/Boton'
@@ -7,7 +7,7 @@ import { Segmentado } from '@/components/ui/Segmentado'
 import { Vacio } from '@/components/ui/Vacio'
 import { useHistorial, type FiltroHistorial } from './usarHistorial'
 import { medida } from '@/utils/formato'
-import { fechaHoraSegundos } from '@/utils/tiempo'
+import { fecha, horaSegundos } from '@/utils/tiempo'
 import { TextoError } from '@/components/ui/TextoError'
 
 const OPCIONES_FILAS = [
@@ -114,24 +114,39 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
           detalle="No hay mediciones en el rango elegido."
         />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-label">
-            <thead>
-              <tr className="border-b border-border text-note text-text-faint">
-                <th className="py-1.5 text-left font-medium">Fecha</th>
-                <th className="py-1.5 text-right font-medium">Valor</th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y divide-border ${refrescando ? 'opacity-60' : ''}`}>
-              {datos.mediciones.map((m) => (
-                <tr key={m.time}>
-                  <td className="py-1.5 text-text-muted">{fechaHoraSegundos(m.time)}</td>
-                  <td className="num py-1.5 text-right font-medium text-text">{medida(m.value, unidad)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <table className="w-full text-label">
+          <thead>
+            <tr className="border-b border-border text-note text-text-faint">
+              <th className="py-1.5 text-left font-medium">Hora</th>
+              <th className="py-1.5 text-right font-medium">Valor</th>
+            </tr>
+          </thead>
+          <tbody className={`divide-y divide-border ${refrescando ? 'opacity-60' : ''}`}>
+            {datos.mediciones.map((m, i) => {
+              const dia = fecha(m.time)
+              const abreDia = i === 0 || fecha(datos.mediciones[i - 1].time) !== dia
+              return (
+                <Fragment key={m.time}>
+                  {abreDia && (
+                    <tr>
+                      <th
+                        colSpan={2}
+                        scope="colgroup"
+                        className="pt-3 pb-1 text-left text-note font-medium tracking-wide text-text-faint uppercase"
+                      >
+                        {dia}
+                      </th>
+                    </tr>
+                  )}
+                  <tr>
+                    <td className="num py-1.5 text-text-muted">{horaSegundos(m.time)}</td>
+                    <td className="num py-1.5 text-right font-medium text-text">{medida(m.value, unidad)}</td>
+                  </tr>
+                </Fragment>
+              )
+            })}
+          </tbody>
+        </table>
       )}
 
       {finPorRetencion && (

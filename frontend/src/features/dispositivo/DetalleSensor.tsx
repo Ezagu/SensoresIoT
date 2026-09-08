@@ -143,7 +143,11 @@ export function DetalleSensor() {
             {ultima ? <>Reportó <HaceCuanto iso={ultima.time} /></> : 'Nunca reportó'}
           </span>
         </div>
-        {hayResumen && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" />}
+        {hayResumen && resumen && (
+          /* Cuando envuelve se lleva el renglón entero: al ancho del contenido,
+             tres valores de cuatro cifras no entran en un celular. */
+          <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" className="w-full sm:w-auto" />
+        )}
       </div>
 
       {error && (

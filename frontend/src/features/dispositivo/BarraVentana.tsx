@@ -56,6 +56,7 @@ export function BarraVentana({
         valor={opcion}
         opciones={OPCIONES}
         onCambiar={elegir}
+        columnasAngosto={OPCIONES.length - 1}
         fueraDelPlan={(v) =>
           v === 'maximo' ? !permiteHistorialCompleto(retencionDias) : rangoExcedeRetencion(v, retencionDias)
         }
