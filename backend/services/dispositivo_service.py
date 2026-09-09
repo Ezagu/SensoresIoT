@@ -15,7 +15,6 @@ def validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict
         raise HTTPException(403, "Tu rol en este dispositivo no te permite realizar esta acción")
     return dispositivo
 
-
 def validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict:
     # Valida que exista el dispositivo y que el usuario esté vinculado
     dispositivo = validar_que_exista_dispositivo(cur, dispositivo_id)
@@ -38,6 +37,19 @@ def rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> str | None:
         return "admin"
     return dispositivo_repo.buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id)
 
+def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
+    dispositivo_id = dispositivo["id"]
+
+    dispositivo["rol"] = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+    dispositivo["owner_nombre"] = dispositivo_repo.buscar_nombre_owner(cur, dispositivo_id)
+    limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
+    dispositivo["limites"] = {
+        "puede_alertas": limites["puede_alertas"],
+        "max_alertas": limites["max_alertas"],
+        "intervalo_minimo_seg": limites["intervalo_minimo_seg"],
+    }
+    return dispositivo
+
 def crear_dispositivo(dispositivo) -> dict:
     with get_cursor() as cur:
         return dispositivo_repo.crear(cur, dispositivo.nombre, dispositivo.ubicacion, dispositivo.descripcion)
@@ -45,17 +57,17 @@ def crear_dispositivo(dispositivo) -> dict:
 def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
         dispositivo = validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        dispositivo["rol"] = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        dispositivo["owner_nombre"] = dispositivo_repo.buscar_nombre_owner(cur, dispositivo_id)
-        # Del plan del dueño, no del de quien consulta: es el mismo criterio que
-        # aplica alerta_service al gatear la creación de reglas.
-        limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
-        dispositivo["limites"] = {
-            "puede_alertas": limites["puede_alertas"],
-            "max_alertas": limites["max_alertas"],
-            "intervalo_minimo_seg": limites["intervalo_minimo_seg"],
-        }
-        return dispositivo
+        return obtener_detalle_dispositivo(cur, dispositivo, usuario_id, rol)
+
+def actualizar_datos(dispositivo_id, usuario_id, rol, datos):
+    campos = datos.model_dump(exclude_unset=True)
+    if not campos:
+        raise HTTPException(400, "No se enviaron campos para actualizar")
+    
+    with get_cursor() as cur:
+        validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        dispositivo = dispositivo_repo.actualizar(cur, dispositivo_id, campos)
+        return obtener_detalle_dispositivo(cur, dispositivo, usuario_id, rol)
 
 def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:
     with get_cursor() as cur:

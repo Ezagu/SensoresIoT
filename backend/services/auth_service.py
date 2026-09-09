@@ -28,11 +28,10 @@ def register_usuario(usuario) -> dict:
     with get_cursor() as cur:
         existing = usuario_repo.buscar_por_email(cur, usuario.email)
 
-        if existing and existing["is_verified"]:
-            raise HTTPException(409, "El email ya está registrado")
-
-        if existing and not existing["is_verified"]:
+        if existing:
             user_row = usuario_repo.buscar_por_id(cur, existing["id"])
+            if existing["is_verified"]:
+                return user_row
         else:
             try:
                 password_hashed = hash_password(usuario.password)
@@ -85,7 +84,7 @@ def loguear(email: str, password: str):
             raise HTTPException(401, "Usuario o contraseña incorrectos")
 
         if usuario["bloqueado_hasta"] and usuario["bloqueado_hasta"] > datetime.now(timezone.utc):
-            raise HTTPException(429, "cuenta bloqueada temporalmente, reintentá más tarde")
+            raise HTTPException(401, "cuenta bloqueada temporalmente, reintentá más tarde")
 
         if not verify_password(password, usuario["password"]):
             nuevos_intentos = usuario["intentos_fallidos"] + 1

@@ -22,7 +22,7 @@ def _create_refresh_token_cookie(response, refresh_token) -> None:
         max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
-@router.post("/register", response_model=UsuarioOut)
+@router.post("/register", response_model=UsuarioOut, status_code=201)
 @limiter.limit("3/hour")
 def register(request: Request, usuario: UsuarioCreate):
     return auth_service.register_usuario(usuario)

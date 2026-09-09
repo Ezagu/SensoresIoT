@@ -34,7 +34,7 @@ export function ResumenStats({
       {stats.map(({ etiqueta, valor }) => (
         /* min-w-0: una presión de 1.015,8 hPa tiene ancho mínimo de sobra para
            empujar la tarjeta y, con ella, el ancho de la página entera. */
-        <span key={etiqueta} className={`flex min-w-0 flex-1 flex-col gap-0.5 ${clases.padding}`}>
+        <span key={etiqueta} className={`flex flex-1 flex-col gap-0.5 ${clases.padding}`}>
           <span className={`uppercase tracking-wide text-text-faint ${clases.etiqueta}`}>{etiqueta}</span>
           <span className={`num font-semibold text-text leading-tight ${clases.valor}`}>
             {valor !== null ? medida(valor, unidad) : '—'}

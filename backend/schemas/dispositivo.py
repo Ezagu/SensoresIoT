@@ -8,6 +8,12 @@ class DispositivoCreate(BaseModel):
   ubicacion: Optional[str] = None
   descripcion: Optional[str] = None
 
+class DispositivoUpdate(BaseModel):
+  nombre: Optional[str] = None
+  ubicacion: Optional[str] = None
+  descripcion: Optional[str] = None
+  activo: Optional[bool] = None
+
 class DispositivoOut(BaseModel):
   id: UUID
   nombre: Optional[str] = None

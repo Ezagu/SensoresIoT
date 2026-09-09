@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from core.security import generar_secret
 
 COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at, intervalo_configurado_seg"
+COLUMNAS_ACTUALIZABLES = ("nombre", "ubicacion", "descripcion", "activo")
 
 def buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id) -> str | None:
     cur.execute(
@@ -28,6 +29,26 @@ def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
         return {"dispositivo": dispositivo, "secret": secret}
     except psycopg2.errors.ForeignKeyViolation:
         raise HTTPException(404, "El usuario no existe")
+
+def actualizar(cur, dispositivo_id, campos: dict) -> dict:
+    sets = []
+    valores = []
+
+    for columna in COLUMNAS_ACTUALIZABLES:
+        if columna in campos:
+            sets.append(f"{columna} = %s")
+            valores.append(campos[columna])
+
+    if not sets:
+        return None
+
+    valores.append(dispositivo_id)
+
+    cur.execute(
+        f"UPDATE dispositivos SET {', '.join(sets)} WHERE id = %s RETURNING {COLUMNAS_PUBLICAS}",
+        tuple(valores),
+    )
+    return cur.fetchone()
 
 def actualizar_secret(cur, dispositivo_id) -> str:
     # Uso de banco/fábrica: requiere reflashear el equipo con el secret devuelto.

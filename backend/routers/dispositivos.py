@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, DispositivoUpdate
 from schemas.sensor import SensorOut
 from schemas.alerta import AlertaConNotificarOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
@@ -28,6 +28,10 @@ def create_dispositivo(dispositivo: DispositivoCreate, usuario_admin: dict = Dep
 @router.get("/{dispositivo_id}", response_model=DispositivoDetalleOut)
 def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.obtener_dispositivo(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.patch("/{dispositivo_id}", response_model=DispositivoDetalleOut)
+def update_dispositivo(dispositivo_id: UUID, datos: DispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.actualizar_datos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], datos)
 
 @router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
 def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
