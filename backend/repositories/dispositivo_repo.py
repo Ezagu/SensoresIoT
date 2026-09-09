@@ -76,6 +76,21 @@ def listar_accesos(cur, dispositivo_id):
     )
     return cur.fetchall()
 
+def cambiar_rol(cur, dispositivo_id, usuarios_id, rol) -> dict:
+    cur.execute(
+        """
+        UPDATE usuario_dispositivo ud
+        SET rol = %s
+        FROM usuarios u
+        WHERE ud.dispositivo_id = %s 
+            AND ud.usuario_id = %s
+            AND u.id = ud.usuario_id
+        RETURNING ud.usuario_id, u.nombre, u.email, ud.rol, ud.created_at
+        """, 
+        (rol, dispositivo_id, usuarios_id)
+    )
+    return cur.fetchone()
+
 def actualizar_intervalo(cur, dispositivo_id, intervalo_seg) -> None:
     # intervalo_seg None = automático, usa el piso del plan vigente en cada momento
     cur.execute(

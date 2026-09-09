@@ -31,6 +31,9 @@ class DispositivoConRolOut(DispositivoOut):
   # calcula (contempla el admin, que no tiene fila propia).
   rol: str
 
+class AccesoDispositivoUpdate(BaseModel):
+  rol: str
+
 class AccesoDispositivoOut(BaseModel):
   usuario_id: UUID
   nombre: str

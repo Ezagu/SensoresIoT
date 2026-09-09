@@ -1,11 +1,21 @@
 import psycopg2.errors
 from fastapi import HTTPException
-from repositories import dispositivo_repo, sensor_repo
+from repositories import dispositivo_repo, sensor_repo, usuario_repo
 from services import plan_service
 from db import get_cursor
 
 INTERVALO_MAXIMO_SEG = 24 * 60 * 60
 ROLES_EDICION = ("admin", "owner", "editor")
+ROLES_OWNER = ("admin", "owner")
+ROLES_ASIGNABLES = ("editor", "viewer")
+
+def validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict:
+    # Valida que exista el dispositivo, que el usuario esté vinculado y tenga permiso de edición
+    dispositivo = validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
+    rol_disp = rol_en_dispositivo(cur, dispositivo["id"], usuario_id, rol)
+    if rol_disp not in ROLES_OWNER:
+        raise HTTPException(403, "Tu rol en este dispositivo no te permite realizar esta acción")
+    return dispositivo
 
 def validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict:
     # Valida que exista el dispositivo, que el usuario esté vinculado y tenga permiso de edición
@@ -92,6 +102,19 @@ def crear_vinculacion_owner(usuario_id, dispositivo_id):
             return dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, "owner")
         except psycopg2.errors.UniqueViolation:
             raise HTTPException(409, "el dispositivo ya tiene un dueño")  # condición de carrera
+
+def actualizar_rol(dispositivo_id, usuario_id_to_change, rol_to_change, usuario_id, rol):
+    if rol_to_change not in ROLES_ASIGNABLES:
+        raise HTTPException(409, f"No se puede asignar el rol {rol_to_change}")
+    
+    with get_cursor() as cur:
+        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+
+        usuario = usuario_repo.buscar_por_id(cur, usuario_id_to_change)
+        if not usuario:
+            raise HTTPException(409, f"El usuario no existe")
+        
+        return dispositivo_repo.cambiar_rol(cur, dispositivo_id, usuario_id_to_change, rol_to_change)
 
 def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict:
     # Cambiar intervalo de medición del dispositivo, se devuelve como respuesta en la medición

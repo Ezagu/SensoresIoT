@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, DispositivoUpdate, AccesoDispositivoOut
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate
 from schemas.sensor import SensorOut
 from schemas.alerta import AlertaConNotificarOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
@@ -32,10 +32,6 @@ def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(g
 @router.patch("/{dispositivo_id}", response_model=DispositivoDetalleOut)
 def update_dispositivo(dispositivo_id: UUID, datos: DispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.actualizar_datos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], datos)
-
-@router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
-def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.obtener_accesos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
 
 @router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
 def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
@@ -119,3 +115,11 @@ def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual
 @limiter.limit("5/10minutes")
 def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.crear_vinculacion_owner(usuario_actual["sub"], dispositivo_id)
+
+@router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
+def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.obtener_accesos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.patch("/{dispositivo_id}/accesos/{usuario_id}", response_model=AccesoDispositivoOut)
+def change_access(dispositivo_id: UUID, usuario_id: UUID, data: AccesoDispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.actualizar_rol(dispositivo_id, usuario_id, data.rol, usuario_actual["sub"], usuario_actual["rol"])
