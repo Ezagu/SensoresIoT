@@ -50,6 +50,89 @@ def actualizar(cur, dispositivo_id, campos: dict) -> dict:
     )
     return cur.fetchone()
 
+def buscar_por_id_publico(cur, dispositivo_id) -> dict | None:
+    cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM dispositivos WHERE id = %s", (dispositivo_id,))
+    return cur.fetchone()
+
+def buscar_por_id(cur, dispositivo_id) -> dict | None:
+    cur.execute("SELECT * FROM dispositivos WHERE id = %s", (dispositivo_id,))
+    return cur.fetchone()
+
+def buscar_por_usuario(cur, usuario_id) -> list[dict]:
+    # Devuelve tambien el rol del vinculo: es lo unico que distingue un
+    # dispositivo propio de uno que le compartieron a este usuario.
+    cur.execute(f"SELECT {COLUMNAS_PUBLICAS}, ud.rol FROM dispositivos d JOIN usuario_dispositivo ud ON ud.dispositivo_id = d.id WHERE ud.usuario_id = %s", (usuario_id,))
+    return cur.fetchall()
+
+def listar_accesos(cur, dispositivo_id):
+    cur.execute(
+        f"""
+        SELECT ud.usuario_id, u.nombre, u.email, ud.rol, ud.created_at FROM usuario_dispositivo ud
+        JOIN usuarios u ON u.id = ud.usuario_id
+        WHERE ud.dispositivo_id = %s
+        ORDER BY ud.created_at ASC
+        """,
+        (dispositivo_id,)
+    )
+    return cur.fetchall()
+
+def actualizar_intervalo(cur, dispositivo_id, intervalo_seg) -> None:
+    # intervalo_seg None = automático, usa el piso del plan vigente en cada momento
+    cur.execute(
+        "UPDATE dispositivos SET intervalo_configurado_seg = %s WHERE id = %s RETURNING id",
+        (intervalo_seg, dispositivo_id)
+    )
+    if not cur.fetchone():
+        raise HTTPException(404, "Dispositivo no encontrado")
+
+def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
+    # first_connected_at sólo se setea la primera vez (COALESCE).
+    cur.execute(
+        """
+        UPDATE dispositivos
+        SET first_connected_at = COALESCE(first_connected_at, %s),
+            last_seen_at = %s
+        WHERE id = %s
+        RETURNING id
+        """,
+        (timestamp, timestamp, dispositivo_id)
+    )
+
+def crear_vinculacion(cur, usuario_id, dispositivo_id, rol) -> dict:
+    cur.execute(
+        """
+        INSERT INTO usuario_dispositivo (usuario_id, dispositivo_id, rol)
+        VALUES (%s, %s, %s)
+        RETURNING *
+        """,
+        (usuario_id, dispositivo_id, rol)
+    )
+    return cur.fetchone()
+
+def buscar_owner_de_dispositivo(cur, dispositivo_id) -> dict | None:
+    cur.execute(
+        """
+        SELECT * from usuario_dispositivo
+        WHERE dispositivo_id = %s AND rol = 'owner'
+        """,
+        (dispositivo_id,)
+    )
+    return cur.fetchone()
+
+def buscar_nombre_owner(cur, dispositivo_id) -> str | None:
+    cur.execute(
+        """
+        SELECT u.nombre FROM usuario_dispositivo ud
+        JOIN usuarios u ON u.id = ud.usuario_id
+        WHERE ud.dispositivo_id = %s AND ud.rol = 'owner'
+        """,
+        (dispositivo_id,)
+    )
+    fila = cur.fetchone()
+    return fila["nombre"] if fila else None
+
+#-----------SECRET---------------
+
 def actualizar_secret(cur, dispositivo_id) -> str:
     # Uso de banco/fábrica: requiere reflashear el equipo con el secret devuelto.
     secret, secret_hash = generar_secret()
@@ -109,72 +192,3 @@ def marcar_rotacion_pendiente(cur, dispositivo_id) -> None:
     )
     if not cur.fetchone():
         raise HTTPException(404, "Dispositivo no encontrado")
-
-def actualizar_intervalo(cur, dispositivo_id, intervalo_seg) -> None:
-    # intervalo_seg None = automático, usa el piso del plan vigente en cada momento
-    cur.execute(
-        "UPDATE dispositivos SET intervalo_configurado_seg = %s WHERE id = %s RETURNING id",
-        (intervalo_seg, dispositivo_id)
-    )
-    if not cur.fetchone():
-        raise HTTPException(404, "Dispositivo no encontrado")
-
-def buscar_por_id_publico(cur, dispositivo_id) -> dict | None:
-    cur.execute(f"SELECT {COLUMNAS_PUBLICAS} FROM dispositivos WHERE id = %s", (dispositivo_id,))
-    return cur.fetchone()
-
-def buscar_por_id(cur, dispositivo_id) -> dict | None:
-    cur.execute("SELECT * FROM dispositivos WHERE id = %s", (dispositivo_id,))
-    return cur.fetchone()
-
-def buscar_por_usuario(cur, usuario_id) -> list[dict]:
-    # Devuelve tambien el rol del vinculo: es lo unico que distingue un
-    # dispositivo propio de uno que le compartieron a este usuario.
-    cur.execute(f"SELECT {COLUMNAS_PUBLICAS}, ud.rol FROM dispositivos d JOIN usuario_dispositivo ud ON ud.dispositivo_id = d.id WHERE ud.usuario_id = %s", (usuario_id,))
-    return cur.fetchall()
-
-def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
-    # first_connected_at sólo se setea la primera vez (COALESCE).
-    cur.execute(
-        """
-        UPDATE dispositivos
-        SET first_connected_at = COALESCE(first_connected_at, %s),
-            last_seen_at = %s
-        WHERE id = %s
-        RETURNING id
-        """,
-        (timestamp, timestamp, dispositivo_id)
-    )
-
-def crear_vinculacion(cur, usuario_id, dispositivo_id, rol) -> dict:
-    cur.execute(
-        """
-        INSERT INTO usuario_dispositivo (usuario_id, dispositivo_id, rol)
-        VALUES (%s, %s, %s)
-        RETURNING *
-        """,
-        (usuario_id, dispositivo_id, rol)
-    )
-    return cur.fetchone()
-
-def buscar_owner_de_dispositivo(cur, dispositivo_id) -> dict | None:
-    cur.execute(
-        """
-        SELECT * from usuario_dispositivo
-        WHERE dispositivo_id = %s AND rol = 'owner'
-        """,
-        (dispositivo_id,)
-    )
-    return cur.fetchone()
-
-def buscar_nombre_owner(cur, dispositivo_id) -> str | None:
-    cur.execute(
-        """
-        SELECT u.nombre FROM usuario_dispositivo ud
-        JOIN usuarios u ON u.id = ud.usuario_id
-        WHERE ud.dispositivo_id = %s AND ud.rol = 'owner'
-        """,
-        (dispositivo_id,)
-    )
-    fila = cur.fetchone()
-    return fila["nombre"] if fila else None

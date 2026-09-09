@@ -74,6 +74,11 @@ def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:
         validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         return sensor_repo.buscar_por_dispositivo_id(cur, dispositivo_id)
 
+def obtener_accesos(dispositivo_id, usuario_id, rol) -> list[dict]:
+    with get_cursor() as cur:
+        validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        return dispositivo_repo.listar_accesos(cur, dispositivo_id)
+
 def crear_vinculacion_owner(usuario_id, dispositivo_id):
     # Vincular un dispositivo a una cuenta como dueño
     with get_cursor() as cur:

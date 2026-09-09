@@ -31,6 +31,13 @@ class DispositivoConRolOut(DispositivoOut):
   # calcula (contempla el admin, que no tiene fila propia).
   rol: str
 
+class AccesoDispositivoOut(BaseModel):
+  usuario_id: UUID
+  nombre: str
+  email: str
+  rol: str
+  created_at: datetime
+
 class LimitesDispositivoOut(BaseModel):
   # Los límites que rigen sobre ESTE dispositivo: salen del plan de su dueño, no
   # del de quien consulta (plan_service.limites_de_dispositivo). Sin esto el
