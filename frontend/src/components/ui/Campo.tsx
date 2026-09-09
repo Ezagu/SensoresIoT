@@ -146,17 +146,36 @@ export function AreaTexto({ id, etiqueta, ayuda, error, className = '', ...props
 type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   id: string
   etiqueta: string
+  /* La etiqueta sigue asociada por htmlFor (accesible), pero no ocupa lugar
+     visual: para selects que viven en una barra de controles compacta. */
+  etiquetaOculta?: boolean
   ayuda?: string
   error?: string
   children: ReactNode
 }
 
-export function Select({ id, etiqueta, ayuda, error, className = '', children, ...props }: SelectProps) {
+export function Select({
+  id,
+  etiqueta,
+  etiquetaOculta,
+  ayuda,
+  error,
+  className = '',
+  children,
+  ...props
+}: SelectProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta id={id} disabled={props.disabled}>
+      <label
+        htmlFor={id}
+        className={
+          etiquetaOculta
+            ? 'sr-only'
+            : `text-label font-medium ${props.disabled ? 'text-text-faint' : 'text-text-muted'}`
+        }
+      >
         {etiqueta}
-      </Etiqueta>
+      </label>
       <select
         id={id}
         name={id}

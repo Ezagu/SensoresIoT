@@ -54,6 +54,26 @@ export type PanelResumen = {
    usuario_dispositivo del join, sin resolver nada. */
 export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }
 
+export type SensorInstalado = {
+  id: string
+  tipo_sensor_id: number
+  tipo_nombre: string
+  unidad: string
+}
+
+/* GET /usuarios/{id}/dispositivos (versión enriquecida, pendiente en el backend).
+   La flota como equipos, no como datos: acá no viaja ninguna lectura, por eso no
+   reusa DispositivoResumen. */
+export type DispositivoInventario = Dispositivo & {
+  rol: RolDispositivo
+  owner_nombre: string | null
+  intervalo_efectivo_seg: number
+  sensores: SensorInstalado[]
+  alertas_total: number
+  alertas_disparadas: number
+  accesos_total: number
+}
+
 /* GET /dispositivos/{id}. El rol lo resuelve el backend, así que acá también
    puede ser 'admin'. owner_nombre es null sólo si quedó sin vincular. */
 export type DispositivoDetalle = Dispositivo & {

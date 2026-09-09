@@ -9,6 +9,7 @@ import type {
   AlertaUpdatePayload,
   DatosGrafico,
   DispositivoDetalle,
+  DispositivoInventario,
   DispositivoUpdatePayload,
   Historial,
   IntervaloActualizado,
@@ -29,6 +30,15 @@ export function obtenerDispositivo(dispositivoId: string, signal?: AbortSignal) 
    disparadas, resuelto en un solo request. */
 export function obtenerPanel(usuarioId: string, signal?: AbortSignal) {
   return api.get<PanelResumen>(`/usuarios/${usuarioId}/panel`, { signal }).then((r) => r.data)
+}
+
+/* Todos los dispositivos del usuario como equipos, no como datos: sin
+   lecturas, para /dispositivos (inventario). Pendiente de enriquecer en el
+   backend (sensores, alertas, accesos) — ver plan de la pantalla. */
+export function listarDispositivos(usuarioId: string, signal?: AbortSignal) {
+  return api
+    .get<DispositivoInventario[]>(`/usuarios/${usuarioId}/dispositivos`, { signal })
+    .then((r) => r.data)
 }
 
 export function listarTiposSensor(signal?: AbortSignal) {

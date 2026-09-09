@@ -154,3 +154,16 @@ export const IconoTilde = ({ className }: Props) => (
     <path d="M20 6L9 17l-5-5" />
   </svg>
 )
+
+export const IconoBuscar = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.3-4.3" />
+  </svg>
+)
+
+export const IconoOrden = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M7 4v16M7 4l-3.5 3.5M7 4l3.5 3.5M17 20V4M17 20l3.5-3.5M17 20l-3.5-3.5" />
+  </svg>
+)
