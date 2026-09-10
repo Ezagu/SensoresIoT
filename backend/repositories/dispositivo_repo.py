@@ -66,7 +66,7 @@ def buscar_por_usuario(cur, usuario_id) -> list[dict]:
 
 def listar_accesos(cur, dispositivo_id):
     cur.execute(
-        f"""
+        """
         SELECT ud.usuario_id, u.nombre, u.email, ud.rol, ud.created_at FROM usuario_dispositivo ud
         JOIN usuarios u ON u.id = ud.usuario_id
         WHERE ud.dispositivo_id = %s
@@ -75,6 +75,15 @@ def listar_accesos(cur, dispositivo_id):
         (dispositivo_id,)
     )
     return cur.fetchall()
+
+def eliminar_vinculacion(cur, dispositivo_id, usuario_id):
+    cur.execute(
+        """
+        DELETE FROM usuario_dispositivo
+        WHERE dispositivo_id = %s AND usuario_id = %s
+        """,
+        (dispositivo_id, usuario_id)
+    )
 
 def cambiar_rol(cur, dispositivo_id, usuarios_id, rol) -> dict:
     cur.execute(

@@ -116,6 +116,19 @@ def actualizar_rol(dispositivo_id, usuario_id_to_change, rol_to_change, usuario_
         
         return dispositivo_repo.cambiar_rol(cur, dispositivo_id, usuario_id_to_change, rol_to_change)
 
+def quitar_acceso(dispositivo_id, usuario_id_to_delete, usuario_id, rol):
+    with get_cursor() as cur:
+        validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        rol_disp = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+
+        if usuario_id_to_delete != usuario_id and rol_disp not in ROLES_OWNER:
+            raise HTTPException(409, "No tienes permiso para quitar el acceso de este usuario")
+        
+        if rol_disp == "owner" and usuario_id_to_delete == usuario_id:
+            raise HTTPException(409, "Debes transferir la propiedad del dispositivo antes de quitar tu acceso")
+        
+        dispositivo_repo.eliminar_vinculacion(cur, dispositivo_id, usuario_id_to_delete)
+
 def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict:
     # Cambiar intervalo de medición del dispositivo, se devuelve como respuesta en la medición
     with get_cursor() as cur:

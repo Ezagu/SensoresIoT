@@ -12,14 +12,7 @@ from core.limiter import limiter
 
 router = APIRouter()
 
-@router.post("/rotate-secret")
-@limiter.limit("10/hour")
-def rotate_secret(request: Request, dispositivo: dict = Depends(get_dispositivo_autenticado)):
-    # Rotación device-initiated: el dispositivo se autentica con su secret actual y
-    # recibe el nuevo una única vez. El viejo sigue valiendo hasta que use el nuevo,
-    # así una respuesta perdida no lo deja sin forma de reautenticarse.
-    # Límite holgado a propósito: slowapi cuenta por IP y varios equipos comparten NAT.
-    return dispositivo_service.rotar_secret_dispositivo(dispositivo["id"])
+#--------------CRUD----------------
 
 @router.post("/", response_model=DispositivoCreateOut)
 def create_dispositivo(dispositivo: DispositivoCreate, usuario_admin: dict = Depends(get_usuario_admin)):
@@ -33,9 +26,26 @@ def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(g
 def update_dispositivo(dispositivo_id: UUID, datos: DispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.actualizar_datos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], datos)
 
-@router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
-def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.obtener_sensores(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+#-------------VINCULACION / ACCESOS----------------
+
+@router.post("/{dispositivo_id}/vinculate")
+@limiter.limit("5/10minutes")
+def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.crear_vinculacion_owner(usuario_actual["sub"], dispositivo_id)
+
+@router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
+def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.obtener_accesos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.patch("/{dispositivo_id}/accesos/{usuario_id}", response_model=AccesoDispositivoOut)
+def change_access(dispositivo_id: UUID, usuario_id: UUID, data: AccesoDispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.actualizar_rol(dispositivo_id, usuario_id, data.rol, usuario_actual["sub"], usuario_actual["rol"])
+
+@router.delete("/{dispositivo_id}/accesos/{usuario_id}", status_code=204)
+def delete_access(dispositivo_id: UUID, usuario_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    dispositivo_service.quitar_acceso(dispositivo_id, usuario_id, usuario_actual["sub"], usuario_actual["rol"])
+
+#-----------------ALERTAS----------------------
 
 @router.get("/{dispositivo_id}/alertas", response_model=list[AlertaConNotificarOut])
 def get_alertas(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
@@ -53,6 +63,45 @@ def get_alertas_eventos(
     return alerta_service.eventos_por_dispositivo(
         dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], hasta, cursor, limite
     )
+
+#------------SENSORES---------------
+
+@router.get("/{dispositivo_id}/sensores", response_model=list[SensorOut])
+def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.obtener_sensores(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
+
+#---------------CONFIGURACION----------------
+
+@router.patch("/{dispositivo_id}/intervalo")
+def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
+    # El piso del plan se valida acá; el dispositivo lo aplica solo con la
+    # próxima respuesta a POST /mediciones/ (intervalo_sugerido)
+    return dispositivo_service.configurar_intervalo(
+        dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], payload.intervalo_seg
+    )
+
+#----------SECRET----------------
+
+@router.post("/rotate-secret")
+@limiter.limit("10/hour")
+def rotate_secret(request: Request, dispositivo: dict = Depends(get_dispositivo_autenticado)):
+    # Rotación device-initiated: el dispositivo se autentica con su secret actual y
+    # recibe el nuevo una única vez. El viejo sigue valiendo hasta que use el nuevo,
+    # así una respuesta perdida no lo deja sin forma de reautenticarse.
+    # Límite holgado a propósito: slowapi cuenta por IP y varios equipos comparten NAT.
+    return dispositivo_service.rotar_secret_dispositivo(dispositivo["id"])
+
+@router.post("/{dispositivo_id}/marcar-rotacion")
+def marcar_rotacion(dispositivo_id: UUID, usuario_admin: dict = Depends(get_usuario_admin)):
+    # Fuerza la rotación ante un secret filtrado: el flag viaja en la respuesta de la
+    # próxima medición y el dispositivo rota solo, sin acceso físico
+    return dispositivo_service.marcar_rotacion_pendiente(dispositivo_id)
+
+@router.post("/{dispositivo_id}/regenerate-secret")
+def regenerate_secret(dispositivo_id: UUID, usuario_admin: dict = Depends(get_usuario_admin)):
+    return dispositivo_service.regenerar_secret_dispositivo(dispositivo_id)
+
+#-------------EXPORTAR----------------
 
 @router.get("/{dispositivo_id}/exportar")
 @limiter.limit("20/hour")
@@ -92,34 +141,3 @@ def exportar_historial(
         media_type="text/csv; charset=utf-8",
         headers=headers,
     )
-
-@router.post("/{dispositivo_id}/regenerate-secret")
-def regenerate_secret(dispositivo_id: UUID, usuario_admin: dict = Depends(get_usuario_admin)):
-    return dispositivo_service.regenerar_secret_dispositivo(dispositivo_id)
-
-@router.post("/{dispositivo_id}/marcar-rotacion")
-def marcar_rotacion(dispositivo_id: UUID, usuario_admin: dict = Depends(get_usuario_admin)):
-    # Fuerza la rotación ante un secret filtrado: el flag viaja en la respuesta de la
-    # próxima medición y el dispositivo rota solo, sin acceso físico
-    return dispositivo_service.marcar_rotacion_pendiente(dispositivo_id)
-
-@router.patch("/{dispositivo_id}/intervalo")
-def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
-    # El piso del plan se valida acá; el dispositivo lo aplica solo con la
-    # próxima respuesta a POST /mediciones/ (intervalo_sugerido)
-    return dispositivo_service.configurar_intervalo(
-        dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], payload.intervalo_seg
-    )
-
-@router.post("/{dispositivo_id}/vinculate")
-@limiter.limit("5/10minutes")
-def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.crear_vinculacion_owner(usuario_actual["sub"], dispositivo_id)
-
-@router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
-def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.obtener_accesos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
-
-@router.patch("/{dispositivo_id}/accesos/{usuario_id}", response_model=AccesoDispositivoOut)
-def change_access(dispositivo_id: UUID, usuario_id: UUID, data: AccesoDispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.actualizar_rol(dispositivo_id, usuario_id, data.rol, usuario_actual["sub"], usuario_actual["rol"])
