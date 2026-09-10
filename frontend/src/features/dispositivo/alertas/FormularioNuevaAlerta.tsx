@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { Boton } from '@/components/ui/Boton'
-import { Campo, Select } from '@/components/ui/Campo'
+import { Campo } from '@/components/ui/Campo'
+import { Select } from '@/components/ui/Select'
 import { crearAlerta } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import { esquemaAlertaNueva } from '@/utils/validacion'

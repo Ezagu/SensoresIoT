@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
 import { Pill } from '@/components/ui/Pill'
+import { Select } from '@/components/ui/Select'
 import { TextoError } from '@/components/ui/TextoError'
 import { iniciales } from '@/components/layout/Layout'
 import { actualizarAcceso, quitarAcceso } from '@/services/consultas'
@@ -77,16 +78,18 @@ export function FilaAcceso({
           <Pill tono="faint">Dueño</Pill>
         ) : puedeGestionar ? (
           <>
-            <select
-              aria-label={`Rol de ${acceso.nombre}`}
+            <Select
+              id={`rol-${acceso.usuario_id}`}
+              etiqueta={`Rol de ${acceso.nombre}`}
+              etiquetaOculta
+              tamaño="compacto"
               value={acceso.rol}
               disabled={ocupado}
               onChange={(e) => cambiarRol(e.target.value as RolCompartido)}
-              className="min-h-8 rounded-control border border-border bg-surface-2 px-2 text-note text-text focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="editor">Editor</option>
               <option value="viewer">Solo lectura</option>
-            </select>
+            </Select>
             <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
               Quitar
             </Boton>

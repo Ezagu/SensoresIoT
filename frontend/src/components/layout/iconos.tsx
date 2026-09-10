@@ -102,6 +102,12 @@ export const IconoChevron = ({ className }: Props) => (
   </svg>
 )
 
+export const IconoChevronAbajo = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+)
+
 export const IconoReloj = ({ className }: Props) => (
   <svg {...base(className)}>
     <circle cx="12" cy="12" r="9" />

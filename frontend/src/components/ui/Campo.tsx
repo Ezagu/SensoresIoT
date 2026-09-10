@@ -1,10 +1,4 @@
-import {
-  useState,
-  type InputHTMLAttributes,
-  type ReactNode,
-  type SelectHTMLAttributes,
-  type TextareaHTMLAttributes,
-} from 'react'
+import { useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { IconoOjo, IconoOjoTachado } from '@/components/layout/iconos'
 
 const CLASES_INPUT =
@@ -13,16 +7,30 @@ const CLASES_INPUT =
      tachado. Sin opacidad, que dejaría el valor bajo el contraste mínimo. */
   'disabled:cursor-not-allowed disabled:bg-surface-inert disabled:text-text-muted'
 
-const borde = (error?: string) =>
+export const borde = (error?: string) =>
   error ? 'border-danger focus-visible:border-danger' : 'border-border focus-visible:border-accent'
 
 /* La etiqueta acompaña el estado del control: deshabilitada baja un escalón
    para que el bloque entero se lea como inactivo, no sólo la caja. */
-function Etiqueta({ id, disabled, children }: { id: string; disabled?: boolean; children: ReactNode }) {
+export function Etiqueta({
+  id,
+  disabled,
+  oculta,
+  children,
+}: {
+  id: string
+  disabled?: boolean
+  /* Sigue asociada por htmlFor pero no ocupa lugar: para controles que viven
+     en una barra o en una fila de lista, donde el rótulo ya lo da el contexto. */
+  oculta?: boolean
+  children: ReactNode
+}) {
   return (
     <label
       htmlFor={id}
-      className={`text-label font-medium ${disabled ? 'text-text-faint' : 'text-text-muted'}`}
+      className={
+        oculta ? 'sr-only' : `text-label font-medium ${disabled ? 'text-text-faint' : 'text-text-muted'}`
+      }
     >
       {children}
     </label>
@@ -31,7 +39,7 @@ function Etiqueta({ id, disabled, children }: { id: string; disabled?: boolean; 
 
 /* El error reemplaza a la ayuda en vez de sumarse: el campo no cambia de alto
    al fallar, así el formulario no salta bajo el dedo. */
-function Pie({ id, error, ayuda }: { id: string; error?: string; ayuda?: string }) {
+export function Pie({ id, error, ayuda }: { id: string; error?: string; ayuda?: string }) {
   if (error) {
     return (
       <p id={`${id}-error`} className="text-note text-danger">
@@ -49,7 +57,7 @@ function Pie({ id, error, ayuda }: { id: string; error?: string; ayuda?: string 
   return null
 }
 
-function descrito(id: string, error?: string, ayuda?: string) {
+export function descrito(id: string, error?: string, ayuda?: string) {
   if (error) return `${id}-error`
   if (ayuda) return `${id}-ayuda`
   return undefined
@@ -138,54 +146,6 @@ export function AreaTexto({ id, etiqueta, ayuda, error, className = '', ...props
         className={`${CLASES_INPUT} min-h-20 resize-y py-2 ${borde(error)} ${className}`}
         {...props}
       />
-      <Pie id={id} error={error} ayuda={ayuda} />
-    </div>
-  )
-}
-
-type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
-  id: string
-  etiqueta: string
-  /* La etiqueta sigue asociada por htmlFor (accesible), pero no ocupa lugar
-     visual: para selects que viven en una barra de controles compacta. */
-  etiquetaOculta?: boolean
-  ayuda?: string
-  error?: string
-  children: ReactNode
-}
-
-export function Select({
-  id,
-  etiqueta,
-  etiquetaOculta,
-  ayuda,
-  error,
-  className = '',
-  children,
-  ...props
-}: SelectProps) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={id}
-        className={
-          etiquetaOculta
-            ? 'sr-only'
-            : `text-label font-medium ${props.disabled ? 'text-text-faint' : 'text-text-muted'}`
-        }
-      >
-        {etiqueta}
-      </label>
-      <select
-        id={id}
-        name={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={descrito(id, error, ayuda)}
-        className={`${CLASES_INPUT} ${borde(error)} ${className}`}
-        {...props}
-      >
-        {children}
-      </select>
       <Pie id={id} error={error} ayuda={ayuda} />
     </div>
   )
