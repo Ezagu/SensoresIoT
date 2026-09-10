@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
 import { Pill } from '@/components/ui/Pill'
-import { eliminarAlerta, actualizarPreferenciaAlerta } from '@/services/consultas'
+import { eliminarAlerta } from '@/services/consultas'
 import { medida } from '@/utils/formato'
-import type { AlertaConNotificar } from '@/tipos'
+import type { Alerta } from '@/tipos'
 import { condicionTexto } from './condicion'
 
 export function FilaAlerta({
@@ -14,7 +14,7 @@ export function FilaAlerta({
   onEditar,
   onCambio,
 }: {
-  alerta: AlertaConNotificar
+  alerta: Alerta
   unidad: string
   puedeEditar: boolean
   onEditar: () => void
@@ -22,16 +22,6 @@ export function FilaAlerta({
 }) {
   const [ocupado, setOcupado] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
-
-  async function alternarNotificar() {
-    setOcupado(true)
-    try {
-      await actualizarPreferenciaAlerta(alerta.id, { notificar: !alerta.notificar })
-      onCambio()
-    } finally {
-      setOcupado(false)
-    }
-  }
 
   async function borrar() {
     setOcupado(true)
@@ -60,17 +50,6 @@ export function FilaAlerta({
         </span>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-        <Boton
-          type="button"
-          variante="texto"
-          disabled={ocupado}
-          onClick={alternarNotificar}
-          title="Sólo afecta tus propias notificaciones, no las de los demás usuarios con acceso"
-        >
-          {alerta.notificar ? 'Notificándome' : 'Sin notificar'}
-        </Boton>
-        {/* "Notificándome" queda para todos: es la preferencia de mails del
-            usuario, no una edición de la regla. Editar y borrar no. */}
         {puedeEditar && (
           <>
             <Boton type="button" variante="texto" onClick={onEditar}>

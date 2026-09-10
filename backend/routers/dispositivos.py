@@ -3,9 +3,9 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate
 from schemas.sensor import SensorOut
-from schemas.alerta import AlertaConNotificarOut, AlertaEventosConContextoOut
+from schemas.alerta import AlertaOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
 from core.deps import get_usuario_admin, get_usuario_actual, get_dispositivo_autenticado
 from core.limiter import limiter
@@ -47,7 +47,7 @@ def delete_access(dispositivo_id: UUID, usuario_id: UUID, usuario_actual: dict =
 
 #-----------------ALERTAS----------------------
 
-@router.get("/{dispositivo_id}/alertas", response_model=list[AlertaConNotificarOut])
+@router.get("/{dispositivo_id}/alertas", response_model=list[AlertaOut])
 def get_alertas(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return alerta_service.listar_por_dispositivo(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
 
@@ -71,6 +71,12 @@ def get_sensores(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuari
     return dispositivo_service.obtener_sensores(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
 
 #---------------CONFIGURACION----------------
+
+@router.put("/{dispositivo_id}/notificaciones")
+def set_notificaciones(dispositivo_id: UUID, payload: NotificacionUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
+    # Opt-out propio de los mails de alerta del equipo: cualquier rol vinculado,
+    # viewer incluido, y sólo afecta al que llama.
+    return dispositivo_service.configurar_notificaciones(dispositivo_id, usuario_actual["sub"], payload.notificar)
 
 @router.patch("/{dispositivo_id}/intervalo")
 def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual: dict = Depends(get_usuario_actual)):

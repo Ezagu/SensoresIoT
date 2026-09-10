@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from schemas.alerta import (
     AlertaCreate, AlertaUpdate, AlertaOut, AlertaEventosOut,
-    AlertaEventosConContextoOut, PreferenciaUpdate,
+    AlertaEventosConContextoOut,
 )
 from services import alerta_service
 from core.deps import get_usuario_actual
@@ -39,12 +39,6 @@ def update_alerta(alerta_id: UUID, cambios: AlertaUpdate, usuario_actual = Depen
 def delete_alerta(alerta_id: UUID, usuario_actual = Depends(get_usuario_actual)):
     alerta_service.eliminar_alerta(alerta_id, usuario_actual["sub"], usuario_actual["rol"])
     return {"detail": "Alerta eliminada"}
-
-@router.put("/{alerta_id}/notificacion")
-def update_preferencia(alerta_id: UUID, cambios: PreferenciaUpdate, usuario_actual = Depends(get_usuario_actual)):
-    # Preferencia propia: cualquiera con acceso al dispositivo (viewer incluido)
-    # decide si quiere sus propios mails de esta alerta.
-    return alerta_service.actualizar_preferencia(alerta_id, usuario_actual["sub"], usuario_actual["rol"], cambios.notificar)
 
 @router.get("/{alerta_id}/eventos", response_model=AlertaEventosOut)
 def get_eventos(

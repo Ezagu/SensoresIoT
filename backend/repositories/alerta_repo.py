@@ -21,22 +21,18 @@ def buscar_por_id(cur, alerta_id) -> dict | None:
     cur.execute(f"SELECT {COLUMNAS} FROM alertas WHERE id = %s", (alerta_id,))
     return cur.fetchone()
 
-def listar_por_dispositivo(cur, dispositivo_id, usuario_id) -> list[dict]:
-    # `notificar` ya viene resuelto para `usuario_id` (opt-out: sin fila en
-    # alerta_preferencias = true) para que la UI no tenga que pedirlo aparte.
+def listar_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     cur.execute(
-        f"""
+        """
         SELECT a.id, a.sensor_id, a.creado_por, a.nombre, a.condicion, a.umbral,
                a.histeresis, a.activa, a.estado, a.estado_desde, a.ultimo_valor,
-               a.ultima_evaluacion_at, a.ultima_notificacion_at, a.created_at,
-               COALESCE(p.notificar, true) AS notificar
+               a.ultima_evaluacion_at, a.ultima_notificacion_at, a.created_at
         FROM alertas a
         JOIN sensores s ON s.id = a.sensor_id
-        LEFT JOIN alerta_preferencias p ON p.alerta_id = a.id AND p.usuario_id = %s
         WHERE s.dispositivo_id = %s
         ORDER BY a.created_at DESC
         """,
-        (usuario_id, dispositivo_id)
+        (dispositivo_id,)
     )
     return cur.fetchall()
 
@@ -117,8 +113,7 @@ def buscar_activas_por_sensores(cur, sensor_ids: list) -> list[dict]:
 
 def destinatarios_de_alerta(cur, alerta_id) -> list[dict]:
     # Todo el que tiene acceso al dispositivo (owner, editor, viewer), salvo
-    # quien se dio de baja explícitamente. COALESCE(p.notificar, true) es el
-    # opt-out: sin fila en alerta_preferencias, se notifica.
+    # quien silenció ese equipo. La preferencia es del vínculo, no de la regla.
     cur.execute(
         """
         SELECT u.id, u.email, u.nombre
@@ -126,8 +121,7 @@ def destinatarios_de_alerta(cur, alerta_id) -> list[dict]:
         JOIN sensores s ON s.id = a.sensor_id
         JOIN usuario_dispositivo ud ON ud.dispositivo_id = s.dispositivo_id
         JOIN usuarios u ON u.id = ud.usuario_id
-        LEFT JOIN alerta_preferencias p ON p.alerta_id = a.id AND p.usuario_id = u.id
-        WHERE a.id = %s AND COALESCE(p.notificar, true)
+        WHERE a.id = %s AND ud.notificar
         """,
         (alerta_id,)
     )
@@ -176,17 +170,6 @@ def actualizar_notificados(cur, evento_id, notificados: int) -> None:
 
 def actualizar_destinatarios(cur, evento_id, destinatarios: int) -> None:
     cur.execute("UPDATE alerta_eventos SET destinatarios = %s WHERE id = %s", (destinatarios, evento_id))
-
-def upsert_preferencia(cur, alerta_id, usuario_id, notificar: bool) -> None:
-    cur.execute(
-        """
-        INSERT INTO alerta_preferencias (alerta_id, usuario_id, notificar)
-        VALUES (%s, %s, %s)
-        ON CONFLICT (alerta_id, usuario_id)
-        DO UPDATE SET notificar = EXCLUDED.notificar, updated_at = now()
-        """,
-        (alerta_id, usuario_id, notificar)
-    )
 
 COLUMNAS_EVENTO_CON_CONTEXTO = """
     e.id, e.alerta_id, e.tipo, e.valor, e.medicion_at, e.detectado_at, e.tardio,

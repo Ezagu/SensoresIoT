@@ -18,9 +18,6 @@ class AlertaUpdate(BaseModel):
   histeresis: Optional[float] = None
   activa: Optional[bool] = None
 
-class PreferenciaUpdate(BaseModel):
-  notificar: bool
-
 class AlertaOut(BaseModel):
   id: UUID
   sensor_id: UUID
@@ -36,10 +33,6 @@ class AlertaOut(BaseModel):
   ultima_evaluacion_at: Optional[datetime]
   ultima_notificacion_at: Optional[datetime]
   created_at: datetime
-
-class AlertaConNotificarOut(AlertaOut):
-  # Preferencia del usuario que pide el listado, ya resuelta (opt-out).
-  notificar: bool
 
 class AlertaEventoOut(BaseModel):
   id: UUID

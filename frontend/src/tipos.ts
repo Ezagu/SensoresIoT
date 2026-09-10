@@ -80,6 +80,9 @@ export type DispositivoDetalle = Dispositivo & {
   rol: RolDispositivo | 'admin'
   owner_nombre: string | null
   limites: LimitesDispositivo
+  /* Opt-out de mails de alerta de este equipo. null = admin sin vínculo: no es
+     destinatario, así que no se le ofrece el control. */
+  notificar: boolean | null
 }
 
 /* Salen del plan del DUEÑO del equipo. No confundir con `useSesion().plan`, que
@@ -167,9 +170,6 @@ export type Alerta = {
   created_at: string
 }
 
-/* El listado por dispositivo agrega la preferencia del que consulta */
-export type AlertaConNotificar = Alerta & { notificar: boolean }
-
 export type AlertaCreatePayload = {
   sensor_id: string
   nombre?: string | null
@@ -187,7 +187,7 @@ export type AlertaUpdatePayload = {
   activa?: boolean
 }
 
-export type PreferenciaUpdatePayload = { notificar: boolean }
+export type NotificacionUpdatePayload = { notificar: boolean }
 
 /* PATCH /dispositivos/{id}. Sólo identificación: intervalo tiene su propio
    endpoint y accesos el suyo, cada uno con su propia autorización. */

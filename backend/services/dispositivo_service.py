@@ -58,6 +58,7 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
         "max_alertas": limites["max_alertas"],
         "intervalo_minimo_seg": limites["intervalo_minimo_seg"],
     }
+    dispositivo["notificar"] = dispositivo_repo.buscar_notificar(cur, dispositivo_id, usuario_id)
     return dispositivo
 
 def crear_dispositivo(dispositivo) -> dict:
@@ -128,6 +129,16 @@ def quitar_acceso(dispositivo_id, usuario_id_to_delete, usuario_id, rol):
             raise HTTPException(409, "Debes transferir la propiedad del dispositivo antes de quitar tu acceso")
         
         dispositivo_repo.eliminar_vinculacion(cur, dispositivo_id, usuario_id_to_delete)
+
+def configurar_notificaciones(dispositivo_id, usuario_id, notificar: bool) -> dict:
+    # Opt-out de los mails de alerta de este equipo. Cualquier rol decide el
+    # suyo (viewer incluido): no es una edición del equipo. El UPDATE acotado al
+    # par (dispositivo, usuario) es a la vez la autorización — sin vínculo no
+    # afecta ninguna fila.
+    with get_cursor() as cur:
+        if not dispositivo_repo.actualizar_notificar(cur, dispositivo_id, usuario_id, notificar):
+            raise HTTPException(404, "No tenés acceso directo a este dispositivo")
+    return {"notificar": notificar}
 
 def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict:
     # Cambiar intervalo de medición del dispositivo, se devuelve como respuesta en la medición

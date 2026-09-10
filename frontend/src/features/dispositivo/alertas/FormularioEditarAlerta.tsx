@@ -5,7 +5,7 @@ import { actualizarAlerta } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import { esquemaAlertaEdicion } from '@/utils/validacion'
 import { useFormulario } from '@/hooks/usarFormulario'
-import type { AlertaConNotificar } from '@/tipos'
+import type { Alerta } from '@/tipos'
 import { ETIQUETA_CONDICION } from './condicion'
 import { TextoError } from '@/components/ui/TextoError'
 
@@ -14,7 +14,7 @@ export function FormularioEditarAlerta({
   onGuardada,
   onCancelar,
 }: {
-  alerta: AlertaConNotificar
+  alerta: Alerta
   onGuardada: () => void
   onCancelar: () => void
 }) {

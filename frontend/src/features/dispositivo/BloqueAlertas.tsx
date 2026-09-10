@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Vacio } from '@/components/ui/Vacio'
 import { IconoMas } from '@/components/layout/iconos'
 import { agruparAlertasPorSensor } from '@/utils/alertas'
-import type { AlertaConNotificar } from '@/tipos'
+import type { Alerta } from '@/tipos'
 import type { SensorConMeta } from './usarDispositivo'
 import { FormularioNuevaAlerta } from './alertas/FormularioNuevaAlerta'
 import { FormularioEditarAlerta } from './alertas/FormularioEditarAlerta'
@@ -21,7 +21,7 @@ export function BloqueAlertas({
   onCambio,
 }: {
   sensores: SensorConMeta[]
-  alertas: AlertaConNotificar[]
+  alertas: Alerta[]
   puedeAlertas: boolean
   /* Rol de edición sobre el equipo. Un viewer ve las reglas y elige si quiere
      sus mails, pero no las crea, edita ni borra. */
@@ -30,7 +30,7 @@ export function BloqueAlertas({
   onCambio: () => void
 }) {
   const [creando, setCreando] = useState(false)
-  const [editando, setEditando] = useState<AlertaConNotificar | null>(null)
+  const [editando, setEditando] = useState<Alerta | null>(null)
 
   const porSensor = agruparAlertasPorSensor(alertas)
   const unidadPorSensor = new Map(sensores.map((s) => [s.id, s.unidad] as const))

@@ -13,6 +13,27 @@ def buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id) -> str | None:
     fila = cur.fetchone()
     return fila["rol"] if fila else None
 
+def buscar_notificar(cur, dispositivo_id, usuario_id) -> bool | None:
+    # None = no hay vínculo (un admin mirando un equipo ajeno): tampoco es
+    # destinatario, así que la preferencia no le aplica.
+    cur.execute(
+        "SELECT notificar FROM usuario_dispositivo WHERE dispositivo_id = %s AND usuario_id = %s",
+        (dispositivo_id, usuario_id)
+    )
+    fila = cur.fetchone()
+    return fila["notificar"] if fila else None
+
+def actualizar_notificar(cur, dispositivo_id, usuario_id, notificar: bool) -> bool:
+    cur.execute(
+        """
+        UPDATE usuario_dispositivo SET notificar = %s
+        WHERE dispositivo_id = %s AND usuario_id = %s
+        RETURNING notificar
+        """,
+        (notificar, dispositivo_id, usuario_id)
+    )
+    return cur.fetchone() is not None
+
 def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
     # El secret sólo sale en texto plano acá; se persiste únicamente el hash.
     secret, secret_hash = generar_secret()

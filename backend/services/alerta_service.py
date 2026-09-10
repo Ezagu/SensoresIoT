@@ -181,7 +181,7 @@ def crear_alerta(alerta, usuario_id, rol) -> dict:
 def listar_por_dispositivo(dispositivo_id, usuario_id, rol) -> list[dict]:
     with get_cursor() as cur:
         dispositivo_service.validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        return alerta_repo.listar_por_dispositivo(cur, dispositivo_id, usuario_id)
+        return alerta_repo.listar_por_dispositivo(cur, dispositivo_id)
 
 def obtener_alerta(alerta_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
@@ -196,14 +196,6 @@ def eliminar_alerta(alerta_id, usuario_id, rol) -> None:
     with get_cursor() as cur:
         validar_alerta_con_rol(cur, alerta_id, usuario_id, rol, edicion=True)
         alerta_repo.eliminar(cur, alerta_id)
-
-def actualizar_preferencia(alerta_id, usuario_id, rol, notificar: bool) -> dict:
-    # Cualquier rol con acceso (viewer incluido) decide si quiere sus propios
-    # mails de esta alerta, sin necesitar permiso de edición sobre la regla.
-    with get_cursor() as cur:
-        validar_alerta_con_rol(cur, alerta_id, usuario_id, rol)
-        alerta_repo.upsert_preferencia(cur, alerta_id, usuario_id, notificar)
-    return {"alerta_id": alerta_id, "notificar": notificar}
 
 def obtener_eventos(alerta_id, usuario_id, rol, hasta, cursor, limite) -> dict:
     limite = min(limite or LIMITE_DEFAULT_EVENTOS, LIMITE_MAXIMO_EVENTOS)

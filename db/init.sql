@@ -52,6 +52,10 @@ CREATE TABLE usuario_dispositivo (
     usuario_id         UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     dispositivo_id     UUID NOT NULL REFERENCES dispositivos(id) ON DELETE CASCADE,
     rol                TEXT NOT NULL DEFAULT 'owner' CHECK (rol IN ('owner', 'viewer', 'editor')),
+    -- Opt-out de los mails de alerta de este equipo, por usuario. La fila ya
+    -- existe desde el vínculo, así que el default alcanza: no hace falta
+    -- materializar nada al crear una alerta ni al compartir el equipo.
+    notificar          BOOLEAN NOT NULL DEFAULT true,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (usuario_id, dispositivo_id)
 );
@@ -268,17 +272,6 @@ CREATE TABLE alertas (
 CREATE INDEX idx_alertas_sensor_activa ON alertas (sensor_id) WHERE activa;
 -- Completo: sirve a los listados por dispositivo, que también muestran inactivas.
 CREATE INDEX idx_alertas_sensor ON alertas (sensor_id);
-
--- Preferencia de notificación por usuario. Sin fila = notificar (opt-out): si
--- se insertara una fila por usuario al crear la alerta, alguien a quien le
--- comparten el equipo después no recibiría nada hasta un backfill manual.
-CREATE TABLE alerta_preferencias (
-    alerta_id  UUID NOT NULL REFERENCES alertas(id) ON DELETE CASCADE,
-    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
-    notificar  BOOLEAN NOT NULL,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (alerta_id, usuario_id)
-);
 
 CREATE TABLE alerta_eventos (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),

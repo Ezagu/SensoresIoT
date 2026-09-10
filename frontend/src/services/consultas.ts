@@ -4,7 +4,6 @@ import type {
   AccesoDispositivo,
   AccesoUpdatePayload,
   Alerta,
-  AlertaConNotificar,
   AlertaCreatePayload,
   AlertaUpdatePayload,
   DatosGrafico,
@@ -13,8 +12,8 @@ import type {
   DispositivoUpdatePayload,
   Historial,
   IntervaloActualizado,
+  NotificacionUpdatePayload,
   PanelResumen,
-  PreferenciaUpdatePayload,
   Sensor,
   TipoSensor,
 } from '@/tipos'
@@ -55,12 +54,10 @@ export function listarSensores(dispositivoId: string, signal?: AbortSignal) {
    lista vacía, no 403. */
 export function listarAlertas(dispositivoId: string, signal?: AbortSignal) {
   return api
-    .get<AlertaConNotificar[]>(`/dispositivos/${dispositivoId}/alertas`, { signal })
+    .get<Alerta[]>(`/dispositivos/${dispositivoId}/alertas`, { signal })
     .then((r) => r.data)
 }
 
-/* POST/PATCH devuelven AlertaOut, sin `notificar` (eso sólo lo agrega el
-   listado por dispositivo, resuelto para quien lo pide). */
 export function crearAlerta(payload: AlertaCreatePayload) {
   return api.post<Alerta>('/alertas/', payload).then((r) => r.data)
 }
@@ -73,8 +70,11 @@ export function eliminarAlerta(alertaId: string) {
   return api.delete(`/alertas/${alertaId}`)
 }
 
-export function actualizarPreferenciaAlerta(alertaId: string, payload: PreferenciaUpdatePayload) {
-  return api.put(`/alertas/${alertaId}/notificacion`, payload)
+/* Opt-out de mails del equipo entero, del usuario que llama. */
+export function configurarNotificaciones(dispositivoId: string, payload: NotificacionUpdatePayload) {
+  return api
+    .put<NotificacionUpdatePayload>(`/dispositivos/${dispositivoId}/notificaciones`, payload)
+    .then((r) => r.data)
 }
 
 export function obtenerGrafico(sensorId: string, desde: Date, hasta: Date, signal?: AbortSignal) {

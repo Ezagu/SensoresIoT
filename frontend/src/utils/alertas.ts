@@ -1,9 +1,9 @@
-import type { AlertaConNotificar, CondicionAlerta } from '@/tipos'
+import type { Alerta, CondicionAlerta } from '@/tipos'
 
 /* Para el detalle (BloqueAlertas): todas las reglas del sensor, activas o no
    — el usuario administra ambas. */
-export function agruparAlertasPorSensor(alertas: AlertaConNotificar[]) {
-  const mapa = new Map<string, AlertaConNotificar[]>()
+export function agruparAlertasPorSensor(alertas: Alerta[]) {
+  const mapa = new Map<string, Alerta[]>()
   for (const alerta of alertas) {
     const acumuladas = mapa.get(alerta.sensor_id) ?? []
     acumuladas.push(alerta)
@@ -14,8 +14,8 @@ export function agruparAlertasPorSensor(alertas: AlertaConNotificar[]) {
 
 /* Sólo reglas activas: el umbral del gráfico del detalle y el flag de
    disparada del panel. */
-function reglasPorSensor(alertas: AlertaConNotificar[]) {
-  const mapa = new Map<string, AlertaConNotificar[]>()
+function reglasPorSensor(alertas: Alerta[]) {
+  const mapa = new Map<string, Alerta[]>()
   for (const alerta of alertas) {
     if (!alerta.activa) continue
     const acumuladas = mapa.get(alerta.sensor_id) ?? []
@@ -27,7 +27,7 @@ function reglasPorSensor(alertas: AlertaConNotificar[]) {
 
 /* La disparada si hay alguna, si no la primera activa: decide el estado que
    pinta el valor en rojo. Mismo criterio en panel y detalle. */
-export function reglaDestacada(alertas: AlertaConNotificar[], sensorId: string) {
+export function reglaDestacada(alertas: Alerta[], sensorId: string) {
   const reglas = reglasPorSensor(alertas).get(sensorId) ?? []
   return reglas.find((r) => r.estado === 'disparada') ?? reglas[0]
 }
@@ -41,7 +41,7 @@ export type UmbralGrafico = {
 /* Una línea por regla activa, deduplicada por condición+umbral: dos reglas con
    el mismo corte son una sola línea. Si alguna gemela está disparada, lo está. */
 export function umbralesDeSensor(
-  alertas: AlertaConNotificar[],
+  alertas: Alerta[],
   sensorId: string,
 ): UmbralGrafico[] {
   const porCorte = new Map<string, UmbralGrafico>()

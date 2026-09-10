@@ -8,7 +8,7 @@ import {
   nombreDeDispositivo,
   puedeEditar as puedeEditarDispositivo,
 } from '@/utils/dispositivos'
-import { useAlertasDispositivo, useDispositivo, useSensoresConMeta } from '../usarDispositivo'
+import { useDispositivo, useSensoresConMeta } from '../usarDispositivo'
 import { ErrorDeCarga, Navegable } from '../ErrorDeCarga'
 import { SeccionIdentificacion } from './SeccionIdentificacion'
 import { SeccionMuestreo } from './SeccionMuestreo'
@@ -33,7 +33,6 @@ export function AjustesDispositivo() {
   const { sesion, plan } = useSesion()
   const equipo = useDispositivo(id ?? '')
   const sensores = useSensoresConMeta(id ?? '')
-  const { alertas, refrescar: refrescarAlertas } = useAlertasDispositivo(id ?? '', equipo.intervaloSeg)
 
   const dispositivo = equipo.datos
   useTituloPagina(dispositivo ? `Ajustes — ${nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}` : null)
@@ -89,11 +88,7 @@ export function AjustesDispositivo() {
         usuarioActualId={sesion?.usuario_id ?? ''}
       />
 
-      <SeccionNotificaciones
-        alertas={alertas}
-        puedeAlertas={dispositivo.limites.puede_alertas}
-        onCambio={refrescarAlertas}
-      />
+      <SeccionNotificaciones dispositivo={dispositivo} onGuardado={equipo.refrescar} />
 
       <FichaEquipo dispositivo={dispositivo} sensores={sensoresBase} />
 

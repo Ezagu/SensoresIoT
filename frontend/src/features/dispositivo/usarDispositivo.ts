@@ -3,7 +3,7 @@ import { listarAlertas, listarSensores, listarTiposSensor, obtenerDispositivo } 
 import { useCarga } from '@/hooks/usarCarga'
 import { etiquetarSensores } from '@/utils/sensores'
 import { intervaloEfectivo } from '@/utils/dispositivos'
-import type { AlertaConNotificar, DatosGrafico } from '@/tipos'
+import type { Alerta, DatosGrafico } from '@/tipos'
 
 export type SensorConMeta = {
   id: string
@@ -71,7 +71,7 @@ export function useSensoresConMeta(dispositivoId: string) {
 }
 
 /* Referencia estable: `datos ?? []` crearía un array nuevo por render. */
-const SIN_ALERTAS: AlertaConNotificar[] = []
+const SIN_ALERTAS: Alerta[] = []
 
 /* A la cadencia del equipo y no a la de los gráficos: una alerta se dispara
    ahora, no dentro de la ventana que se mira, y con un rango histórico los

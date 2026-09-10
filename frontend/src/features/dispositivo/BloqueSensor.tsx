@@ -11,7 +11,7 @@ import { estadoDispositivo } from '@/utils/tiempo'
 import { anclaEnCero } from '@/utils/sensores'
 import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
 import type { SensorConDatos } from './usarDispositivo'
-import type { AlertaConNotificar } from '@/tipos'
+import type { Alerta } from '@/tipos'
 
 export function BloqueSensor({
   dispositivoId,
@@ -28,7 +28,7 @@ export function BloqueSensor({
 }: {
   dispositivoId: string
   sensor: SensorConDatos
-  alertas: AlertaConNotificar[]
+  alertas: Alerta[]
   desdeMs: number
   hastaMs: number
   corteDePlanMs: number | null

@@ -62,10 +62,16 @@ class DispositivoDetalleOut(DispositivoOut):
   rol: str
   owner_nombre: Optional[str] = None
   limites: LimitesDispositivoOut
+  # Opt-out de mails de alerta de este equipo, del que consulta. None = no tiene
+  # vínculo (admin): tampoco es destinatario, así que no se le ofrece el control.
+  notificar: Optional[bool] = None
 
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut
   secret: str
+
+class NotificacionUpdate(BaseModel):
+  notificar: bool
 
 class IntervaloUpdate(BaseModel):
   # None = automático (resetea a "usar el piso del plan vigente")
