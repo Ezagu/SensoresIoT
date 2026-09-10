@@ -16,7 +16,7 @@ function estaDesactualizado(pedida: Ventana, actual: Ventana | undefined) {
 export function useGraficosDeSensores(
   sensores: SensorConMeta[],
   ventana: Ventana,
-  intervaloSeg: number | undefined,
+  cadenciaSeg: number | undefined,
 ) {
   const idsKey = sensores.map((s) => s.id).join(',')
 
@@ -41,7 +41,7 @@ export function useGraficosDeSensores(
   )
 
   const { datos, ...estado } = useCarga(cargar, {
-    intervaloMs: pollDeVentana(ventana, intervaloSeg),
+    intervaloMs: pollDeVentana(ventana, cadenciaSeg),
   })
 
   return {
@@ -64,7 +64,7 @@ export type DatosSensor = {
 export function useDatosSensor(
   sensorId: string,
   ventana: Ventana,
-  intervaloSeg: number | undefined,
+  cadenciaSeg: number | undefined,
 ) {
   const cargar = useCallback(
     async (signal: AbortSignal): Promise<DatosSensor> => {
@@ -81,6 +81,6 @@ export function useDatosSensor(
     [sensorId, ventana],
   )
 
-  const estado = useCarga(cargar, { intervaloMs: pollDeVentana(ventana, intervaloSeg) })
+  const estado = useCarga(cargar, { intervaloMs: pollDeVentana(ventana, cadenciaSeg) })
   return { ...estado, desactualizado: estaDesactualizado(ventana, estado.datos?.ventana) }
 }

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from repositories import dispositivo_repo, sensor_repo, medicion_repo, alerta_repo
-from services import plan_service
+from services import dispositivo_service, plan_service
 from db import get_cursor
 
 # Techo duro de la hypertable cruda (FUENTES[0]["retencion"] en medicion_repo):
@@ -64,6 +64,7 @@ def listar_panel(usuario_id) -> dict:
             salida.append({
                 **d,
                 "intervalo_efectivo_seg": intervalo_efectivo,
+                "online": dispositivo_service.esta_online(d["last_seen_at"], intervalo_efectivo),
                 "alertas_disparadas": disparadas_por_dispositivo.get(d["id"], 0),
                 "sensores": sensores_out,
             })

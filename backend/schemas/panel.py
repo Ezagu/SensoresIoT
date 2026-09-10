@@ -25,6 +25,7 @@ class DispositivoResumenOut(BaseModel):
     # Resuelto con el plan del DUEÑO del dispositivo, a diferencia de
     # intervalo_configurado_seg (que es sólo el valor elegido, sin el piso del plan).
     intervalo_efectivo_seg: int
+    online: bool
     alertas_disparadas: int
     sensores: list[SensorResumenOut]
 

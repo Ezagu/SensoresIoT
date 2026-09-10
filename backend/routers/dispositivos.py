@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate, DispositivoEstadoOut
 from schemas.sensor import SensorOut
 from schemas.alerta import AlertaOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
@@ -25,6 +25,10 @@ def get_dispositivo_by_id(dispositivo_id: UUID, usuario_actual: dict = Depends(g
 @router.patch("/{dispositivo_id}", response_model=DispositivoDetalleOut)
 def update_dispositivo(dispositivo_id: UUID, datos: DispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.actualizar_datos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], datos)
+
+@router.get("/{dispositivo_id}/estado", response_model=DispositivoEstadoOut)
+def get_dispositivo_estado(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.obtener_estado(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
 
 #-------------VINCULACION / ACCESOS----------------
 

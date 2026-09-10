@@ -2,11 +2,13 @@ import type { ReactNode } from 'react'
 import { CampoBusqueda } from '@/components/ui/CampoBusqueda'
 import { Select } from '@/components/ui/Select'
 import { Segmentado } from '@/components/ui/Segmentado'
-import { ETIQUETA_FILTRO, ETIQUETA_ORDEN, type FiltroInventario, type OrdenInventario } from '../inventario'
-
-/* Orden fijo de exhibición: gravedad primero, la baja al final (no es una
-   falla de conexión, no compite con las demás). */
-const CATEGORIAS: FiltroInventario[] = ['en-linea', 'retraso', 'sin-reportar', 'nunca', 'desactivado']
+import {
+  CATEGORIAS,
+  ETIQUETA_FILTRO,
+  ETIQUETA_ORDEN,
+  type FiltroInventario,
+  type OrdenInventario,
+} from '../inventario'
 
 type EstadoFiltro = FiltroInventario | 'todos'
 

@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 import { useSesion } from '@/features/auth/sesion'
 import { listarDispositivos } from '@/services/consultas'
 import { useCarga } from '@/hooks/usarCarga'
-import { intervaloEfectivo } from '@/utils/dispositivos'
 import type { DispositivoConRol, DispositivoInventario } from '@/tipos'
 
 /* El endpoint todavía devuelve DispositivoConRolOut pelado: los campos de
@@ -14,7 +13,6 @@ function completar(crudo: InventarioCrudo): DispositivoInventario {
   return {
     ...crudo,
     owner_nombre: crudo.owner_nombre ?? null,
-    intervalo_efectivo_seg: crudo.intervalo_efectivo_seg ?? intervaloEfectivo(crudo, undefined),
     sensores: crudo.sensores ?? [],
     alertas_total: crudo.alertas_total ?? 0,
     alertas_disparadas: crudo.alertas_disparadas ?? 0,

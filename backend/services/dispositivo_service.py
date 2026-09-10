@@ -1,6 +1,9 @@
+import math
+
 import psycopg2.errors
+from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
-from repositories import dispositivo_repo, sensor_repo, usuario_repo
+from repositories import dispositivo_repo, sensor_repo, usuario_repo, alerta_repo
 from services import plan_service
 from db import get_cursor
 
@@ -8,6 +11,26 @@ INTERVALO_MAXIMO_SEG = 24 * 60 * 60
 ROLES_EDICION = ("admin", "owner", "editor")
 ROLES_OWNER = ("admin", "owner")
 ROLES_ASIGNABLES = ("editor", "viewer")
+
+# Toleramos tres intervalos de silencio antes de dar por caído al equipo: uno
+# perdido es un reintento normal del firmware.
+INTERVALOS_DE_GRACIA = 3
+
+def esta_online(last_seen_at, intervalo_efectivo_seg) -> bool:
+    # El intervalo tiene que ser el EFECTIVO (max con el piso del plan del dueño):
+    # el configurado es NULL cuando el equipo está en automático.
+    if last_seen_at is None:
+        return False
+    transcurrido = datetime.now(timezone.utc) - last_seen_at
+    return transcurrido < timedelta(seconds=intervalo_efectivo_seg * INTERVALOS_DE_GRACIA)
+
+def segundos_hasta_siguiente_medicion(last_seen_at, intervalo_efectivo_seg) -> int | None:
+    # Cuánto falta para el próximo reporte esperado. None = nunca reportó, no hay
+    # desde dónde contar.
+    if last_seen_at is None:
+        return None
+    siguiente = last_seen_at + timedelta(seconds=intervalo_efectivo_seg)
+    return max(0, math.ceil((siguiente - datetime.now(timezone.utc)).total_seconds()))
 
 def validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> dict:
     # Valida que exista el dispositivo, que el usuario esté vinculado y tenga permiso de edición
@@ -58,8 +81,13 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
         "max_alertas": limites["max_alertas"],
         "intervalo_minimo_seg": limites["intervalo_minimo_seg"],
     }
+    dispositivo["intervalo_efectivo_seg"] = plan_service.intervalo_efectivo_seg(
+        dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"]
+    )
     dispositivo["notificar"] = dispositivo_repo.buscar_notificar(cur, dispositivo_id, usuario_id)
     return dispositivo
+
+#-----------------ENDPOINTS----------------------
 
 def crear_dispositivo(dispositivo) -> dict:
     with get_cursor() as cur:
@@ -69,6 +97,21 @@ def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
         dispositivo = validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         return obtener_detalle_dispositivo(cur, dispositivo, usuario_id, rol)
+
+def obtener_estado(dispositivo_id, usuario_id, rol) -> dict:
+    # Lo único que cambia solo mientras se mira un equipo. El resto del detalle
+    # sale de GET /dispositivos/{id}, que no hace falta pollear.
+    with get_cursor() as cur:
+        dispositivo = validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        last_seen_at = dispositivo["last_seen_at"]
+        piso = plan_service.limites_de_dispositivo(cur, dispositivo_id)["intervalo_minimo_seg"]
+        intervalo = plan_service.intervalo_efectivo_seg(dispositivo["intervalo_configurado_seg"], piso)
+        return {
+            "last_seen_at": last_seen_at,
+            "online": esta_online(last_seen_at, intervalo),
+            "alertas_disparadas": len(alerta_repo.disparadas_por_dispositivos(cur, [dispositivo_id])),
+            "siguiente_medicion": segundos_hasta_siguiente_medicion(last_seen_at, intervalo),
+        }
 
 def actualizar_datos(dispositivo_id, usuario_id, rol, datos):
     campos = datos.model_dump(exclude_unset=True)

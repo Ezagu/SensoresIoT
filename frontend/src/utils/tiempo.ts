@@ -78,27 +78,31 @@ export function fechaConAnio(ms: number): string {
    envejezcan entre un poll y el siguiente. */
 export const TIC_RELOJ_MS = 30_000
 
-export type EstadoDispositivo = 'nunca' | 'en-linea' | 'retraso' | 'sin-reportar'
+export type EstadoDispositivo = 'nunca' | 'en-linea' | 'sin-reportar'
 
-/* No existe online/offline en el backend: se deriva de last_seen_at, que es el
-   now() del servidor en cada POST aceptado, nunca el time de la lectura. Tres
-   estados y no un booleano porque estos equipos pierden WiFi, bufferean y se
-   ponen al día: "con retraso" casi nunca es una falla. */
-export function estadoDispositivo(
-  lastSeenAt: string | null,
+/* `online` lo resuelve el backend contra el intervalo efectivo del equipo; acá
+   sólo se separa "nunca reportó" de "dejó de reportar", que se muestran
+   distinto. Un único criterio para panel, inventario y detalle. */
+export function estadoDispositivo(lastSeenAt: string | null, online: boolean): EstadoDispositivo {
+  if (!lastSeenAt) return 'nunca'
+  return online ? 'en-linea' : 'sin-reportar'
+}
+
+/* Otra pregunta que `estadoDispositivo`: no es "¿el equipo está vivo?" sino
+   "¿esta lectura ya debería haber sido reemplazada?". El backend resuelve la
+   primera, pero no expone frescura por sensor, así que ésta se deriva acá.
+   Mismos 3 intervalos de gracia que `dispositivo_service.INTERVALOS_DE_GRACIA`. */
+export function lecturaDesactualizada(
+  ultimoAt: string | null,
   intervaloSeg: number,
   ahora: number = Date.now(),
-): EstadoDispositivo {
-  if (!lastSeenAt) return 'nunca'
-  const transcurrido = (ahora - new Date(lastSeenAt).getTime()) / 1000
-  if (transcurrido < intervaloSeg * 3) return 'en-linea'
-  if (transcurrido < intervaloSeg * 12) return 'retraso'
-  return 'sin-reportar'
+): boolean {
+  if (!ultimoAt) return true
+  return (ahora - new Date(ultimoAt).getTime()) / 1000 >= intervaloSeg * 3
 }
 
 export const ETIQUETA_ESTADO: Record<EstadoDispositivo, string> = {
   nunca: 'Nunca reportó',
   'en-linea': 'En línea',
-  retraso: 'Con retraso',
   'sin-reportar': 'Sin reportar',
 }

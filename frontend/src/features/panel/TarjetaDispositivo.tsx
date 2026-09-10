@@ -4,14 +4,10 @@ import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlertaSonando, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
 import { medida } from '@/utils/formato'
-import { ETIQUETA_ESTADO, estadoDispositivo, type EstadoDispositivo } from '@/utils/tiempo'
+import { ETIQUETA_ESTADO, lecturaDesactualizada, type EstadoDispositivo } from '@/utils/tiempo'
 import { nombreDeDispositivo } from '@/utils/dispositivos'
 import { etiquetarSensores, type SensorEtiquetado } from '@/utils/sensores'
 import type { DispositivoResumen, SensorResumen } from '@/tipos'
-
-/* 'retraso' no apaga la fila: arranca a 3 intervalos y estos equipos se ponen al
-   día solos, así que parpadearía por algo que casi nunca es una falla. */
-const ESTADOS_APAGADOS: EstadoDispositivo[] = ['sin-reportar', 'nunca']
 
 /* Desactualizado apaga el hue y el valor a gris. El ícono de alerta no: es el
    estado de una regla, no una medición. */
@@ -64,7 +60,7 @@ export function TarjetaDispositivo({
   /* Por sensor y no por dispositivo: el pill de arriba habla del equipo, pero
      cada lectura tiene su propia antigüedad. */
   const estaDesactualizado = (sensor: SensorResumen) =>
-    inactivo || ESTADOS_APAGADOS.includes(estadoDispositivo(sensor.ultimo_at, intervaloSeg, ahora))
+    inactivo || lecturaDesactualizada(sensor.ultimo_at, intervaloSeg, ahora)
 
   return (
     <Card className="flex h-full flex-col gap-3 p-3.5">

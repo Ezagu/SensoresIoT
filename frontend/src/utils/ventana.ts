@@ -35,10 +35,11 @@ export function esTiempoReal(v: Ventana) {
   return v.tipo === 'preset' && v.rango === 'tiempo-real'
 }
 
-/* Cadencia del poll: el intervalo real del equipo, no una constante por rango
-   — `intervaloSeg` llega resuelto desde `DatosGrafico.intervalo_seg`. */
-export function pollDeVentana(v: Ventana, intervaloSeg: number | undefined): number | undefined {
-  return esTiempoReal(v) && intervaloSeg ? intervaloSeg * 1000 : undefined
+/* Cadencia del poll: la del equipo, no una constante por rango. Llega desde
+   `useEstadoDispositivo`, que la deriva de cuánto falta para el próximo
+   reporte, así que el pedido cae justo después del dato nuevo. */
+export function pollDeVentana(v: Ventana, cadenciaSeg: number | undefined): number | undefined {
+  return esTiempoReal(v) && cadenciaSeg ? cadenciaSeg * 1000 : undefined
 }
 
 /* Bordes del gráfico en ms: el ancho lo da el preset (contra el tic

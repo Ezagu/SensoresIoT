@@ -25,11 +25,24 @@ class DispositivoOut(BaseModel):
   # None = automático, usa el piso del plan vigente en cada momento
   intervalo_configurado_seg: Optional[int] = None
 
+class DispositivoEstadoOut(BaseModel):
+  # Lo único que cambia solo mientras se mira un equipo: lo que el detalle pollea.
+  last_seen_at: Optional[datetime]
+  online: bool
+  alertas_disparadas: int
+  # Segundos hasta el próximo reporte esperado; None = nunca reportó. Es de dónde
+  # el frontend saca la cadencia de su poll, para pedir justo después del dato.
+  siguiente_medicion: Optional[int] = None
+
 class DispositivoConRolOut(DispositivoOut):
   # Listado por usuario: acá el rol sale directo de la fila de usuario_dispositivo
   # del join, sin resolver nada — a diferencia de DispositivoDetalleOut, que lo
   # calcula (contempla el admin, que no tiene fila propia).
   rol: str
+  # max(configurado, piso del plan del DUEÑO): a diferencia del configurado, es
+  # exacto para un equipo compartido.
+  intervalo_efectivo_seg: int
+  online: bool
 
 class AccesoDispositivoUpdate(BaseModel):
   rol: str
@@ -62,6 +75,7 @@ class DispositivoDetalleOut(DispositivoOut):
   rol: str
   owner_nombre: Optional[str] = None
   limites: LimitesDispositivoOut
+  intervalo_efectivo_seg: int
   # Opt-out de mails de alerta de este equipo, del que consulta. None = no tiene
   # vínculo (admin): tampoco es destinatario, así que no se le ofrece el control.
   notificar: Optional[bool] = None

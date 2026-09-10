@@ -17,29 +17,30 @@ export function normalizarTexto(texto: string): string {
     .replace(/[áéíóúü]/g, (c) => SIN_TILDE[c] ?? c)
 }
 
-export function categoriaDe(dispositivo: DispositivoInventario, ahora: number): FiltroInventario {
+export function categoriaDe(dispositivo: DispositivoInventario): FiltroInventario {
   if (!dispositivo.activo) return 'desactivado'
-  return estadoDispositivo(dispositivo.last_seen_at, dispositivo.intervalo_efectivo_seg, ahora)
+  return estadoDispositivo(dispositivo.last_seen_at, dispositivo.online)
 }
 
-const CATEGORIAS: FiltroInventario[] = ['en-linea', 'retraso', 'sin-reportar', 'nunca', 'desactivado']
+/* Orden fijo de exhibición: gravedad primero, la baja al final (no es una
+   falla de conexión, no compite con las demás). */
+export const CATEGORIAS: FiltroInventario[] = ['en-linea', 'sin-reportar', 'nunca', 'desactivado']
 
 export function contarPorEstado(
   dispositivos: DispositivoInventario[],
-  ahora: number,
 ): Record<FiltroInventario, number> {
   const conteo = Object.fromEntries(CATEGORIAS.map((c) => [c, 0])) as Record<FiltroInventario, number>
-  for (const d of dispositivos) conteo[categoriaDe(d, ahora)]++
+  for (const d of dispositivos) conteo[categoriaDe(d)]++
   return conteo
 }
 
 export function filtrarDispositivos(
   dispositivos: DispositivoInventario[],
-  { texto, estado, ahora }: { texto: string; estado: FiltroInventario | null; ahora: number },
+  { texto, estado }: { texto: string; estado: FiltroInventario | null },
 ): DispositivoInventario[] {
   const buscado = normalizarTexto(texto)
   return dispositivos.filter((d) => {
-    if (estado && categoriaDe(d, ahora) !== estado) return false
+    if (estado && categoriaDe(d) !== estado) return false
     if (!buscado) return true
     const nombre = normalizarTexto(d.nombre ?? '')
     const ubicacion = normalizarTexto(d.ubicacion ?? '')
@@ -53,10 +54,9 @@ export type OrdenInventario = 'nombre' | 'estado' | 'reporte-antiguo' | 'reporte
    reportar, es otra cosa, así que va al final y no al frente. */
 const PESO_ESTADO: Record<FiltroInventario, number> = {
   'sin-reportar': 0,
-  retraso: 1,
-  nunca: 2,
-  'en-linea': 3,
-  desactivado: 4,
+  nunca: 1,
+  'en-linea': 2,
+  desactivado: 3,
 }
 
 /* numeric: true separa "Cámara 10" de "Cámara 2" como números, no como texto:
@@ -72,7 +72,6 @@ const tiempoReporte = (d: DispositivoInventario) => (d.last_seen_at ? Date.parse
 export function ordenarDispositivos(
   dispositivos: DispositivoInventario[],
   orden: OrdenInventario,
-  ahora: number,
 ): DispositivoInventario[] {
   const copia = [...dispositivos]
   switch (orden) {
@@ -80,7 +79,7 @@ export function ordenarDispositivos(
       return copia.sort(porNombre)
     case 'estado':
       return copia.sort(
-        (a, b) => PESO_ESTADO[categoriaDe(a, ahora)] - PESO_ESTADO[categoriaDe(b, ahora)] || porNombre(a, b),
+        (a, b) => PESO_ESTADO[categoriaDe(a)] - PESO_ESTADO[categoriaDe(b)] || porNombre(a, b),
       )
     case 'reporte-antiguo':
       return copia.sort((a, b) => tiempoReporte(a) - tiempoReporte(b) || porNombre(a, b))
@@ -98,7 +97,6 @@ export const ETIQUETA_ORDEN: Record<OrdenInventario, string> = {
 
 export const ETIQUETA_FILTRO: Record<FiltroInventario, string> = {
   'en-linea': 'En línea',
-  retraso: 'Con retraso',
   'sin-reportar': 'Sin reportar',
   nunca: 'Nunca reportó',
   desactivado: 'Desactivados',

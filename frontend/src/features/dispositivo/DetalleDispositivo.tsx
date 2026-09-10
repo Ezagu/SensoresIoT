@@ -11,16 +11,10 @@ import { useAhora } from '@/hooks/usarAhora'
 import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/utils/tiempo'
 import { bordesDeVentana, esTiempoReal } from '@/utils/ventana'
 import { useVentanaConZoom } from './usarVentana'
-import {
-  ETIQUETA_ROL,
-  intervaloEfectivo,
-  nombreDeDispositivo,
-  puedeEditar as puedeEditarDispositivo,
-  ultimoReporteEfectivo,
-} from '@/utils/dispositivos'
+import { ETIQUETA_ROL, nombreDeDispositivo, puedeEditar as puedeEditarDispositivo } from '@/utils/dispositivos'
 import { limiteDeVentana } from '@/utils/retencion'
 import { useTituloPagina } from '@/hooks/usarTitulo'
-import { useAlertasDispositivo, useDispositivo, useSensoresConMeta } from './usarDispositivo'
+import { useAlertasDispositivo, useDispositivo, useSensoresConMeta, useEstadoDispositivo } from './usarDispositivo'
 import { useGraficosDeSensores } from './usarGraficos'
 import type { SensorConDatos } from './usarDispositivo'
 import { BloqueSensor } from './BloqueSensor'
@@ -55,14 +49,16 @@ export function DetalleDispositivo() {
   const [exportAbierto, setExportAbierto] = useState(false)
 
   const equipo = useDispositivo(id ?? '')
+  const estado = useEstadoDispositivo(id ?? '')
   const sensores = useSensoresConMeta(id ?? '')
-  const graficos = useGraficosDeSensores(sensores.datos ?? [], ventana, equipo.intervaloSeg)
-  const { alertas, refrescar: refrescarAlertas } = useAlertasDispositivo(id ?? '', equipo.intervaloSeg)
+  const graficos = useGraficosDeSensores(sensores.datos ?? [], ventana, estado.cadenciaSeg)
+  const { alertas, refrescar: refrescarAlertas } = useAlertasDispositivo(id ?? '', estado.cadenciaSeg)
 
   const enVivo = esTiempoReal(ventana)
-  const hasta = useAhora(enVivo && equipo.intervaloSeg ? equipo.intervaloSeg * 1000 : TIC_RELOJ_MS)
+  const hasta = useAhora(enVivo && estado.cadenciaSeg ? estado.cadenciaSeg * 1000 : TIC_RELOJ_MS)
 
   const dispositivo = equipo.datos
+  
   useTituloPagina(dispositivo ? nombreDeDispositivo(dispositivo.id, dispositivo.nombre) : null)
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" volverA="/" />
@@ -96,16 +92,13 @@ export function DetalleDispositivo() {
     datos: graficos.porSensor.get(s.id) ?? null,
   }))
   // Del plan del dueño y no del propio: son los límites de ESTE equipo.
-  const { puede_alertas: puedeAlertas, max_alertas: maxAlertas, intervalo_minimo_seg: pisoPlan } =
-    dispositivo.limites
-  const intervaloSeg = intervaloEfectivo(dispositivo, pisoPlan)
-  const ultimoReporte = ultimoReporteEfectivo(dispositivo.last_seen_at, sensoresConDatos)
-  const estado = estadoDispositivo(ultimoReporte, intervaloSeg, hasta)
+  const { puede_alertas: puedeAlertas, max_alertas: maxAlertas } = dispositivo.limites
+  const situacionDispositivo = estadoDispositivo(estado.datos?.last_seen_at ?? null, estado.datos?.online ?? false)
   // Todos los sensores del dispositivo comparten plan y ventana pedida, así que
   // el primero que traiga datos contesta por todos (recorte y retención).
   const graficoRef = sensoresConDatos.find((s) => s.datos)?.datos ?? null
   const retencionDias = graficoRef?.retencion_dias ?? null
-  const disparadas = alertas.filter((a) => a.activa && a.estado === 'disparada').length
+  const disparadas = estado.datos?.alertas_disparadas ?? 0
   const puedeEditar = puedeEditarDispositivo(dispositivo.rol)
   // Ventana única para todas las tarjetas: zoomear en una mueve a todas por igual.
   const { desdeMs: desdePedidoMs, hastaMs } = bordesDeVentana(ventana, hasta)
@@ -126,11 +119,7 @@ export function DetalleDispositivo() {
             {/* role="status": conectividad y alertas cambian solas mientras la
                 página está abierta, y son dos preguntas distintas. */}
             <span role="status" aria-atomic="true" className="flex flex-wrap items-center gap-2.5">
-              {dispositivo.activo ? (
-                <Pill tono={TONO_POR_ESTADO[estado]}>{ETIQUETA_ESTADO[estado]}</Pill>
-              ) : (
-                <Pill tono="faint">Desactivado</Pill>
-              )}
+              <Pill tono={TONO_POR_ESTADO[situacionDispositivo]}>{ETIQUETA_ESTADO[situacionDispositivo]}</Pill>
               {disparadas > 0 && (
                 <Pill tono="danger">
                   {disparadas === 1 ? '1 alerta disparada' : `${disparadas} alertas disparadas`}
@@ -147,8 +136,8 @@ export function DetalleDispositivo() {
               </span>
             )}
             <span>
-              {ultimoReporte ? (
-                <>Reportó <HaceCuanto iso={ultimoReporte} /></>
+              {estado.datos?.last_seen_at ? (
+                <>Reportó <HaceCuanto iso={estado.datos?.last_seen_at} /></>
               ) : (
                 'Nunca reportó'
               )}
@@ -213,7 +202,7 @@ export function DetalleDispositivo() {
               hastaMs={hastaMs}
               corteDePlanMs={limite.corteDePlanMs}
               enVivo={enVivo}
-              intervaloSeg={intervaloSeg}
+              situacionDispositivo={situacionDispositivo}
               desactualizado={graficos.desactualizado}
               onZoom={zoomear}
               onRestablecer={restablecer}

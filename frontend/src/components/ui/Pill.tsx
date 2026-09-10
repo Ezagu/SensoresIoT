@@ -25,6 +25,5 @@ export function Pill({ tono, children }: { tono: Tono; children: React.ReactNode
 export const TONO_POR_ESTADO: Record<EstadoDispositivo, Tono> = {
   nunca: 'faint',
   'en-linea': 'ok',
-  retraso: 'warn',
   'sin-reportar': 'danger',
 }

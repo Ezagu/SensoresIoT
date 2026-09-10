@@ -9,15 +9,20 @@ import { Grafico } from '@/components/graficos/Grafico'
 import { useAhora } from '@/hooks/usarAhora'
 import { serieDeGrafico } from '@/utils/series'
 import { medida } from '@/utils/formato'
-import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
+import { lecturaDesactualizada, TIC_RELOJ_MS } from '@/utils/tiempo'
 import { bordesDeVentana, esTiempoReal, resolverVentana } from '@/utils/ventana'
 import { useVentanaConZoom } from './usarVentana'
-import { intervaloEfectivo, nombreDeDispositivo } from '@/utils/dispositivos'
+import { nombreDeDispositivo } from '@/utils/dispositivos'
 import { anclaEnCero } from '@/utils/sensores'
 import { limiteDeVentana } from '@/utils/retencion'
 import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
 import { useTituloPagina } from '@/hooks/usarTitulo'
-import { useAlertasDispositivo, useDispositivo, useSensoresConMeta } from './usarDispositivo'
+import {
+  useAlertasDispositivo,
+  useDispositivo,
+  useEstadoDispositivo,
+  useSensoresConMeta,
+} from './usarDispositivo'
 import { useDatosSensor } from './usarGraficos'
 import { BarraVentana } from './BarraVentana'
 import { AvisoVentana } from './AvisoVentana'
@@ -44,10 +49,12 @@ export function DetalleSensor() {
   const enVivo = esTiempoReal(ventana)
 
   const equipo = useDispositivo(id ?? '')
+  const estadoEquipo = useEstadoDispositivo(id ?? '')
   const sensores = useSensoresConMeta(id ?? '')
-  const polling = useDatosSensor(sensorId ?? '', ventana, equipo.intervaloSeg)
-  const tic = useAhora(enVivo && equipo.intervaloSeg ? equipo.intervaloSeg * 1000 : TIC_RELOJ_MS)
-  const { alertas: alertasDelEquipo } = useAlertasDispositivo(id ?? '', equipo.intervaloSeg)
+  const cadenciaSeg = estadoEquipo.cadenciaSeg
+  const polling = useDatosSensor(sensorId ?? '', ventana, cadenciaSeg)
+  const tic = useAhora(enVivo && cadenciaSeg ? cadenciaSeg * 1000 : TIC_RELOJ_MS)
+  const { alertas: alertasDelEquipo } = useAlertasDispositivo(id ?? '', cadenciaSeg)
 
   const dispositivo = equipo.datos
   const sensor = sensores.datos?.find((s) => s.id === sensorId)
@@ -102,9 +109,9 @@ export function DetalleSensor() {
   const retencionDias = datosGrafico?.retencion_dias ?? null
   const limite = limiteDeVentana(datosGrafico, dispositivo.first_connected_at, desde.getTime())
 
-  const intervaloSeg = intervaloEfectivo(dispositivo, dispositivo.limites.intervalo_minimo_seg)
-  const estado = ultima ? estadoDispositivo(ultima.time, intervaloSeg, tic) : 'nunca'
-  const valorApagado = estado !== 'en-linea'
+  // Sobre la última lectura del sensor y no sobre el equipo: lo que se apaga es
+  // este valor, que puede estar viejo aunque el equipo siga reportando otros.
+  const valorApagado = lecturaDesactualizada(ultima?.time ?? null, dispositivo.intervalo_efectivo_seg, tic)
 
   return (
     <div className="flex flex-col gap-5">

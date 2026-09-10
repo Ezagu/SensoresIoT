@@ -25,8 +25,8 @@ def listar_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     cur.execute(
         """
         SELECT a.id, a.sensor_id, a.creado_por, a.nombre, a.condicion, a.umbral,
-               a.histeresis, a.activa, a.estado, a.estado_desde, a.ultimo_valor,
-               a.ultima_evaluacion_at, a.ultima_notificacion_at, a.created_at
+            a.histeresis, a.activa, a.estado, a.estado_desde, a.ultimo_valor,
+            a.ultima_evaluacion_at, a.ultima_notificacion_at, a.created_at
         FROM alertas a
         JOIN sensores s ON s.id = a.sensor_id
         WHERE s.dispositivo_id = %s
@@ -37,8 +37,8 @@ def listar_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     return cur.fetchall()
 
 def disparadas_por_dispositivos(cur, dispositivo_ids: list) -> list[dict]:
-    # Una sola query para lo que el panel necesita de alertas: el contador por
-    # dispositivo y el ícono por sensor, ambos derivables de (dispositivo_id, sensor_id).
+    # Una fila por alerta disparada: el contador por dispositivo (panel y detalle)
+    # y el ícono por sensor salen los dos de (dispositivo_id, sensor_id).
     if not dispositivo_ids:
         return []
     cur.execute(

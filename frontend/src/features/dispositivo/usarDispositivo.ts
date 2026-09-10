@@ -1,8 +1,7 @@
 import { useCallback, useState } from 'react'
-import { listarAlertas, listarSensores, listarTiposSensor, obtenerDispositivo } from '@/services/consultas'
+import { listarAlertas, listarSensores, listarTiposSensor, obtenerDispositivo, obtenerEstadoDispositivo } from '@/services/consultas'
 import { useCarga } from '@/hooks/usarCarga'
 import { etiquetarSensores } from '@/utils/sensores'
-import { intervaloEfectivo } from '@/utils/dispositivos'
 import type { Alerta, DatosGrafico } from '@/tipos'
 
 export type SensorConMeta = {
@@ -21,25 +20,53 @@ export type SensorConDatos = SensorConMeta & { datos: DatosGrafico | null }
 
 /* Cadencia del poll de estado antes de conocer el intervalo real del equipo. */
 const CADENCIA_INICIAL_SEG = 60
+const MARGEN_SIGUIENTE_MEDICION_SEG = 3
 
-/* Pollea porque `last_seen_at` cambia solo. Devuelve además el intervalo de
-   muestreo del equipo, que es la cadencia del resto de la pantalla. */
+const PISO_CADENCIA_SEG = 10
+/* El equipo no reportó cuando debía: no sabemos cuándo vuelve, así que dejamos
+   de preguntar seguido en vez de martillar. */
+const CADENCIA_ATRASADO_SEG = 120
+
+function calcularCadencia(siguienteMedicion: number | null | undefined): number {
+  // Nunca reportó: no hay desde dónde estimar.
+  if (siguienteMedicion == null) return CADENCIA_INICIAL_SEG
+  if (siguienteMedicion === 0) return CADENCIA_ATRASADO_SEG
+
+  // El piso desacopla el poll de la resolución del sensor: aunque un premium
+  // muestree cada 5s, no pedimos más de una vez cada PISO_CADENCIA_SEG.
+  return Math.max(siguienteMedicion + MARGEN_SIGUIENTE_MEDICION_SEG, PISO_CADENCIA_SEG)
+}
+
+/* No pollea: nada de lo que devuelve cambia solo. Lo que sí cambia
+   (`last_seen_at`, alertas disparadas) vive en useEstadoDispositivo. */
 export function useDispositivo(dispositivoId: string) {
   const cargar = useCallback(
     (signal: AbortSignal) => obtenerDispositivo(dispositivoId, signal),
     [dispositivoId],
   )
+  return useCarga(cargar)
+}
+
+/* `cadenciaSeg` la gobierna el equipo, no un intervalo fijo: sale de cuánto
+   falta para su próximo reporte, así que el poll cae justo después del dato y
+   no a mitad de camino. Es la cadencia de toda la pantalla — gráficos y alertas
+   la comparten, y compartirla es lo que los mantiene alineados entre sí: los
+   tres timers se programan con el mismo número, vencen juntos y se reprograman
+   juntos con la respuesta que ya dispararon. */
+export function useEstadoDispositivo(dispositivoId: string) {
+  const cargar = useCallback(
+    (signal: AbortSignal) => obtenerEstadoDispositivo(dispositivoId, signal),
+    [dispositivoId],
+  )
   const [cadenciaSeg, setCadenciaSeg] = useState(CADENCIA_INICIAL_SEG)
   const estado = useCarga(cargar, { intervaloMs: cadenciaSeg * 1000 })
 
-  // Derivado en el render y no en un efecto: el intervalo real recién se conoce
-  // con la primera respuesta, y un efecto agregaría un commit por lote.
-  const intervaloSeg = estado.datos
-    ? intervaloEfectivo(estado.datos, estado.datos.limites.intervalo_minimo_seg)
-    : null
-  if (intervaloSeg !== null && intervaloSeg !== cadenciaSeg) setCadenciaSeg(intervaloSeg)
+  // Derivado en el render y no en un efecto: el valor recién se conoce con la
+  // primera respuesta, y un efecto agregaría un commit por lote.
+  const proxima = calcularCadencia(estado.datos?.siguiente_medicion)
+  if (proxima !== cadenciaSeg) setCadenciaSeg(proxima)
 
-  return { ...estado, intervaloSeg: intervaloSeg ?? undefined }
+  return { ...estado, cadenciaSeg }
 }
 
 /* Sensores activos con su metadata por tipo. No pollea: un equipo no gana ni
@@ -76,13 +103,13 @@ const SIN_ALERTAS: Alerta[] = []
 /* A la cadencia del equipo y no a la de los gráficos: una alerta se dispara
    ahora, no dentro de la ventana que se mira, y con un rango histórico los
    gráficos dejan de pollear. El detalle de sensor usa este mismo hook y filtra. */
-export function useAlertasDispositivo(dispositivoId: string, intervaloSeg: number | undefined) {
+export function useAlertasDispositivo(dispositivoId: string, cadenciaSeg: number | undefined) {
   const cargar = useCallback(
     (signal: AbortSignal) => listarAlertas(dispositivoId, signal),
     [dispositivoId],
   )
   const { datos, refrescar } = useCarga(cargar, {
-    intervaloMs: (intervaloSeg ?? CADENCIA_INICIAL_SEG) * 1000,
+    intervaloMs: (cadenciaSeg ?? CADENCIA_INICIAL_SEG) * 1000,
   })
   return { alertas: datos ?? SIN_ALERTAS, refrescar }
 }

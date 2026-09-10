@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { IconoCopiar, IconoTilde } from '@/components/layout/iconos'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { ETIQUETA_ROL, intervaloEfectivo } from '@/utils/dispositivos'
+import { ETIQUETA_ROL } from '@/utils/dispositivos'
 import { fechaHora } from '@/utils/tiempo'
 import { intervalo as formatoIntervalo } from '@/utils/formato'
 import type { DispositivoDetalle } from '@/tipos'
@@ -29,7 +29,7 @@ export function FichaEquipo({
     }
   }
 
-  const intervaloSeg = intervaloEfectivo(dispositivo, dispositivo.limites.intervalo_minimo_seg)
+  const intervaloSeg = dispositivo.intervalo_efectivo_seg
 
   return (
     <SeccionAjustes titulo="Ficha del equipo">

@@ -7,7 +7,7 @@ import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Grafico } from '@/components/graficos/Grafico'
 import { serieDeGrafico } from '@/utils/series'
 import { medida } from '@/utils/formato'
-import { estadoDispositivo } from '@/utils/tiempo'
+import { type EstadoDispositivo } from '@/utils/tiempo'
 import { anclaEnCero } from '@/utils/sensores'
 import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
 import type { SensorConDatos } from './usarDispositivo'
@@ -21,7 +21,7 @@ export function BloqueSensor({
   hastaMs,
   corteDePlanMs,
   enVivo,
-  intervaloSeg,
+  situacionDispositivo,
   desactualizado,
   onZoom,
   onRestablecer,
@@ -33,7 +33,7 @@ export function BloqueSensor({
   hastaMs: number
   corteDePlanMs: number | null
   enVivo: boolean
-  intervaloSeg: number
+  situacionDispositivo: EstadoDispositivo
   /* El trazo es todavía del rango anterior: una hora de lecturas sobre un eje de
      30 días es indistinguible de un equipo mudo un mes. */
   desactualizado: boolean
@@ -48,7 +48,7 @@ export function BloqueSensor({
   const hayDatos = datos !== null && datos.puntos.length > 0
   const resumen = datos?.resumen
   const ultimo = hayDatos ? datos.puntos[datos.puntos.length - 1] : null
-  const apagado = ultimo ? estadoDispositivo(ultimo.bucket, intervaloSeg, hastaMs) !== 'en-linea' : true
+  const apagado = ultimo ? situacionDispositivo !== 'en-linea' : true
 
   return (
     /* @container y no breakpoints de viewport: la misma tarjeta va a una columna

@@ -8,6 +8,7 @@ import type {
   AlertaUpdatePayload,
   DatosGrafico,
   DispositivoDetalle,
+  DispositivoEstado,
   DispositivoInventario,
   DispositivoUpdatePayload,
   Historial,
@@ -23,6 +24,10 @@ import type {
 
 export function obtenerDispositivo(dispositivoId: string, signal?: AbortSignal) {
   return api.get<DispositivoDetalle>(`/dispositivos/${dispositivoId}`, { signal }).then((r) => r.data)
+}
+
+export function obtenerEstadoDispositivo(dispositivoId: string, signal?: AbortSignal) {
+  return api.get<DispositivoEstado>(`/dispositivos/${dispositivoId}/estado`, { signal }).then((r) => r.data)
 }
 
 /* Todos los dispositivos del usuario con sensores + última lectura + alertas

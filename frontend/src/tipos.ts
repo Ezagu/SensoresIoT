@@ -42,6 +42,7 @@ export type SensorResumen = {
 export type DispositivoResumen = Dispositivo & {
   rol: RolDispositivo
   intervalo_efectivo_seg: number
+  online: boolean
   alertas_disparadas: number
   sensores: SensorResumen[]
 }
@@ -52,7 +53,11 @@ export type PanelResumen = {
 
 /* GET /usuarios/{id}/dispositivos. El rol sale directo de la fila de
    usuario_dispositivo del join, sin resolver nada. */
-export type DispositivoConRol = Dispositivo & { rol: RolDispositivo }
+export type DispositivoConRol = Dispositivo & {
+  rol: RolDispositivo
+  intervalo_efectivo_seg: number
+  online: boolean
+}
 
 export type SensorInstalado = {
   id: string
@@ -68,6 +73,7 @@ export type DispositivoInventario = Dispositivo & {
   rol: RolDispositivo
   owner_nombre: string | null
   intervalo_efectivo_seg: number
+  online: boolean
   sensores: SensorInstalado[]
   alertas_total: number
   alertas_disparadas: number
@@ -80,9 +86,20 @@ export type DispositivoDetalle = Dispositivo & {
   rol: RolDispositivo | 'admin'
   owner_nombre: string | null
   limites: LimitesDispositivo
+  intervalo_efectivo_seg: number
   /* Opt-out de mails de alerta de este equipo. null = admin sin vínculo: no es
      destinatario, así que no se le ofrece el control. */
   notificar: boolean | null
+}
+
+/* Lo único que cambia solo mientras se mira un equipo: lo que el detalle pollea. */
+export type DispositivoEstado = {
+  last_seen_at: string | null
+  online: boolean
+  alertas_disparadas: number
+  /* Segundos hasta el próximo reporte esperado; null = nunca reportó. Es de
+     dónde sale la cadencia del poll. */
+  siguiente_medicion: number | null
 }
 
 /* Salen del plan del DUEÑO del equipo. No confundir con `useSesion().plan`, que
