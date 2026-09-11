@@ -1,8 +1,5 @@
-import psycopg2.errors
 from datetime import datetime, timedelta, timezone
-from fastapi import HTTPException
-from repositories import plan_repo, suscripcion_repo, usuario_repo
-from core.tiempo import a_utc
+from repositories import plan_repo, suscripcion_repo
 from db import get_cursor
 
 PLAN_FREE = "free"
@@ -20,8 +17,6 @@ LIMITES_FREE = {
     "puede_compartir": False,
     "puede_exportar": True,
 }
-
-MENSAJE_YA_TIENE = "El usuario ya tiene una suscripción vigente, revocala primero"
 
 # --------------------------------------------------------------------------
 # Punto único de consulta de límites: todo gate (retención, intervalo de
@@ -59,7 +54,7 @@ def ventana_de_consulta(cur, dispositivo_id, rol) -> dict:
     # piso = momento más antiguo consultable (None = sin límite), retencion_dias
     # = el valor del plan para que la respuesta explique el recorte. Admin exento:
     # es soporte viendo lo que un cliente reportó hace semanas, no un chequeo de
-    # acceso (ese sigue siendo dispositivo_service.tiene_acceso_a_dispositivo).
+    # acceso (ese sigue siendo dispositivo_service.validar_acceso_al_dispositivo o rol_en_dispositivo).
     if rol == "admin":
         return {"piso": None, "retencion_dias": None}
 
@@ -81,37 +76,3 @@ def obtener_mi_plan(usuario_id) -> dict:
             "plan": limites_de_usuario(cur, usuario_id),
             "suscripcion": suscripcion_repo.buscar_vigente(cur, usuario_id),
         }
-
-def asignar_plan(usuario_id, plan_id, fin_at) -> dict:
-    fin_at = a_utc(fin_at)
-    if fin_at is not None and fin_at <= datetime.now(timezone.utc):
-        raise HTTPException(400, "fin_at tiene que ser posterior a ahora")
-
-    with get_cursor() as cur:
-        if usuario_repo.buscar_por_id(cur, usuario_id) is None:
-            raise HTTPException(404, "Usuario no encontrado")
-
-        if plan_repo.buscar_por_id(cur, plan_id) is None:
-            raise HTTPException(404, "El plan no existe")
-
-        if suscripcion_repo.buscar_vigente(cur, usuario_id) is not None:
-            raise HTTPException(409, MENSAJE_YA_TIENE)
-
-        try:
-            return suscripcion_repo.crear(cur, usuario_id, plan_id, fin_at, "admin")
-        except psycopg2.errors.ExclusionViolation:
-            # Dos requests concurrentes pasan el chequeo de arriba (check-then-act);
-            # el constraint de no solapamiento corta a la que llega segunda.
-            raise HTTPException(409, MENSAJE_YA_TIENE)
-
-def revocar_plan(usuario_id) -> dict:
-    with get_cursor() as cur:
-        suscripcion = suscripcion_repo.revocar_vigente(cur, usuario_id)
-        if suscripcion is None:
-            cur.connection.commit()  # si no, el raise hace rollback del revocar_vigente
-            raise HTTPException(404, "El usuario no tiene una suscripción vigente")
-        return suscripcion
-
-def listar_suscripciones(usuario_id) -> list[dict]:
-    with get_cursor() as cur:
-        return suscripcion_repo.listar_por_usuario(cur, usuario_id)

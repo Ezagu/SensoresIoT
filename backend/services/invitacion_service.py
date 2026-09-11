@@ -12,6 +12,12 @@ from db import get_cursor
 # ya se repartió. No frena a un adversario (borrar + crear lo saltea a propósito).
 COOLDOWN_REGENERAR = timedelta(minutes=5)
 
+def _expiracion_de_invitacion(email):
+    if email is None:
+        return datetime.now(timezone.utc) + timedelta(days=7)
+    else:
+        return datetime.now(timezone.utc) + timedelta(days=30)
+
 def crear_invitacion(dispositivo_id, usuario_id, rol, rol_dispositivo, email = None) -> dict:
     if rol_dispositivo not in ROLES_ASIGNABLES:
         raise HTTPException(422, f"No se puede asignar el rol {rol_dispositivo}")
@@ -23,10 +29,7 @@ def crear_invitacion(dispositivo_id, usuario_id, rol, rol_dispositivo, email = N
         if not limites["puede_compartir"]:
             raise HTTPException(403, "Tu plan actual no permite compartir dispositivos")
 
-        if email is None:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-        else:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        expires_at = _expiracion_de_invitacion(email)
 
         token, _ = generar_secret_urlsafe()
 
@@ -63,10 +66,7 @@ def regenerar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol) -> dict
                 restante = math.ceil((COOLDOWN_REGENERAR - transcurrido).total_seconds())
                 raise HTTPException(429, f"Esperá {restante}s antes de regenerar de nuevo")
 
-        if invitacion["email"] is None:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-        else:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+        expires_at = _expiracion_de_invitacion(invitacion["email"])
 
         token, _ = generar_secret_urlsafe()
 

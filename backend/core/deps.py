@@ -16,6 +16,12 @@ def get_usuario_admin(usuario_actual: dict = Depends(get_usuario_actual)):
         raise HTTPException(403, "No tenés permisos para acceder a este recurso")
     return usuario_actual
 
+def get_usuario_propio_o_admin(usuario_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)) -> dict:
+    # usuario_id sale del path: sólo sirve en rutas que lo declaran (si no, FastAPI lo pide como query param).
+    if str(usuario_id) != usuario_actual["sub"] and usuario_actual["rol"] != "admin":
+        raise HTTPException(403, "No tienes acceso a este recurso")
+    return usuario_actual
+
 def get_dispositivo_autenticado(
     x_dispositivo_id: UUID = Header(...),
     credenciales: HTTPAuthorizationCredentials = Depends(bearer_scheme)

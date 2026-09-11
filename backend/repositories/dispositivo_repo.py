@@ -65,7 +65,7 @@ def actualizar_intervalo(cur, dispositivo_id, intervalo_seg) -> None:
     if not cur.fetchone():
         raise HTTPException(404, "Dispositivo no encontrado")
 
-def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
+def actualizar_conexion(cur, dispositivo_id, timestamp):
     # first_connected_at sólo se setea la primera vez (COALESCE).
     cur.execute(
         """

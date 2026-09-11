@@ -33,13 +33,6 @@ def buscar_por_id(cur, dispositivo_id, invitacion_id) -> dict | None:
     )
     return cur.fetchone()
 
-def buscar_por_rol(cur, dispositivo_id, rol) -> dict | None:
-    cur.execute(
-        "SELECT * FROM invitacion_dispositivo WHERE dispositivo_id = %s AND rol = %s",
-        (dispositivo_id, rol)
-    )
-    return cur.fetchone()
-
 def regenerar(cur, dispositivo_id, invitacion_id, token, expires_at) -> dict | None:
     # UPDATE y no DELETE + crear: conserva el id (lo necesita el cooldown para
     # ser atribuible) y created_at.

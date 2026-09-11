@@ -26,14 +26,14 @@ def crear_vinculacion_owner(usuario_id, dispositivo_id):
 
 def actualizar_rol(dispositivo_id, usuario_id_to_change, rol_to_change, usuario_id, rol):
     if rol_to_change not in ROLES_ASIGNABLES:
-        raise HTTPException(409, f"No se puede asignar el rol {rol_to_change}")
+        raise HTTPException(422, f"No se puede asignar el rol {rol_to_change}")
 
     with get_cursor() as cur:
         dispositivo_service.validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
 
         usuario = usuario_repo.buscar_por_id(cur, usuario_id_to_change)
         if not usuario:
-            raise HTTPException(409, f"El usuario no existe")
+            raise HTTPException(404, f"El usuario no existe")
 
         return acceso_repo.cambiar_rol(cur, dispositivo_id, usuario_id_to_change, rol_to_change)
 
