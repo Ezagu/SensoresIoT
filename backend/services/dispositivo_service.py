@@ -1,10 +1,8 @@
 import math
-import psycopg2.errors
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
-from repositories import dispositivo_repo, sensor_repo, usuario_repo, alerta_repo, invitacion_dispositivo_repo
+from repositories import dispositivo_repo, sensor_repo, acceso_repo, alerta_repo
 from services import plan_service
-from core.security import generar_secret_urlsafe, hashear_sha256
 from db import get_cursor
 
 INTERVALO_MAXIMO_SEG = 24 * 60 * 60
@@ -15,10 +13,6 @@ ROLES_ASIGNABLES = ("editor", "viewer")
 # Toleramos tres intervalos de silencio antes de dar por caído al equipo: uno
 # perdido es un reintento normal del firmware.
 INTERVALOS_DE_GRACIA = 3
-
-# Evita el arrepentimiento inmediato: regenerar mata en silencio el link que
-# ya se repartió. No frena a un adversario (borrar + crear lo saltea a propósito).
-COOLDOWN_REGENERAR = timedelta(minutes=5)
 
 def esta_online(last_seen_at, intervalo_efectivo_seg) -> bool:
     # El intervalo tiene que ser el EFECTIVO (max con el piso del plan del dueño):
@@ -72,13 +66,13 @@ def rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> str | None:
     # primero: es soporte, no pasa por usuario_dispositivo.
     if rol == "admin":
         return "admin"
-    return dispositivo_repo.buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id)
+    return acceso_repo.buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id)
 
 def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
     dispositivo_id = dispositivo["id"]
 
     dispositivo["rol"] = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-    dispositivo["owner_nombre"] = dispositivo_repo.buscar_nombre_owner(cur, dispositivo_id)
+    dispositivo["owner_nombre"] = acceso_repo.buscar_nombre_owner(cur, dispositivo_id)
     limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
     dispositivo["limites"] = {
         "puede_alertas": limites["puede_alertas"],
@@ -88,7 +82,7 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
     dispositivo["intervalo_efectivo_seg"] = plan_service.intervalo_efectivo_seg(
         dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"]
     )
-    dispositivo["notificar"] = dispositivo_repo.buscar_notificar(cur, dispositivo_id, usuario_id)
+    dispositivo["notificar"] = acceso_repo.buscar_notificar(cur, dispositivo_id, usuario_id)
     return dispositivo
 
 #-----------------ENDPOINTS----------------------
@@ -132,151 +126,13 @@ def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:
         validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         return sensor_repo.buscar_por_dispositivo_id(cur, dispositivo_id)
 
-def obtener_accesos(dispositivo_id, usuario_id, rol) -> list[dict]:
-    with get_cursor() as cur:
-        validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        return dispositivo_repo.listar_accesos(cur, dispositivo_id)
-
-def crear_vinculacion_owner(usuario_id, dispositivo_id):
-    # Vincular un dispositivo a una cuenta como dueño
-    with get_cursor() as cur:
-        validar_que_exista_dispositivo(cur, dispositivo_id)
-
-        owner = dispositivo_repo.buscar_owner_de_dispositivo(cur, dispositivo_id)
-        if owner is not None:
-            raise HTTPException(409, "el dispositivo ya tiene un dueño")
-
-        try:
-            return dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, "owner")
-        except psycopg2.errors.UniqueViolation:
-            raise HTTPException(409, "el dispositivo ya tiene un dueño")  # condición de carrera
-
-def crear_invitacion(dispositivo_id, usuario_id, rol, rol_dispositivo, email = None) -> dict:
-    if rol_dispositivo not in ROLES_ASIGNABLES:
-        raise HTTPException(422, f"No se puede asignar el rol {rol_dispositivo}")
-    
-    with get_cursor() as cur:
-        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        limites = plan_service.limites_de_usuario(cur, usuario_id)
-
-        if not limites["puede_compartir"]:
-            raise HTTPException(403, "Tu plan actual no permite compartir dispositivos")
-        
-        if email is None:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-        else:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
-
-        token, _ = generar_secret_urlsafe()
-
-        invitacion = invitacion_dispositivo_repo.crear(cur, dispositivo_id, rol_dispositivo, token, expires_at, email)
-
-        if invitacion is None:
-            raise HTTPException(409, f"Ya existe un link activo para el rol {rol_dispositivo}, regeneralo o eliminalo")
-
-        return invitacion
-
-def obtener_invitaciones(dispositivo_id, usuario_id, rol) -> list[dict]:
-    with get_cursor() as cur:
-        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        return invitacion_dispositivo_repo.listar_por_dispositivo(cur, dispositivo_id)
-
-def regenerar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol) -> dict:    
-    with get_cursor() as cur:
-        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        limites = plan_service.limites_de_usuario(cur, usuario_id)
-
-        if not limites["puede_compartir"]:
-            raise HTTPException(403, "Tu plan actual no permite compartir dispositivos")
-        
-        invitacion = invitacion_dispositivo_repo.buscar_por_id(cur, dispositivo_id, invitacion_id)
-
-        if invitacion is None:
-            raise HTTPException(404, f"No existe la invitación {invitacion_id}")
-
-        # None = nunca regenerada: recién creada no tiene cooldown, sólo se lo
-        # gana después de la primera regeneración.
-        if invitacion["regenerado_at"] is not None:
-            transcurrido = datetime.now(timezone.utc) - invitacion["regenerado_at"]
-            if transcurrido < COOLDOWN_REGENERAR:
-                restante = math.ceil((COOLDOWN_REGENERAR - transcurrido).total_seconds())
-                raise HTTPException(429, f"Esperá {restante}s antes de regenerar de nuevo")
-
-        if invitacion["email"] is None:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
-        else:
-            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
-
-        token, _ = generar_secret_urlsafe()
-
-        return invitacion_dispositivo_repo.regenerar(cur, dispositivo_id, invitacion["id"], token, expires_at)
-
-def eliminar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol):
-    with get_cursor() as cur:
-        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        if not invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, invitacion_id):
-            raise HTTPException(404, "invitación no existe o ya fue usada")
-
-def aceptar_invitacion(dispositivo_id, token, usuario_id):
-    with get_cursor() as cur:
-        validar_que_exista_dispositivo(cur, dispositivo_id)
-
-        limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
-        if not limites["puede_compartir"]:
-            raise HTTPException(403, "El dueño del dispositivo no tiene un plan que permita compartir su dispositivo")
-        
-        invitacion = invitacion_dispositivo_repo.buscar(cur, dispositivo_id, token)
-
-        if invitacion is None:
-            raise HTTPException(404, "invitación no existe o ya fue usada")
-        
-        if invitacion["expires_at"] is not None and invitacion["expires_at"] < datetime.now(timezone.utc):
-            raise HTTPException(409, "invitación expirada")
-
-        if invitacion["email"] is not None and invitacion["email"] != usuario_repo.buscar_email(cur, usuario_id):
-            raise HTTPException(409, "invitación no corresponde al email de tu cuenta")
-
-        try:
-            dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, invitacion["rol"])
-
-            if invitacion["email"] is not None:
-                invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, invitacion["id"])
-        except psycopg2.errors.UniqueViolation:
-            raise HTTPException(409, "ya tenés acceso a este dispositivo")  # condición de carrera
-
-def actualizar_rol(dispositivo_id, usuario_id_to_change, rol_to_change, usuario_id, rol):
-    if rol_to_change not in ROLES_ASIGNABLES:
-        raise HTTPException(409, f"No se puede asignar el rol {rol_to_change}")
-    
-    with get_cursor() as cur:
-        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-
-        usuario = usuario_repo.buscar_por_id(cur, usuario_id_to_change)
-        if not usuario:
-            raise HTTPException(409, f"El usuario no existe")
-        
-        return dispositivo_repo.cambiar_rol(cur, dispositivo_id, usuario_id_to_change, rol_to_change)
-
-def quitar_acceso(dispositivo_id, usuario_id_to_delete, usuario_id, rol):
-    with get_cursor() as cur:
-        validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
-        rol_disp = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
-
-        if str(usuario_id_to_delete) != str(usuario_id) and rol_disp not in ROLES_OWNER:
-            raise HTTPException(409, "No tienes permiso para quitar el acceso de este usuario")
-        
-        if rol_disp == "owner" and str(usuario_id_to_delete) == str(usuario_id):
-            raise HTTPException(409, "Debes transferir la propiedad del dispositivo antes de quitar tu acceso")
-        
-        dispositivo_repo.eliminar_vinculacion(cur, dispositivo_id, usuario_id_to_delete)
-
 def configurar_notificaciones(dispositivo_id, usuario_id, notificar: bool) -> dict:
     # Opt-out de los mails de alerta de este equipo. Cualquier rol decide el
     # suyo (viewer incluido): no es una edición del equipo. El UPDATE acotado al
     # par (dispositivo, usuario) es a la vez la autorización — sin vínculo no
     # afecta ninguna fila.
     with get_cursor() as cur:
-        if not dispositivo_repo.actualizar_notificar(cur, dispositivo_id, usuario_id, notificar):
+        if not acceso_repo.actualizar_notificar(cur, dispositivo_id, usuario_id, notificar):
             raise HTTPException(404, "No tenés acceso directo a este dispositivo")
     return {"notificar": notificar}
 

@@ -5,35 +5,6 @@ from core.security import generar_secret
 COLUMNAS_PUBLICAS = "id, nombre, ubicacion, descripcion, activo, last_seen_at, first_connected_at, intervalo_configurado_seg"
 COLUMNAS_ACTUALIZABLES = ("nombre", "ubicacion", "descripcion", "activo")
 
-def buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id) -> str | None:
-    cur.execute(
-        "SELECT rol FROM usuario_dispositivo WHERE dispositivo_id = %s AND usuario_id = %s",
-        (dispositivo_id, usuario_id)
-    )
-    fila = cur.fetchone()
-    return fila["rol"] if fila else None
-
-def buscar_notificar(cur, dispositivo_id, usuario_id) -> bool | None:
-    # None = no hay vínculo (un admin mirando un equipo ajeno): tampoco es
-    # destinatario, así que la preferencia no le aplica.
-    cur.execute(
-        "SELECT notificar FROM usuario_dispositivo WHERE dispositivo_id = %s AND usuario_id = %s",
-        (dispositivo_id, usuario_id)
-    )
-    fila = cur.fetchone()
-    return fila["notificar"] if fila else None
-
-def actualizar_notificar(cur, dispositivo_id, usuario_id, notificar: bool) -> bool:
-    cur.execute(
-        """
-        UPDATE usuario_dispositivo SET notificar = %s
-        WHERE dispositivo_id = %s AND usuario_id = %s
-        RETURNING notificar
-        """,
-        (notificar, dispositivo_id, usuario_id)
-    )
-    return cur.fetchone() is not None
-
 def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
     # El secret sólo sale en texto plano acá; se persiste únicamente el hash.
     secret, secret_hash = generar_secret()
@@ -85,42 +56,6 @@ def buscar_por_usuario(cur, usuario_id) -> list[dict]:
     cur.execute(f"SELECT {COLUMNAS_PUBLICAS}, ud.rol FROM dispositivos d JOIN usuario_dispositivo ud ON ud.dispositivo_id = d.id WHERE ud.usuario_id = %s", (usuario_id,))
     return cur.fetchall()
 
-def listar_accesos(cur, dispositivo_id):
-    cur.execute(
-        """
-        SELECT ud.usuario_id, u.nombre, u.email, ud.rol, ud.created_at FROM usuario_dispositivo ud
-        JOIN usuarios u ON u.id = ud.usuario_id
-        WHERE ud.dispositivo_id = %s
-        ORDER BY ud.created_at ASC
-        """,
-        (dispositivo_id,)
-    )
-    return cur.fetchall()
-
-def eliminar_vinculacion(cur, dispositivo_id, usuario_id):
-    cur.execute(
-        """
-        DELETE FROM usuario_dispositivo
-        WHERE dispositivo_id = %s AND usuario_id = %s
-        """,
-        (dispositivo_id, usuario_id)
-    )
-
-def cambiar_rol(cur, dispositivo_id, usuarios_id, rol) -> dict:
-    cur.execute(
-        """
-        UPDATE usuario_dispositivo ud
-        SET rol = %s
-        FROM usuarios u
-        WHERE ud.dispositivo_id = %s 
-            AND ud.usuario_id = %s
-            AND u.id = ud.usuario_id
-        RETURNING ud.usuario_id, u.nombre, u.email, ud.rol, ud.created_at
-        """, 
-        (rol, dispositivo_id, usuarios_id)
-    )
-    return cur.fetchone()
-
 def actualizar_intervalo(cur, dispositivo_id, intervalo_seg) -> None:
     # intervalo_seg None = automático, usa el piso del plan vigente en cada momento
     cur.execute(
@@ -142,39 +77,6 @@ def actualizar_conexion(cur, dispositivo_id, timestamp) -> bool:
         """,
         (timestamp, timestamp, dispositivo_id)
     )
-
-def crear_vinculacion(cur, usuario_id, dispositivo_id, rol) -> dict:
-    cur.execute(
-        """
-        INSERT INTO usuario_dispositivo (usuario_id, dispositivo_id, rol)
-        VALUES (%s, %s, %s)
-        RETURNING *
-        """,
-        (usuario_id, dispositivo_id, rol)
-    )
-    return cur.fetchone()
-
-def buscar_owner_de_dispositivo(cur, dispositivo_id) -> dict | None:
-    cur.execute(
-        """
-        SELECT * from usuario_dispositivo
-        WHERE dispositivo_id = %s AND rol = 'owner'
-        """,
-        (dispositivo_id,)
-    )
-    return cur.fetchone()
-
-def buscar_nombre_owner(cur, dispositivo_id) -> str | None:
-    cur.execute(
-        """
-        SELECT u.nombre FROM usuario_dispositivo ud
-        JOIN usuarios u ON u.id = ud.usuario_id
-        WHERE ud.dispositivo_id = %s AND ud.rol = 'owner'
-        """,
-        (dispositivo_id,)
-    )
-    fila = cur.fetchone()
-    return fila["nombre"] if fila else None
 
 #-----------SECRET---------------
 

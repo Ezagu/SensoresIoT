@@ -3,14 +3,17 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate, DispositivoEstadoOut, InvitacionCreate, InvitacionOut, InvitacionAccept
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, DispositivoEstadoOut
 from schemas.sensor import SensorOut
 from schemas.alerta import AlertaOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
 from core.deps import get_usuario_admin, get_usuario_actual, get_dispositivo_autenticado
 from core.limiter import limiter
+from routers import accesos, invitaciones
 
 router = APIRouter()
+router.include_router(accesos.router)
+router.include_router(invitaciones.router)
 
 #--------------CRUD----------------
 
@@ -29,45 +32,6 @@ def update_dispositivo(dispositivo_id: UUID, datos: DispositivoUpdate, usuario_a
 @router.get("/{dispositivo_id}/estado", response_model=DispositivoEstadoOut)
 def get_dispositivo_estado(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.obtener_estado(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
-
-#-------------VINCULACION / ACCESOS----------------
-
-@router.post("/{dispositivo_id}/vinculate")
-@limiter.limit("5/10minutes")
-def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.crear_vinculacion_owner(usuario_actual["sub"], dispositivo_id)
-
-@router.post("/{dispositivo_id}/invitaciones", response_model=InvitacionOut)
-def create_invitation(dispositivo_id: UUID, invitacion: InvitacionCreate, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.crear_invitacion(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], invitacion.rol, invitacion.email)
-
-@router.post("/{dispositivo_id}/invitaciones/{invitacion_id}/regenerate", response_model=InvitacionOut)
-def regenerate_invitation(dispositivo_id: UUID, invitacion_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.regenerar_invitacion(dispositivo_id, invitacion_id, usuario_actual["sub"], usuario_actual["rol"])
-
-@router.get("/{dispositivo_id}/invitaciones", response_model=list[InvitacionOut])
-def get_invitations(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.obtener_invitaciones(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
-
-@router.delete("/{dispositivo_id}/invitaciones/{invitacion_id}", status_code=204)
-def delete_invitation(dispositivo_id: UUID, invitacion_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    dispositivo_service.eliminar_invitacion(dispositivo_id, invitacion_id, usuario_actual["sub"], usuario_actual["rol"])
-
-@router.post("/{dispositivo_id}/invitaciones/accept", status_code=201)
-def accept_invitation(dispositivo_id: UUID, invitacion: InvitacionAccept, usuario_actual: dict = Depends(get_usuario_actual)):
-    dispositivo_service.aceptar_invitacion(dispositivo_id, invitacion.token, usuario_actual["sub"])
-
-@router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
-def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.obtener_accesos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])
-
-@router.patch("/{dispositivo_id}/accesos/{usuario_id}", response_model=AccesoDispositivoOut)
-def change_access(dispositivo_id: UUID, usuario_id: UUID, data: AccesoDispositivoUpdate, usuario_actual: dict = Depends(get_usuario_actual)):
-    return dispositivo_service.actualizar_rol(dispositivo_id, usuario_id, data.rol, usuario_actual["sub"], usuario_actual["rol"])
-
-@router.delete("/{dispositivo_id}/accesos/{usuario_id}", status_code=204)
-def delete_access(dispositivo_id: UUID, usuario_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
-    dispositivo_service.quitar_acceso(dispositivo_id, usuario_id, usuario_actual["sub"], usuario_actual["rol"])
 
 #-----------------ALERTAS----------------------
 

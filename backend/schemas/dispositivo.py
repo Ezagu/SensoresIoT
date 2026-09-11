@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from uuid import UUID
-from typing import Optional, Literal
+from typing import Optional
 from datetime import datetime
 
 class DispositivoCreate(BaseModel):
@@ -44,16 +44,6 @@ class DispositivoConRolOut(DispositivoOut):
   intervalo_efectivo_seg: int
   online: bool
 
-class AccesoDispositivoUpdate(BaseModel):
-  rol: str
-
-class AccesoDispositivoOut(BaseModel):
-  usuario_id: UUID
-  nombre: str
-  email: str
-  rol: str
-  created_at: datetime
-
 class LimitesDispositivoOut(BaseModel):
   # Los límites que rigen sobre ESTE dispositivo: salen del plan de su dueño, no
   # del de quien consulta (plan_service.limites_de_dispositivo). Sin esto el
@@ -79,24 +69,6 @@ class DispositivoDetalleOut(DispositivoOut):
   # Opt-out de mails de alerta de este equipo, del que consulta. None = no tiene
   # vínculo (admin): tampoco es destinatario, así que no se le ofrece el control.
   notificar: Optional[bool] = None
-
-class InvitacionCreate(BaseModel):
-  rol: str
-  email: Optional[str] = None
-
-class InvitacionAccept(BaseModel):
-  token: str
-
-class InvitacionOut(BaseModel):
-  id: UUID
-  dispositivo_id: UUID
-  rol: Literal["viewer", "editor"]
-  email: Optional[str] = None
-  token: str
-  expires_at: datetime
-  created_at: datetime
-  regenerado_at: Optional[datetime] = None
-
 
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut
