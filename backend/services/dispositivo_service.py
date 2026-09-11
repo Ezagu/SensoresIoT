@@ -149,33 +149,72 @@ def crear_vinculacion_owner(usuario_id, dispositivo_id):
 
 def crear_invitacion(dispositivo_id, usuario_id, rol, rol_dispositivo, email = None) -> dict:
     if rol_dispositivo not in ROLES_ASIGNABLES:
-        raise HTTPException(409, f"No se puede asignar el rol {rol_dispositivo}")
+        raise HTTPException(422, f"No se puede asignar el rol {rol_dispositivo}")
     
     with get_cursor() as cur:
         validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
         limites = plan_service.limites_de_usuario(cur, usuario_id)
 
         if not limites["puede_compartir"]:
-            raise HTTPException(409, "Tu plan actual no permite compartir dispositivos")
+            raise HTTPException(403, "Tu plan actual no permite compartir dispositivos")
         
         if email is None:
             expires_at = datetime.now(timezone.utc) + timedelta(days=7)
         else:
-            expires_at = None
+            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
 
-        token, token_hash = generar_secret_urlsafe()
+        token, _ = generar_secret_urlsafe()
 
-        invitacion_dispositivo_repo.crear(cur, dispositivo_id, rol_dispositivo, token_hash, expires_at, email)
+        invitacion = invitacion_dispositivo_repo.crear(cur, dispositivo_id, rol_dispositivo, token, expires_at, email)
 
-        return token
+        if invitacion is None:
+            raise HTTPException(409, f"Ya existe un link activo para el rol {rol_dispositivo}, regeneralo o eliminalo")
 
-def aceptar_invitacion(dispositivo_id, token, usuario_id) -> dict:
+        return invitacion
+
+def obtener_invitaciones(dispositivo_id, usuario_id, rol) -> list[dict]:
+    with get_cursor() as cur:
+        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        return invitacion_dispositivo_repo.listar_por_dispositivo(cur, dispositivo_id)
+
+def regenerar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol) -> dict:    
+    with get_cursor() as cur:
+        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        limites = plan_service.limites_de_usuario(cur, usuario_id)
+
+        if not limites["puede_compartir"]:
+            raise HTTPException(403, "Tu plan actual no permite compartir dispositivos")
+        
+        invitacion = invitacion_dispositivo_repo.buscar_por_id(cur, dispositivo_id, invitacion_id)
+
+        if invitacion is None:
+            raise HTTPException(404, f"No existe la invitación {invitacion_id}")
+
+        if invitacion["email"] is None:
+            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        else:
+            expires_at = datetime.now(timezone.utc) + timedelta(days=30)
+
+        token, _ = generar_secret_urlsafe()
+
+        invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, invitacion["id"])
+        return invitacion_dispositivo_repo.crear(cur, dispositivo_id, invitacion["rol"], token, expires_at, invitacion["email"])
+
+def eliminar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol):
+    with get_cursor() as cur:
+        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        if not invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, invitacion_id):
+            raise HTTPException(404, "invitación no existe o ya fue usada")
+
+def aceptar_invitacion(dispositivo_id, token, usuario_id):
     with get_cursor() as cur:
         validar_que_exista_dispositivo(cur, dispositivo_id)
 
-        token_hash = hashear_sha256(token)
-
-        invitacion = invitacion_dispositivo_repo.buscar(cur, dispositivo_id, token_hash)
+        limites = plan_service.limites_de_dispositivo(cur, dispositivo_id)
+        if not limites["puede_compartir"]:
+            raise HTTPException(403, "El dueño del dispositivo no tiene un plan que permita compartir su dispositivo")
+        
+        invitacion = invitacion_dispositivo_repo.buscar(cur, dispositivo_id, token)
 
         if invitacion is None:
             raise HTTPException(404, "invitación no existe o ya fue usada")
@@ -190,7 +229,7 @@ def aceptar_invitacion(dispositivo_id, token, usuario_id) -> dict:
             dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, invitacion["rol"])
 
             if invitacion["email"] is not None:
-                invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, token_hash)
+                invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, invitacion["id"])
         except psycopg2.errors.UniqueViolation:
             raise HTTPException(409, "ya tenés acceso a este dispositivo")  # condición de carrera
 

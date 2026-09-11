@@ -10,6 +10,7 @@ def buscar_por_id(cur, usuario_id: str) -> dict | None:
     return cur.fetchone()
 
 def buscar_por_email(cur, email: str) -> dict | None:
+    email = email.lower()
     cur.execute(
         "SELECT * FROM usuarios WHERE email = %s",
         (email,)
@@ -25,6 +26,7 @@ def buscar_email(cur, usuario_id: str) -> str | None:
     return result["email"] if result else None
 
 def crear(cur, nombre: str, email: str, password_hash: str) -> dict:
+    email = email.lower()
     cur.execute(
         """
         INSERT INTO usuarios (nombre, password, email, created_at)
