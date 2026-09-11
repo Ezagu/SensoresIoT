@@ -229,13 +229,28 @@ export type AccesoDispositivo = {
   created_at: string
 }
 
-export type AccesoCreatePayload = {
-  email: string
+export type AccesoUpdatePayload = {
   rol: RolCompartido
 }
 
-export type AccesoUpdatePayload = {
+/* GET /dispositivos/{id}/invitaciones. email null = link global (uno por
+   rol como mucho); con email = invitación dirigida, se consume al aceptarse. */
+export type Invitacion = {
+  id: string
+  dispositivo_id: string
   rol: RolCompartido
+  email: string | null
+  token: string
+  expires_at: string
+  created_at: string
+  /* null = nunca regenerada: sin cooldown propio, se puede regenerar de
+     entrada. El cooldown de 5 min arranca recién en la primera regeneración. */
+  regenerado_at: string | null
+}
+
+export type InvitacionCreatePayload = {
+  rol: RolCompartido
+  email?: string | null
 }
 
 export type Plan = {

@@ -95,6 +95,7 @@ class InvitacionOut(BaseModel):
   token: str
   expires_at: datetime
   created_at: datetime
+  regenerado_at: Optional[datetime] = None
 
 
 class DispositivoCreateOut(BaseModel):

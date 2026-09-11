@@ -3,7 +3,7 @@ import { Boton } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
 import { Select } from '@/components/ui/Select'
 import { TextoError } from '@/components/ui/TextoError'
-import { invitarAcceso } from '@/services/consultas'
+import { crearInvitacion } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import { esquemaInvitacion } from '@/utils/validacion'
 import { useFormulario } from '@/hooks/usarFormulario'
@@ -29,7 +29,7 @@ export function FormularioInvitar({
 
     setEnviando(true)
     try {
-      await invitarAcceso(dispositivoId, { email: datos.email, rol: datos.rol })
+      await crearInvitacion(dispositivoId, { email: datos.email, rol: datos.rol })
       onInvitado()
     } catch (err) {
       setError(mensajeDeError(err, 'No pudimos invitar a esa persona.'))

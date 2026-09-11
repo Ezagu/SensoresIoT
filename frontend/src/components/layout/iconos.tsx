@@ -173,3 +173,18 @@ export const IconoOrden = ({ className }: Props) => (
     <path d="M7 4v16M7 4l-3.5 3.5M7 4l3.5 3.5M17 20V4M17 20l3.5-3.5M17 20l-3.5-3.5" />
   </svg>
 )
+
+export const IconoEnlace = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M9 15l6-6" />
+    <path d="M11 6l1-1a4 4 0 015.6 5.6l-1 1" />
+    <path d="M13 18l-1 1a4 4 0 01-5.6-5.6l1-1" />
+  </svg>
+)
+
+export const IconoSobre = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="M3 7l9 6 9-6" />
+  </svg>
+)

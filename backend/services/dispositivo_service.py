@@ -16,6 +16,10 @@ ROLES_ASIGNABLES = ("editor", "viewer")
 # perdido es un reintento normal del firmware.
 INTERVALOS_DE_GRACIA = 3
 
+# Evita el arrepentimiento inmediato: regenerar mata en silencio el link que
+# ya se repartió. No frena a un adversario (borrar + crear lo saltea a propósito).
+COOLDOWN_REGENERAR = timedelta(minutes=5)
+
 def esta_online(last_seen_at, intervalo_efectivo_seg) -> bool:
     # El intervalo tiene que ser el EFECTIVO (max con el piso del plan del dueño):
     # el configurado es NULL cuando el equipo está en automático.
@@ -190,6 +194,14 @@ def regenerar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol) -> dict
         if invitacion is None:
             raise HTTPException(404, f"No existe la invitación {invitacion_id}")
 
+        # None = nunca regenerada: recién creada no tiene cooldown, sólo se lo
+        # gana después de la primera regeneración.
+        if invitacion["regenerado_at"] is not None:
+            transcurrido = datetime.now(timezone.utc) - invitacion["regenerado_at"]
+            if transcurrido < COOLDOWN_REGENERAR:
+                restante = math.ceil((COOLDOWN_REGENERAR - transcurrido).total_seconds())
+                raise HTTPException(429, f"Esperá {restante}s antes de regenerar de nuevo")
+
         if invitacion["email"] is None:
             expires_at = datetime.now(timezone.utc) + timedelta(days=7)
         else:
@@ -197,8 +209,7 @@ def regenerar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol) -> dict
 
         token, _ = generar_secret_urlsafe()
 
-        invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, invitacion["id"])
-        return invitacion_dispositivo_repo.crear(cur, dispositivo_id, invitacion["rol"], token, expires_at, invitacion["email"])
+        return invitacion_dispositivo_repo.regenerar(cur, dispositivo_id, invitacion["id"], token, expires_at)
 
 def eliminar_invitacion(dispositivo_id, invitacion_id, usuario_id, rol):
     with get_cursor() as cur:

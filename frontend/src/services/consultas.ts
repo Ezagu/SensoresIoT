@@ -1,6 +1,5 @@
 import { api } from '@/services/api'
 import type {
-  AccesoCreatePayload,
   AccesoDispositivo,
   AccesoUpdatePayload,
   Alerta,
@@ -13,6 +12,8 @@ import type {
   DispositivoUpdatePayload,
   Historial,
   IntervaloActualizado,
+  Invitacion,
+  InvitacionCreatePayload,
   NotificacionUpdatePayload,
   PanelResumen,
   Sensor,
@@ -125,10 +126,6 @@ export function listarAccesos(dispositivoId: string, signal?: AbortSignal) {
   return api.get<AccesoDispositivo[]>(`/dispositivos/${dispositivoId}/accesos`, { signal }).then((r) => r.data)
 }
 
-export function invitarAcceso(dispositivoId: string, payload: AccesoCreatePayload) {
-  return api.post<AccesoDispositivo>(`/dispositivos/${dispositivoId}/accesos`, payload).then((r) => r.data)
-}
-
 export function actualizarAcceso(dispositivoId: string, usuarioId: string, payload: AccesoUpdatePayload) {
   return api
     .patch<AccesoDispositivo>(`/dispositivos/${dispositivoId}/accesos/${usuarioId}`, payload)
@@ -137,6 +134,24 @@ export function actualizarAcceso(dispositivoId: string, usuarioId: string, paylo
 
 export function quitarAcceso(dispositivoId: string, usuarioId: string) {
   return api.delete(`/dispositivos/${dispositivoId}/accesos/${usuarioId}`)
+}
+
+export function listarInvitaciones(dispositivoId: string, signal?: AbortSignal) {
+  return api.get<Invitacion[]>(`/dispositivos/${dispositivoId}/invitaciones`, { signal }).then((r) => r.data)
+}
+
+export function crearInvitacion(dispositivoId: string, payload: InvitacionCreatePayload) {
+  return api.post<Invitacion>(`/dispositivos/${dispositivoId}/invitaciones`, payload).then((r) => r.data)
+}
+
+export function regenerarInvitacion(dispositivoId: string, invitacionId: string) {
+  return api
+    .post<Invitacion>(`/dispositivos/${dispositivoId}/invitaciones/${invitacionId}/regenerate`)
+    .then((r) => r.data)
+}
+
+export function eliminarInvitacion(dispositivoId: string, invitacionId: string) {
+  return api.delete(`/dispositivos/${dispositivoId}/invitaciones/${invitacionId}`)
 }
 
 export type ParametrosExport = {

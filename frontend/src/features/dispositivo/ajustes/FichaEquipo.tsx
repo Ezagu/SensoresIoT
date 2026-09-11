@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { IconoCopiar, IconoTilde } from '@/components/layout/iconos'
+import { BotonCopiar } from '@/components/ui/BotonCopiar'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { ETIQUETA_ROL } from '@/utils/dispositivos'
 import { fechaHora } from '@/utils/tiempo'
@@ -17,18 +16,6 @@ export function FichaEquipo({
   dispositivo: DispositivoDetalle
   sensores: SensorConMeta[]
 }) {
-  const [copiado, setCopiado] = useState(false)
-
-  async function copiarId() {
-    try {
-      await navigator.clipboard.writeText(dispositivo.id)
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2000)
-    } catch {
-      // Sin permiso de portapapeles no hay mucho más que ofrecer acá.
-    }
-  }
-
   const intervaloSeg = dispositivo.intervalo_efectivo_seg
 
   return (
@@ -41,14 +28,7 @@ export function FichaEquipo({
           <dt className="text-text-faint">ID del equipo</dt>
           <dd className="flex min-w-0 items-center gap-1.5">
             <span className="num truncate text-text">{dispositivo.id}</span>
-            <button
-              type="button"
-              onClick={copiarId}
-              aria-label="Copiar ID del equipo"
-              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control text-text-muted hover:text-text"
-            >
-              {copiado ? <IconoTilde className="size-3.5 text-ok" /> : <IconoCopiar className="size-3.5" />}
-            </button>
+            <BotonCopiar texto={dispositivo.id} etiqueta="Copiar ID del equipo" variante="icono" />
           </dd>
         </div>
         <div>

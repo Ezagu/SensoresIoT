@@ -67,7 +67,10 @@ CREATE TABLE invitacion_dispositivo (
     rol                TEXT NOT NULL CHECK (rol IN ('viewer', 'editor')),
     token              TEXT NOT NULL,
     expires_at         TIMESTAMPTZ NOT NULL,
-    created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- NULL = nunca regenerada, sin cooldown propio: recién creada se puede
+    -- regenerar de entrada; el cooldown de 5 min arranca en la primera vez.
+    regenerado_at      TIMESTAMPTZ
 );
 
 CREATE UNIQUE INDEX idx_un_solo_link_por_rol

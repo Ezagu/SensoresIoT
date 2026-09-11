@@ -40,6 +40,20 @@ def buscar_por_rol(cur, dispositivo_id, rol) -> dict | None:
     )
     return cur.fetchone()
 
+def regenerar(cur, dispositivo_id, invitacion_id, token, expires_at) -> dict | None:
+    # UPDATE y no DELETE + crear: conserva el id (lo necesita el cooldown para
+    # ser atribuible) y created_at.
+    cur.execute(
+        """
+        UPDATE invitacion_dispositivo
+        SET token = %s, expires_at = %s, regenerado_at = now()
+        WHERE dispositivo_id = %s AND id = %s
+        RETURNING *
+        """,
+        (token, expires_at, dispositivo_id, invitacion_id)
+    )
+    return cur.fetchone()
+
 def eliminar(cur, dispositivo_id, invitacion_id) -> bool:
     cur.execute(
         "DELETE FROM invitacion_dispositivo WHERE dispositivo_id = %s AND id = %s",
