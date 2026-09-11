@@ -56,50 +56,54 @@ export function FilaAcceso({
   }
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 py-2.5">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <li className="py-2.5">
+      {/* Los controles son compactos y entran al lado del nombre aun a 390px:
+          esta fila no se parte, sólo mantiene al avatar como canaleta. */}
+      <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
           className="flex size-7.5 shrink-0 items-center justify-center rounded-control bg-linear-to-br from-avatar-from to-avatar-to font-display text-label-lg font-bold text-accent-ink"
         >
           {iniciales(acceso.nombre)}
         </span>
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate text-label-lg font-medium text-text">
-            {acceso.nombre}
-            {esUsuarioActual && <span className="font-normal text-text-faint"> (vos)</span>}
-          </span>
-          <span className="truncate text-note text-text-faint">{acceso.email}</span>
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-label-lg font-medium text-text">
+              {acceso.nombre}
+              {esUsuarioActual && <span className="font-normal text-text-faint"> (vos)</span>}
+            </span>
+            <span className="truncate text-note text-text-faint">{acceso.email}</span>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {esDueño ? (
+              <Pill tono="faint">Dueño</Pill>
+            ) : puedeGestionar ? (
+              <>
+                <Select
+                  id={`rol-${acceso.usuario_id}`}
+                  etiqueta={`Rol de ${acceso.nombre}`}
+                  etiquetaOculta
+                  tamaño="compacto"
+                  value={acceso.rol}
+                  disabled={ocupado}
+                  onChange={(e) => cambiarRol(e.target.value as RolCompartido)}
+                >
+                  <option value="editor">Editor</option>
+                  <option value="viewer">Solo lectura</option>
+                </Select>
+                <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
+                  Quitar
+                </Boton>
+              </>
+            ) : (
+              <Pill tono="faint">{ETIQUETA_ROL[acceso.rol]}</Pill>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
-        {esDueño ? (
-          <Pill tono="faint">Dueño</Pill>
-        ) : puedeGestionar ? (
-          <>
-            <Select
-              id={`rol-${acceso.usuario_id}`}
-              etiqueta={`Rol de ${acceso.nombre}`}
-              etiquetaOculta
-              tamaño="compacto"
-              value={acceso.rol}
-              disabled={ocupado}
-              onChange={(e) => cambiarRol(e.target.value as RolCompartido)}
-            >
-              <option value="editor">Editor</option>
-              <option value="viewer">Solo lectura</option>
-            </Select>
-            <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
-              Quitar
-            </Boton>
-          </>
-        ) : (
-          <Pill tono="faint">{ETIQUETA_ROL[acceso.rol]}</Pill>
-        )}
-      </div>
-
-      {error && <TextoError className="basis-full">{error}</TextoError>}
+      {error && <TextoError className="mt-1.5 pl-10">{error}</TextoError>}
 
       {confirmando && (
         <Modal abierto onCerrar={() => setConfirmando(false)} titulo="Quitar acceso">

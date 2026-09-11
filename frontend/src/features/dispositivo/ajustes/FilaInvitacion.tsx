@@ -81,51 +81,65 @@ export function FilaInvitacion({
   }
 
   return (
-    <li className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1.5 py-2.5">
-      <div className="flex min-w-0 items-start gap-2.5">
+    <li className="py-2.5">
+      {/* El ícono es una canaleta: identidad y acciones comparten la misma
+          columna, así abajo de sm las acciones caen alineadas con el texto que
+          operan y no contra el borde del <li>. */}
+      <div className="flex items-start gap-2.5">
         <span
           aria-hidden="true"
           className="mt-0.5 flex size-7.5 shrink-0 items-center justify-center rounded-control bg-surface-2 text-text-muted"
         >
           {global ? <IconoEnlace className="size-3.75" /> : <IconoSobre className="size-3.75" />}
         </span>
-        <div className="flex min-w-0 flex-col">
-          <span className="flex flex-wrap items-center gap-2 text-label-lg font-medium text-text">
-            {global ? etiquetaRol : invitacion.email}
-            {!global && <Pill tono="faint">{etiquetaRol}</Pill>}
-            {vencida && <Pill tono="warn">Vencido</Pill>}
-          </span>
-          {global && <span className="num truncate text-note text-text-faint">{link}</span>}
-          <span className="text-note text-text-faint">
-            {vencida ? 'Venció el ' : 'Vence el '}
-            {fecha(invitacion.expires_at)}
-          </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+          <div className="flex min-w-0 flex-col">
+            <span className="flex min-w-0 items-center gap-2 text-label-lg font-medium text-text">
+              <span className="truncate">{global ? etiquetaRol : invitacion.email}</span>
+              {!global && <Pill tono="faint">{etiquetaRol}</Pill>}
+              {vencida && <Pill tono="warn">Vencido</Pill>}
+            </span>
+            {/* A 390px la URL visible es sólo el prefijo: no se puede leer ni
+                verificar, y el afford real es Copiar. Vuelve en sm. */}
+            {global && <span className="num hidden truncate text-note text-text-faint sm:block">{link}</span>}
+            <span className="text-note text-text-faint">
+              {vencida ? 'Venció el ' : 'Vence el '}
+              {fecha(invitacion.expires_at)}
+            </span>
+          </div>
+
+          {puedeGestionar && (
+            <div className="-ml-2 flex flex-wrap items-center gap-0.5 sm:ml-0 sm:shrink-0 sm:gap-1">
+              <BotonCopiar
+                texto={link}
+                etiqueta={
+                  global ? `Copiar link de ${etiquetaRol.toLowerCase()}` : `Copiar link para ${invitacion.email}`
+                }
+              />
+              <Boton
+                type="button"
+                variante="texto"
+                disabled={ocupado || restante > 0}
+                onClick={() => setConfirmando('regenerar')}
+                title={restante > 0 ? `Disponible en ${restanteLegible(restante)}` : undefined}
+              >
+                {global ? <IconoActualizar className="size-3.5" /> : <IconoSobre className="size-3.5" />}
+                {restante > 0 ? restanteLegible(restante) : global ? 'Regenerar' : 'Reenviar'}
+              </Boton>
+              <Boton
+                type="button"
+                variante="destructivo"
+                disabled={ocupado}
+                onClick={() => setConfirmando('eliminar')}
+              >
+                Eliminar
+              </Boton>
+            </div>
+          )}
         </div>
       </div>
 
-      {puedeGestionar && (
-        <div className="flex shrink-0 flex-wrap items-center gap-1">
-          <BotonCopiar
-            texto={link}
-            etiqueta={global ? `Copiar link de ${etiquetaRol.toLowerCase()}` : `Copiar link para ${invitacion.email}`}
-          />
-          <Boton
-            type="button"
-            variante="texto"
-            disabled={ocupado || restante > 0}
-            onClick={() => setConfirmando('regenerar')}
-            title={restante > 0 ? `Disponible en ${restanteLegible(restante)}` : undefined}
-          >
-            {global ? <IconoActualizar className="size-3.5" /> : <IconoSobre className="size-3.5" />}
-            {restante > 0 ? restanteLegible(restante) : global ? 'Regenerar' : 'Reenviar'}
-          </Boton>
-          <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando('eliminar')}>
-            Eliminar
-          </Boton>
-        </div>
-      )}
-
-      {error && <TextoError className="basis-full">{error}</TextoError>}
+      {error && <TextoError className="mt-1.5 pl-10">{error}</TextoError>}
 
       {confirmando === 'eliminar' && (
         <Modal abierto onCerrar={() => setConfirmando(null)} titulo="Eliminar invitación">

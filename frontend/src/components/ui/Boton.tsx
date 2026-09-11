@@ -8,9 +8,10 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
-/* pointer-coarse sube el alto a 44px: 36 alcanza con un mouse, no con un dedo.
-   Las variantes de fila ya lo traían; las de pantalla no, y son las que más se
-   tocan en mobile. */
+/* pointer-coarse sube el alto: 36 alcanza con un mouse, no con un dedo. Las de
+   pantalla van a 44; las de fila (texto/destructivo) a 40, porque vienen de a
+   tres en un grupo con separación propia y son transparentes: a 44 el label de
+   11px queda nadando en un bloque vacío, que es justo lo que ensucia el mobile. */
 const BASE =
   'inline-flex items-center justify-center gap-1.5 rounded-control font-semibold whitespace-nowrap cursor-pointer ' +
   'transition-[filter,background-color,color] duration-150 disabled:opacity-50 disabled:cursor-not-allowed'
@@ -23,11 +24,11 @@ const VARIANTES: Record<Variante, string> = {
   fantasma:
     'bg-transparent text-text-muted text-label-lg min-h-9 px-3 pointer-coarse:min-h-11 border border-border hover:text-text hover:border-border-strong',
   /* Acciones dentro de una fila de lista: pesan menos que un botón de pantalla. */
-  texto: 'bg-transparent text-text-muted text-note min-h-8 px-2 pointer-coarse:min-h-11 hover:bg-surface-2 hover:text-text',
+  texto: 'bg-transparent text-text-muted text-note min-h-8 px-2 pointer-coarse:min-h-10 hover:bg-surface-2 hover:text-text',
   /* Se pinta de rojo recién con el puntero o el foco: en reposo, la más llamativa
      de la fila sería la más fácil de apretar sin querer. */
   destructivo:
-    'bg-transparent text-text-muted text-note min-h-8 px-2 pointer-coarse:min-h-11 hover:bg-danger-soft hover:text-danger focus-visible:text-danger',
+    'bg-transparent text-text-muted text-note min-h-8 px-2 pointer-coarse:min-h-10 hover:bg-danger-soft hover:text-danger focus-visible:text-danger',
 }
 
 export function Boton({ variante = 'primario', className = '', children, ...props }: Props) {
