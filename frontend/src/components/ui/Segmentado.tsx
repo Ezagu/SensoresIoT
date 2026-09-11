@@ -97,7 +97,7 @@ export function Segmentado<T extends string>({
             onClick={() => !disabled && onCambiar(o.valor)}
             /* 44px con el dedo (pointer-coarse), 32px con mouse: la densidad de
                escritorio no tiene por qué pagar el tamaño de toque. */
-            className={`flex min-h-8 items-center justify-center gap-1 rounded-tile text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer pointer-coarse:min-h-11 disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex min-h-8 items-center justify-center gap-1 rounded-tile text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
               columnasAngosto
                 ? `px-1.5 sm:px-3 ${indice === 0 ? 'col-span-full sm:col-auto' : ''}`
                 : 'px-3'

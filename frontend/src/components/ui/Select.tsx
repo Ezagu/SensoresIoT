@@ -17,7 +17,7 @@ const BASE =
 
 const TAMAÑOS: Record<Tamaño, string> = {
   normal: 'min-h-10 pl-3 pr-9 text-body',
-  compacto: 'min-h-8 pl-2.5 pr-7.5 text-note pointer-coarse:min-h-11',
+  compacto: 'min-h-8 pl-2.5 pr-7.5 text-note',
 }
 
 const CHEVRON: Record<Tamaño, string> = {

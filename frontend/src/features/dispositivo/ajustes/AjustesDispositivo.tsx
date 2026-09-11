@@ -96,7 +96,6 @@ export function AjustesDispositivo() {
         dispositivo={dispositivo}
         esDuenio={puedeGestionarAcceso}
         usuarioActualId={sesion?.usuario_id ?? ''}
-        onCambio={equipo.refrescar}
       />
     </div>
   )

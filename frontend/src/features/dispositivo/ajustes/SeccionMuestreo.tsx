@@ -114,14 +114,7 @@ export function SeccionMuestreo({
 
         <div className="flex flex-col gap-1 text-note text-text-faint">
           <p>
-            Se aplica en la próxima conexión del equipo.{' '}
-            {dispositivo.last_seen_at ? (
-              <>
-                Reportó <HaceCuanto iso={dispositivo.last_seen_at} />.
-              </>
-            ) : (
-              'Nunca reportó.'
-            )}
+            Se aplica en la próxima conexión del equipo.
           </p>
         </div>
 
