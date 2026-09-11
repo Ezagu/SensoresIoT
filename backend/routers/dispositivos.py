@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate, DispositivoEstadoOut
+from schemas.dispositivo import DispositivoCreate, DispositivoDetalleOut, DispositivoCreateOut, IntervaloUpdate, NotificacionUpdate, DispositivoUpdate, AccesoDispositivoOut, AccesoDispositivoUpdate, DispositivoEstadoOut, InvitacionCreate
 from schemas.sensor import SensorOut
 from schemas.alerta import AlertaOut, AlertaEventosConContextoOut
 from services import dispositivo_service, exportacion_service, alerta_service
@@ -36,6 +36,10 @@ def get_dispositivo_estado(dispositivo_id: UUID, usuario_actual: dict = Depends(
 @limiter.limit("5/10minutes")
 def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.crear_vinculacion_owner(usuario_actual["sub"], dispositivo_id)
+
+@router.post("/{dispositivo_id}/invitaciones", response_model=str)
+def create_invitation(dispositivo_id: UUID, invitacion: InvitacionCreate, usuario_actual: dict = Depends(get_usuario_actual)):
+    return dispositivo_service.crear_invitacion(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], invitacion.rol, invitacion.email)
 
 @router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
 def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):

@@ -1,10 +1,10 @@
 import math
-
 import psycopg2.errors
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
 from repositories import dispositivo_repo, sensor_repo, usuario_repo, alerta_repo
 from services import plan_service
+from core.security import generar_secret_urlsafe
 from db import get_cursor
 
 INTERVALO_MAXIMO_SEG = 24 * 60 * 60
@@ -147,6 +147,28 @@ def crear_vinculacion_owner(usuario_id, dispositivo_id):
         except psycopg2.errors.UniqueViolation:
             raise HTTPException(409, "el dispositivo ya tiene un dueño")  # condición de carrera
 
+def crear_invitacion(dispositivo_id, usuario_id, rol, rol_dispositivo, email = None) -> dict:
+    if rol_dispositivo not in ROLES_ASIGNABLES:
+        raise HTTPException(409, f"No se puede asignar el rol {rol_dispositivo}")
+    
+    with get_cursor() as cur:
+        validar_owner_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
+        limites = plan_service.limites_de_usuario(cur, usuario_id)
+
+        if not limites["puede_compartir"]:
+            raise HTTPException(409, "Tu plan actual no permite compartir dispositivos")
+        
+        if email is None:
+            expires_at = datetime.now(timezone.utc) + timedelta(days=7)
+        else:
+            expires_at = None
+
+        token, token_hash = generar_secret_urlsafe()
+
+        dispositivo_repo.crear_invitacion(cur, dispositivo_id, rol_dispositivo, token_hash, expires_at, email)
+
+        return token
+
 def actualizar_rol(dispositivo_id, usuario_id_to_change, rol_to_change, usuario_id, rol):
     if rol_to_change not in ROLES_ASIGNABLES:
         raise HTTPException(409, f"No se puede asignar el rol {rol_to_change}")
@@ -165,10 +187,10 @@ def quitar_acceso(dispositivo_id, usuario_id_to_delete, usuario_id, rol):
         validar_acceso_al_dispositivo(cur, dispositivo_id, usuario_id, rol)
         rol_disp = rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
 
-        if usuario_id_to_delete != usuario_id and rol_disp not in ROLES_OWNER:
+        if str(usuario_id_to_delete) != str(usuario_id) and rol_disp not in ROLES_OWNER:
             raise HTTPException(409, "No tienes permiso para quitar el acceso de este usuario")
         
-        if rol_disp == "owner" and usuario_id_to_delete == usuario_id:
+        if rol_disp == "owner" and str(usuario_id_to_delete) == str(usuario_id):
             raise HTTPException(409, "Debes transferir la propiedad del dispositivo antes de quitar tu acceso")
         
         dispositivo_repo.eliminar_vinculacion(cur, dispositivo_id, usuario_id_to_delete)

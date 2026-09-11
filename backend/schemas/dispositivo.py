@@ -80,6 +80,11 @@ class DispositivoDetalleOut(DispositivoOut):
   # vínculo (admin): tampoco es destinatario, así que no se le ofrece el control.
   notificar: Optional[bool] = None
 
+class InvitacionCreate(BaseModel):
+  rol: str
+  email: Optional[str] = None
+
+
 class DispositivoCreateOut(BaseModel):
   dispositivo: DispositivoOut
   secret: str
