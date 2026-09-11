@@ -14,7 +14,7 @@ import { FilaAcceso } from './FilaAcceso'
 import { FilaInvitacion } from './FilaInvitacion'
 import { RanuraLink } from './RanuraLink'
 import { FormularioInvitar } from './FormularioInvitar'
-import { SeccionAjustes } from './SeccionAjustes'
+import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 
 const ROLES_LINK: RolCompartido[] = ['editor', 'viewer']
 

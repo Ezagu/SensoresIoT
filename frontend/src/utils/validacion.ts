@@ -69,3 +69,25 @@ export const esquemaInvitacion = z.object({
   email,
   rol: z.enum(['editor', 'viewer'], { message: 'Elegí un rol.' }),
 })
+
+export const esquemaPerfil = z.object({
+  nombre: z.string().trim().min(2, 'Ingresá tu nombre.').max(80, 'Máximo 80 caracteres.'),
+  email,
+})
+
+/* El mínimo de 8 rige sólo para la nueva: la actual puede ser más corta que la
+   política de hoy, igual que en el login. */
+export const esquemaPassword = z
+  .object({
+    actual: z.string().min(1, 'Ingresá tu contraseña actual.'),
+    nueva: z.string().min(8, 'Mínimo 8 caracteres.').max(128, 'Máximo 128 caracteres.'),
+    repetir: z.string().min(1, 'Repetí la contraseña nueva.'),
+  })
+  .refine((v) => v.nueva !== v.actual, {
+    message: 'Elegí una distinta de la actual.',
+    path: ['nueva'],
+  })
+  .refine((v) => v.nueva === v.repetir, {
+    message: 'Las dos contraseñas tienen que coincidir.',
+    path: ['repetir'],
+  })

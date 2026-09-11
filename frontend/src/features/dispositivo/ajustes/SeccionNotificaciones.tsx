@@ -5,7 +5,7 @@ import { Vacio } from '@/components/ui/Vacio'
 import { configurarNotificaciones } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import type { DispositivoDetalle } from '@/tipos'
-import { SeccionAjustes } from './SeccionAjustes'
+import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 
 type Opcion = 'si' | 'no'
 

@@ -12,7 +12,6 @@ import { AjustesDispositivo } from '@/features/dispositivo/ajustes/AjustesDispos
 import { Alertas } from '@/features/alertas/Alertas'
 import { PlanPagina } from '@/features/plan/PlanPagina'
 import { Ajustes } from '@/features/cuenta/Ajustes'
-import { Cuenta } from '@/features/cuenta/Cuenta'
 
 /* Recharts pesa ~100 kB gz y sólo la usan estas pantallas: el panel y el resto
    de la app no tienen por qué cargarlo. */
@@ -89,9 +88,9 @@ export default function App() {
             <Route element={<Layout titulo="Ajustes" />}>
               <Route path="/ajustes" element={<Ajustes />} />
             </Route>
-            <Route element={<Layout titulo="Mi cuenta" />}>
-              <Route path="/cuenta" element={<Cuenta />} />
-            </Route>
+            {/* Perfil, plan y preferencias viven todos en /ajustes: dos puertas
+                a lo mismo obligaban a adivinar en cuál estaba cada cosa. */}
+            <Route path="/cuenta" element={<Navigate to="/ajustes" replace />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -7,7 +7,7 @@ import { quitarAcceso } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import { nombreDeDispositivo } from '@/utils/dispositivos'
 import type { DispositivoDetalle } from '@/tipos'
-import { SeccionAjustes } from './SeccionAjustes'
+import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 
 export function ZonaDeRiesgo({
   dispositivo,

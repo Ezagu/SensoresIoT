@@ -16,7 +16,12 @@ import type {
   InvitacionCreatePayload,
   NotificacionUpdatePayload,
   PanelResumen,
+  PasswordUpdatePayload,
+  PerfilUpdatePayload,
+  PreferenciasNotificacion,
+  PreferenciasUpdatePayload,
   Sensor,
+  SesionActual,
   TipoSensor,
 } from '@/tipos'
 
@@ -203,4 +208,31 @@ export async function exportarHistorial(
     retencionDias: retencion !== undefined ? Number(retencion) : null,
     intervaloSeg: intervalo !== undefined ? Number(intervalo) : null,
   }
+}
+
+/* ——— Cuenta ———
+   Los cuatro primeros TODAVÍA NO EXISTEN en el backend: son el contrato que
+   espera la pantalla de ajustes. Hasta que estén, cada uno responde 404 y la
+   sección muestra el error real en vez de fingir que guardó. */
+
+export function obtenerPreferencias(signal?: AbortSignal) {
+  return api.get<PreferenciasNotificacion>('/auth/me/preferencias', { signal }).then((r) => r.data)
+}
+
+export function actualizarPreferencias(payload: PreferenciasUpdatePayload) {
+  return api.patch<PreferenciasNotificacion>('/auth/me/preferencias', payload).then((r) => r.data)
+}
+
+export function actualizarPerfil(payload: PerfilUpdatePayload) {
+  return api.patch<SesionActual>('/auth/me', payload).then((r) => r.data)
+}
+
+export function cambiarPassword(payload: PasswordUpdatePayload) {
+  return api.put('/auth/me/password', payload)
+}
+
+/* Este sí existe. Borra todos los refresh token del usuario, el de esta pestaña
+   incluido: después hay que cerrar la sesión local igual. */
+export function cerrarSesionGlobal() {
+  return api.post('/auth/global-logout')
 }

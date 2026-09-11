@@ -3,7 +3,7 @@ import { ETIQUETA_ROL } from '@/utils/dispositivos'
 import { fechaHora } from '@/utils/tiempo'
 import type { DispositivoDetalle } from '@/tipos'
 import type { SensorConMeta } from '../usarDispositivo'
-import { SeccionAjustes } from './SeccionAjustes'
+import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 
 /* Solo lectura: el ID no aparece en ninguna otra pantalla y es lo primero que
    se pide por teléfono en un soporte. */

@@ -7,7 +7,7 @@ import { mensajeDeError } from '@/services/api'
 import { esquemaIdentificacion } from '@/utils/validacion'
 import { useFormulario } from '@/hooks/usarFormulario'
 import type { DispositivoDetalle } from '@/tipos'
-import { SeccionAjustes } from './SeccionAjustes'
+import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 
 export function SeccionIdentificacion({
   dispositivo,

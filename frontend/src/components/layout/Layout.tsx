@@ -152,13 +152,12 @@ export function Layout({ titulo }: { titulo: string }) {
           </nav>
 
           <div className="mt-auto border-t border-border pt-2.5">
+            {/* Sin estado activo propio: lleva a /ajustes, que ya se marca en el
+                nav de arriba, y dos bloques encendidos por la misma ruta se leen
+                como dos destinos distintos. */}
             <NavLink
-              to="/cuenta"
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 rounded-control px-2 py-2 transition-colors duration-150 ${
-                  isActive ? 'bg-accent-soft' : 'hover:bg-surface-2'
-                }`
-              }
+              to="/ajustes"
+              className="flex items-center gap-2.5 rounded-control px-2 py-2 transition-colors duration-150 hover:bg-surface-2"
             >
               <span
                 aria-hidden="true"

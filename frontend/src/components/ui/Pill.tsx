@@ -1,12 +1,13 @@
 import type { EstadoDispositivo } from '@/utils/tiempo'
 
-type Tono = 'ok' | 'warn' | 'danger' | 'faint'
+type Tono = 'ok' | 'warn' | 'danger' | 'faint' | 'premium'
 
 const TONOS: Record<Tono, string> = {
   ok: 'bg-ok-soft text-ok',
   warn: 'bg-warn-soft text-warn',
   danger: 'bg-danger-soft text-danger',
   faint: 'bg-surface-2 text-text-faint',
+  premium: 'bg-premium-soft text-premium',
 }
 
 /* El punto refuerza, no reemplaza: el texto del pill es el canal principal

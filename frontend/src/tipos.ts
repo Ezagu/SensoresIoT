@@ -284,3 +284,29 @@ export type MiPlan = {
   plan: Plan
   suscripcion: Suscripcion | null
 }
+
+/* ——— Cuenta ———
+   Las preferencias de notificación son por CUENTA y no por equipo: silenciar un
+   equipo puntual sigue siendo `usuario_dispositivo.notificar`. Una clave en
+   false apaga esa familia de mails en todos lados. */
+export type PreferenciasNotificacion = {
+  alertas: boolean
+  accesos: boolean
+  inicio_sesion: boolean
+}
+
+export type ClavePreferencia = keyof PreferenciasNotificacion
+
+export type PreferenciasUpdatePayload = Partial<PreferenciasNotificacion>
+
+/* Cambiar el email obliga a verificar la dirección nueva, así que la respuesta
+   dice si la sesión quedó pendiente de verificación. */
+export type PerfilUpdatePayload = {
+  nombre?: string
+  email?: string
+}
+
+export type PasswordUpdatePayload = {
+  password_actual: string
+  password_nueva: string
+}

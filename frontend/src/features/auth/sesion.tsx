@@ -13,6 +13,9 @@ type Contexto = {
   plan: MiPlan | null
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  /* Relee /auth/me: el nombre y el email viven en la sidebar, así que editarlos
+     en ajustes tiene que verse sin recargar la página. */
+  refrescarSesion: () => Promise<void>
 }
 
 const Ctx = createContext<Contexto | null>(null)
@@ -83,9 +86,13 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     }
   }, [cerrarLocal])
 
+  const refrescarSesion = useCallback(async () => {
+    setSesion(await cargarUsuario())
+  }, [cargarUsuario])
+
   const valor = useMemo(
-    () => ({ estado, sesion, plan, login, logout }),
-    [estado, sesion, plan, login, logout],
+    () => ({ estado, sesion, plan, login, logout, refrescarSesion }),
+    [estado, sesion, plan, login, logout, refrescarSesion],
   )
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
 }
