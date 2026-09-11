@@ -237,22 +237,3 @@ def marcar_rotacion_pendiente(cur, dispositivo_id) -> None:
     )
     if not cur.fetchone():
         raise HTTPException(404, "Dispositivo no encontrado")
-
-def crear_invitacion(cur, dispositivo_id, rol, token_hash, expires_at, email) -> dict:
-    valores = [dispositivo_id, rol, token_hash, expires_at]
-
-    COLUMNAS = ("dispositivo_id", "rol", "token_hash", "expires_at")
-
-    if email is not None:
-        COLUMNAS += ("email",)
-        valores.append(email)
-
-    cur.execute(
-        f"""
-        INSERT INTO invitacion_dispositivo ({', '.join(COLUMNAS)})
-        VALUES ({', '.join(['%s'] * len(COLUMNAS))})
-        RETURNING *
-        """,
-        tuple(valores)
-    )
-    return cur.fetchone()

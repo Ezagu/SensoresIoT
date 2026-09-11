@@ -41,6 +41,10 @@ def vinculate_dispositivo(request: Request, dispositivo_id: UUID, usuario_actual
 def create_invitation(dispositivo_id: UUID, invitacion: InvitacionCreate, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.crear_invitacion(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"], invitacion.rol, invitacion.email)
 
+@router.post("/{dispositivo_id}/invitaciones/{token}/accept", status_code=201)
+def accept_invitation(dispositivo_id: UUID, token: str, usuario_actual: dict = Depends(get_usuario_actual)):
+    dispositivo_service.aceptar_invitacion(dispositivo_id, token, usuario_actual["sub"])
+
 @router.get("/{dispositivo_id}/accesos", response_model=list[AccesoDispositivoOut])
 def get_access(dispositivo_id: UUID, usuario_actual: dict = Depends(get_usuario_actual)):
     return dispositivo_service.obtener_accesos(dispositivo_id, usuario_actual["sub"], usuario_actual["rol"])

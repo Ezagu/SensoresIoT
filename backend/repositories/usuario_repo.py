@@ -16,6 +16,14 @@ def buscar_por_email(cur, email: str) -> dict | None:
     )
     return cur.fetchone()
 
+def buscar_email(cur, usuario_id: str) -> str | None:
+    cur.execute(
+        "SELECT email FROM usuarios WHERE id = %s",
+        (usuario_id,)
+    )
+    result = cur.fetchone()
+    return result["email"] if result else None
+
 def crear(cur, nombre: str, email: str, password_hash: str) -> dict:
     cur.execute(
         """

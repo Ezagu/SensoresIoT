@@ -2,9 +2,9 @@ import math
 import psycopg2.errors
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
-from repositories import dispositivo_repo, sensor_repo, usuario_repo, alerta_repo
+from repositories import dispositivo_repo, sensor_repo, usuario_repo, alerta_repo, invitacion_dispositivo_repo
 from services import plan_service
-from core.security import generar_secret_urlsafe
+from core.security import generar_secret_urlsafe, hashear_sha256
 from db import get_cursor
 
 INTERVALO_MAXIMO_SEG = 24 * 60 * 60
@@ -165,9 +165,34 @@ def crear_invitacion(dispositivo_id, usuario_id, rol, rol_dispositivo, email = N
 
         token, token_hash = generar_secret_urlsafe()
 
-        dispositivo_repo.crear_invitacion(cur, dispositivo_id, rol_dispositivo, token_hash, expires_at, email)
+        invitacion_dispositivo_repo.crear(cur, dispositivo_id, rol_dispositivo, token_hash, expires_at, email)
 
         return token
+
+def aceptar_invitacion(dispositivo_id, token, usuario_id) -> dict:
+    with get_cursor() as cur:
+        validar_que_exista_dispositivo(cur, dispositivo_id)
+
+        token_hash = hashear_sha256(token)
+
+        invitacion = invitacion_dispositivo_repo.buscar(cur, dispositivo_id, token_hash)
+
+        if invitacion is None:
+            raise HTTPException(404, "invitación no existe o ya fue usada")
+        
+        if invitacion["expires_at"] is not None and invitacion["expires_at"] < datetime.now(timezone.utc):
+            raise HTTPException(409, "invitación expirada")
+
+        if invitacion["email"] is not None and invitacion["email"] != usuario_repo.buscar_email(cur, usuario_id):
+            raise HTTPException(409, "invitación no corresponde al email de tu cuenta")
+
+        try:
+            dispositivo_repo.crear_vinculacion(cur, usuario_id, dispositivo_id, invitacion["rol"])
+
+            if invitacion["email"] is not None:
+                invitacion_dispositivo_repo.eliminar(cur, dispositivo_id, token_hash)
+        except psycopg2.errors.UniqueViolation:
+            raise HTTPException(409, "ya tenés acceso a este dispositivo")  # condición de carrera
 
 def actualizar_rol(dispositivo_id, usuario_id_to_change, rol_to_change, usuario_id, rol):
     if rol_to_change not in ROLES_ASIGNABLES:
