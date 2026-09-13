@@ -2,7 +2,7 @@ import bisect
 import psycopg2.extras
 from datetime import datetime, timezone, timedelta
 from db import get_connection
-from repositories import dispositivo_repo, sensor_repo, medicion_repo
+from repositories import dispositivo_repo, sensor_repo, medicion_repo, alerta_repo
 from services import plan_service, alerta_service
 from core.tiempo import a_utc
 
@@ -10,13 +10,18 @@ TOLERANCIA_JITTER = timedelta(seconds=5)  # margen por drift de reloj / latencia
 # No depende del plan: el free escribe con la misma profundidad que el premium y
 # sólo ve menos al leer, así el historial aparece entero si algún día contrata.
 ANTIGUEDAD_MAXIMA = timedelta(days=90)
+# Piso duro de escritura, NO la cadencia del equipo. Sólo frena a un equipo con
+# firmware roto; la cadencia viaja como `intervalo_sugerido`. Atarlo al intervalo
+# configurado descartaría lo que llega antes de tiempo a propósito: el disparo
+# fuera de ciclo de una alerta, el arranque rápido y el modo vivo.
+UMBRAL_THROTTLE = timedelta(seconds=10)
 
-def _clasificar(existentes: list, timestamp, umbral) -> str | None:
+def _clasificar(existentes: list, timestamp) -> str | None:
     """
     Compara una lectura contra las que ya hay guardadas de ese sensor:
     - "duplicada": misma hora exacta. Es el reenvío de un chunk cuya respuesta se
       perdió; el dato ya está, no es un error del equipo.
-    - "intervalo": hay otra a menos de `umbral`, el equipo está midiendo de más.
+    - "intervalo": hay otra a menos de UMBRAL_THROTTLE, el equipo está midiendo de más.
     - None: entra.
     """
     posicion = bisect.bisect_left(existentes, timestamp)
@@ -26,7 +31,7 @@ def _clasificar(existentes: list, timestamp, umbral) -> str | None:
 
     # Sólo los dos vecinos inmediatos: si esos están lejos, el resto también.
     for vecino in existentes[max(posicion - 1, 0):posicion + 1]:
-        if abs(vecino - timestamp) < umbral:
+        if abs(vecino - timestamp) < UMBRAL_THROTTLE:
             return "intervalo"
 
     return None
@@ -36,6 +41,7 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
     timestamp_batch = time or ahora
 
     notificaciones = []
+    umbrales = []
 
     with get_connection() as conn:
         # Cursor dict para el plan: se mantiene abierto hasta el final para
@@ -43,10 +49,11 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
         # tuplas porque los repos que siguen desempaquetan por posición.
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur_plan:
             limites = plan_service.limites_de_dispositivo(cur_plan, dispositivo_id)
-            intervalo_minimo = timedelta(seconds=plan_service.intervalo_efectivo_seg(
+            # Sólo para responderle al equipo qué cadencia usar; lo que se acepta
+            # escribir es UMBRAL_THROTTLE, que no depende de esto.
+            intervalo_sugerido = plan_service.intervalo_efectivo_seg(
                 intervalo_configurado_seg, limites["intervalo_minimo_seg"]
-            ))
-            umbral = intervalo_minimo - TOLERANCIA_JITTER
+            )
 
             with conn.cursor() as cur:
                 # last_seen_at es "cuándo habló el equipo", no la hora del dato: un
@@ -71,8 +78,6 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
                     # Fuera de rango: del futuro (reloj del equipo mal sincronizado)
                     # o más vieja que lo que retenemos.
                     if timestamp > ahora + TOLERANCIA_JITTER or timestamp < ahora - ANTIGUEDAD_MAXIMA:
-                        print("HORA MAL CONFIGURADA")
-                        print("timestamp: " + str(timestamp) + "; Ahora: " + str(ahora))
                         invalidas.append(str(medicion.sensor_id))
                         continue
 
@@ -91,14 +96,14 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
                     ventana = medicion_repo.mediciones_en_ventana(
                         cur,
                         list({sensor_id for _, sensor_id, _ in candidatas}),
-                        candidatas[0][0] - intervalo_minimo,
-                        candidatas[-1][0] + intervalo_minimo,
+                        candidatas[0][0] - UMBRAL_THROTTLE,
+                        candidatas[-1][0] + UMBRAL_THROTTLE,
                     )
 
                 filas = []
                 for timestamp, sensor_id, value in candidatas:
                     existentes = ventana.setdefault(sensor_id, [])
-                    motivo = _clasificar(existentes, timestamp, umbral)
+                    motivo = _clasificar(existentes, timestamp)
 
                     if motivo == "duplicada":
                         duplicadas.append(str(sensor_id))
@@ -118,8 +123,13 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
             # Sólo si el owner es premium: un free no paga ni la query de lectura
             # de reglas activas. Va después de insertar, misma transacción: si el
             # commit falla, no queda un evento de alerta huérfano sin su medición.
-            if limites["puede_alertas"] and filas:
-                notificaciones = alerta_service.evaluar_batch(cur_plan, filas, ahora)
+            if limites["puede_alertas"]:
+                if filas:
+                    notificaciones = alerta_service.evaluar_batch(cur_plan, filas, ahora)
+                # Copia plana de las reglas para que el equipo adelante el envío
+                # al cruzar un umbral. Va en cada respuesta: así una regla nueva
+                # llega sola y un equipo que rebootó se recupera sin nada extra.
+                umbrales = alerta_repo.umbrales_por_dispositivo(cur_plan, dispositivo_id)
 
     return {
         "status": "ok",
@@ -130,7 +140,20 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
         "duplicadas": len(duplicadas) + (len(filas) - insertadas),
         "rechazadas_invalidas": invalidas,
         "rechazadas_por_intervalo": descartadas_por_intervalo,
-        "intervalo_sugerido": int(intervalo_minimo.total_seconds()),
+        "intervalo_sugerido": intervalo_sugerido,
+        # El equipo compara cada muestra contra esto y, si CRUZA (transición, no
+        # estado), drena el buffer sin esperar el ciclo. No evalúa la alerta: la
+        # máquina de estados y el mail siguen siendo del servidor.
+        "umbrales": [
+            {
+                "sensor_id": str(u["sensor_id"]),
+                "condicion": u["condicion"],
+                "umbral": u["umbral"],
+                "histeresis": u["histeresis"],
+                "muestras": u["muestras_confirmacion"],
+            }
+            for u in umbrales
+        ],
         # el firmware lee este flag y dispara la rotación de su secret en el próximo ciclo
         "rotar_secret": bool(rotacion_pendiente),
     }, notificaciones
