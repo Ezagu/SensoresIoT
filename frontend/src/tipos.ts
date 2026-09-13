@@ -178,6 +178,7 @@ export type Alerta = {
   condicion: CondicionAlerta
   umbral: number
   histeresis: number
+  muestras_confirmacion: number
   activa: boolean
   estado: EstadoAlerta
   estado_desde: string | null
@@ -193,6 +194,7 @@ export type AlertaCreatePayload = {
   condicion: CondicionAlerta
   umbral: number
   histeresis?: number
+  muestras_confirmacion?: number
 }
 
 /* Sensor y condición no son editables en el contrato: para cambiarlos hay que
@@ -201,6 +203,7 @@ export type AlertaUpdatePayload = {
   nombre?: string | null
   umbral?: number
   histeresis?: number
+  muestras_confirmacion?: number
   activa?: boolean
 }
 

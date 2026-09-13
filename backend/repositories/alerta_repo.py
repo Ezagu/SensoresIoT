@@ -1,19 +1,19 @@
 from psycopg2.extras import execute_values
 
 COLUMNAS = """
-    id, sensor_id, creado_por, nombre, condicion, umbral, histeresis, activa,
-    estado, estado_desde, ultimo_valor, ultima_evaluacion_at,
-    ultima_notificacion_at, created_at
+    id, sensor_id, creado_por, nombre, condicion, umbral, histeresis,
+    muestras_confirmacion, activa, estado, estado_desde, ultimo_valor,
+    ultima_evaluacion_at, ultima_notificacion_at, created_at
 """
 
-def crear(cur, sensor_id, creado_por, nombre, condicion, umbral, histeresis) -> dict:
+def crear(cur, sensor_id, creado_por, nombre, condicion, umbral, histeresis, muestras_confirmacion) -> dict:
     cur.execute(
         f"""
-        INSERT INTO alertas (sensor_id, creado_por, nombre, condicion, umbral, histeresis)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO alertas (sensor_id, creado_por, nombre, condicion, umbral, histeresis, muestras_confirmacion)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         RETURNING {COLUMNAS}
         """,
-        (sensor_id, creado_por, nombre, condicion, umbral, histeresis)
+        (sensor_id, creado_por, nombre, condicion, umbral, histeresis, muestras_confirmacion)
     )
     return cur.fetchone()
 
@@ -25,8 +25,9 @@ def listar_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     cur.execute(
         """
         SELECT a.id, a.sensor_id, a.creado_por, a.nombre, a.condicion, a.umbral,
-            a.histeresis, a.activa, a.estado, a.estado_desde, a.ultimo_valor,
-            a.ultima_evaluacion_at, a.ultima_notificacion_at, a.created_at
+            a.histeresis, a.muestras_confirmacion, a.activa, a.estado,
+            a.estado_desde, a.ultimo_valor, a.ultima_evaluacion_at,
+            a.ultima_notificacion_at, a.created_at
         FROM alertas a
         JOIN sensores s ON s.id = a.sensor_id
         WHERE s.dispositivo_id = %s
@@ -63,9 +64,10 @@ def contar_por_dispositivo(cur, dispositivo_id) -> int:
     )
     return cur.fetchone()["total"]
 
-def actualizar(cur, alerta_id, nombre, umbral, histeresis, activa) -> dict | None:
+def actualizar(cur, alerta_id, nombre, umbral, histeresis, activa, muestras_confirmacion) -> dict | None:
     # Cambiar el umbral/histeresis resetea el estado a 'normal': la máquina
     # quedaría mintiendo si sigue en 'disparada' contra una condición distinta.
+    # El contador de cruces acompaña: venía contando contra la condición vieja.
     cur.execute(
         f"""
         UPDATE alertas
@@ -73,12 +75,14 @@ def actualizar(cur, alerta_id, nombre, umbral, histeresis, activa) -> dict | Non
             umbral = COALESCE(%s, umbral),
             histeresis = COALESCE(%s, histeresis),
             activa = COALESCE(%s, activa),
+            muestras_confirmacion = COALESCE(%s, muestras_confirmacion),
             estado = 'normal',
-            estado_desde = NULL
+            estado_desde = NULL,
+            cruces_consecutivos = 0
         WHERE id = %s
         RETURNING {COLUMNAS}
         """,
-        (nombre, umbral, histeresis, activa, alerta_id)
+        (nombre, umbral, histeresis, activa, muestras_confirmacion, alerta_id)
     )
     return cur.fetchone()
 
@@ -88,8 +92,7 @@ def eliminar(cur, alerta_id) -> bool:
 
 def buscar_activas_por_sensores(cur, sensor_ids: list) -> list[dict]:
     # Trae el contexto que necesita el mail (dispositivo, tipo de sensor) en
-    # una sola query. Los destinatarios se resuelven aparte (destinatarios_de_alerta):
-    # una alerta ahora puede tener varios, no un usuario_id fijo.
+    # una sola query. Los destinatarios se resuelven aparte (destinatarios_de_alerta)
     if not sensor_ids:
         return []
 
@@ -97,7 +100,8 @@ def buscar_activas_por_sensores(cur, sensor_ids: list) -> list[dict]:
         f"""
         SELECT
             a.id, a.sensor_id, a.nombre, a.condicion, a.umbral,
-            a.histeresis, a.estado, a.estado_desde, a.ultimo_valor,
+            a.histeresis, a.muestras_confirmacion, a.cruces_consecutivos,
+            a.estado, a.estado_desde, a.ultimo_valor,
             a.ultima_evaluacion_at, a.ultima_notificacion_at,
             d.id AS dispositivo_id, d.nombre AS dispositivo_nombre,
             ts.nombre AS tipo_sensor_nombre, ts.unidad AS tipo_sensor_unidad
@@ -127,26 +131,33 @@ def destinatarios_de_alerta(cur, alerta_id) -> list[dict]:
     )
     return cur.fetchall()
 
-def actualizar_estado(cur, alerta_id, estado, estado_desde, ultimo_valor, ultima_evaluacion_at, notificada=False) -> None:
-    if notificada:
-        cur.execute(
-            """
-            UPDATE alertas
-            SET estado = %s, estado_desde = %s, ultimo_valor = %s,
-                ultima_evaluacion_at = %s, ultima_notificacion_at = now()
-            WHERE id = %s
-            """,
-            (estado, estado_desde, ultimo_valor, ultima_evaluacion_at, alerta_id)
-        )
-    else:
-        cur.execute(
-            """
-            UPDATE alertas
-            SET estado = %s, estado_desde = %s, ultimo_valor = %s, ultima_evaluacion_at = %s
-            WHERE id = %s
-            """,
-            (estado, estado_desde, ultimo_valor, ultima_evaluacion_at, alerta_id)
-        )
+def actualizar_estado(cur, alerta_id, estado, estado_desde, ultimo_valor,
+                      ultima_evaluacion_at, cruces_consecutivos, notificada=False) -> None:
+    cur.execute(
+        f"""
+        UPDATE alertas
+        SET estado = %s, estado_desde = %s, ultimo_valor = %s,
+            ultima_evaluacion_at = %s, cruces_consecutivos = %s
+            {", ultima_notificacion_at = now()" if notificada else ""}
+        WHERE id = %s
+        """,
+        (estado, estado_desde, ultimo_valor, ultima_evaluacion_at, cruces_consecutivos, alerta_id)
+    )
+
+def umbrales_por_dispositivo(cur, dispositivo_id) -> list[dict]:
+    # Lo mínimo para que el equipo decida si adelanta un envío; no es la regla
+    # completa. La máquina de estados y la notificación viven en el servidor.
+    cur.execute(
+        """
+        SELECT a.sensor_id, a.condicion, a.umbral, a.histeresis, a.muestras_confirmacion
+        FROM alertas a
+        JOIN sensores s ON s.id = a.sensor_id
+        WHERE s.dispositivo_id = %s AND a.activa
+        ORDER BY a.created_at
+        """,
+        (dispositivo_id,)
+    )
+    return cur.fetchall()
 
 def insertar_eventos(cur, eventos: list[tuple]) -> list[dict]:
     # (alerta_id, tipo, valor, medicion_at, detectado_at, tardio, destinatarios, notificados)

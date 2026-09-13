@@ -15,18 +15,15 @@ LIMITE_MAXIMO_EVENTOS = 200
 # ahora". Se notifica igual, pero el mail lo aclara.
 FRESCURA = timedelta(minutes=5)
 
-def _transicion(estado, condicion, umbral, histeresis, valor) -> str:
+def _empuja(estado, condicion, umbral, histeresis, valor) -> bool:
+    """
+    ¿Esta lectura empuja hacia el otro estado? La ida se mide contra el umbral
+    y la vuelta contra el umbral corrido por la histéresis, para que un valor
+    oscilando sobre el borde no haga flapear la regla.
+    """
     if condicion == "mayor":
-        if estado == "normal" and valor > umbral:
-            return "disparada"
-        if estado == "disparada" and valor < umbral - histeresis:
-            return "normal"
-    else:
-        if estado == "normal" and valor < umbral:
-            return "disparada"
-        if estado == "disparada" and valor > umbral + histeresis:
-            return "normal"
-    return estado
+        return valor > umbral if estado == "normal" else valor < umbral - histeresis
+    return valor < umbral if estado == "normal" else valor > umbral + histeresis
 
 def validar_que_exista_alerta(cur, alerta_id) -> dict:
     alerta = alerta_repo.buscar_por_id(cur, alerta_id)
@@ -54,6 +51,9 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
     regla que cambió de estado en este batch (la última transición), con sus
     destinatarios ya resueltos; el resto queda registrado en alerta_eventos
     pero sin mandar mail.
+
+    La transición no ocurre en el primer cruce sino tras `muestras_confirmacion`
+    lecturas seguidas: una lectura corrupta suelta no puede disparar un mail.
     """
     por_sensor = defaultdict(list)
     for timestamp, sensor_id, value in filas:
@@ -74,6 +74,7 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
         estado_desde = regla["estado_desde"]
         ultima_evaluacion = regla["ultima_evaluacion_at"]
         ultimo_valor = regla["ultimo_valor"]
+        cruces = regla["cruces_consecutivos"]
         transiciones = []
 
         for timestamp, value in lecturas:
@@ -82,19 +83,26 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
             if ultima_evaluacion is not None and timestamp <= ultima_evaluacion:
                 continue
 
-            nuevo_estado = _transicion(estado, regla["condicion"], regla["umbral"], regla["histeresis"], value)
             ultima_evaluacion = timestamp
             ultimo_valor = value
 
-            if nuevo_estado != estado:
-                transiciones.append({
-                    "tipo": "disparada" if nuevo_estado == "disparada" else "normalizada",
-                    "valor": value,
-                    "medicion_at": timestamp,
-                    "tardio": (ahora - timestamp) > FRESCURA,
-                })
-                estado = nuevo_estado
-                estado_desde = timestamp
+            if not _empuja(estado, regla["condicion"], regla["umbral"], regla["histeresis"], value):
+                cruces = 0
+                continue
+
+            cruces += 1
+            if cruces < regla["muestras_confirmacion"]:
+                continue
+
+            estado = "disparada" if estado == "normal" else "normal"
+            cruces = 0
+            estado_desde = timestamp
+            transiciones.append({
+                "tipo": estado if estado == "disparada" else "normalizada",
+                "valor": value,
+                "medicion_at": timestamp,
+                "tardio": (ahora - timestamp) > FRESCURA,
+            })
 
         if ultima_evaluacion == regla["ultima_evaluacion_at"]:
             continue  # todo lo que llegó ya estaba evaluado
@@ -102,7 +110,7 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
         notificar_ultima = bool(transiciones)
         alerta_repo.actualizar_estado(
             cur, regla["id"], estado, estado_desde, ultimo_valor, ultima_evaluacion,
-            notificada=notificar_ultima,
+            cruces, notificada=notificar_ultima,
         )
 
         if not transiciones:
@@ -176,6 +184,7 @@ def crear_alerta(alerta, usuario_id, rol) -> dict:
         return alerta_repo.crear(
             cur, alerta.sensor_id, usuario_id, alerta.nombre,
             alerta.condicion, alerta.umbral, alerta.histeresis,
+            alerta.muestras_confirmacion,
         )
 
 def listar_por_dispositivo(dispositivo_id, usuario_id, rol) -> list[dict]:
@@ -190,7 +199,10 @@ def obtener_alerta(alerta_id, usuario_id, rol) -> dict:
 def actualizar_alerta(alerta_id, usuario_id, rol, cambios) -> dict:
     with get_cursor() as cur:
         validar_alerta_con_rol(cur, alerta_id, usuario_id, rol, edicion=True)
-        return alerta_repo.actualizar(cur, alerta_id, cambios.nombre, cambios.umbral, cambios.histeresis, cambios.activa)
+        return alerta_repo.actualizar(
+            cur, alerta_id, cambios.nombre, cambios.umbral, cambios.histeresis,
+            cambios.activa, cambios.muestras_confirmacion,
+        )
 
 def eliminar_alerta(alerta_id, usuario_id, rol) -> None:
     with get_cursor() as cur:

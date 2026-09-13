@@ -272,11 +272,15 @@ CREATE TABLE alertas (
     condicion             TEXT NOT NULL CHECK (condicion IN ('mayor', 'menor')),
     umbral                DOUBLE PRECISION NOT NULL,
     histeresis            DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (histeresis >= 0),
+    -- Lecturas seguidas que tienen que cumplir la condición para transicionar:
+    -- una lectura corrupta aislada no alcanza para disparar ni para normalizar.
+    muestras_confirmacion INTEGER NOT NULL DEFAULT 3 CHECK (muestras_confirmacion BETWEEN 1 AND 20),
     activa                BOOLEAN NOT NULL DEFAULT true,
     -- Estado de la máquina normal/disparada: la evaluación es stateless por
     -- request, así que la transición sólo se puede detectar si se persiste.
     estado                TEXT NOT NULL DEFAULT 'normal' CHECK (estado IN ('normal', 'disparada')),
     estado_desde          TIMESTAMPTZ,
+    cruces_consecutivos   INTEGER NOT NULL DEFAULT 0,
     ultimo_valor          DOUBLE PRECISION,
     -- `time` de la última lectura evaluada (no now()): evita reevaluar una
     -- lectura dos veces y evita que un lote desordenado retroceda el estado.

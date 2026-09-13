@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 from typing import Optional, Literal
 from datetime import datetime
@@ -11,12 +11,15 @@ class AlertaCreate(BaseModel):
   condicion: Condicion
   umbral: float
   histeresis: float = 0
+  # Lecturas seguidas que confirman la transición; 1 = dispara en la primera.
+  muestras_confirmacion: int = Field(default=3, ge=1, le=20)
 
 class AlertaUpdate(BaseModel):
   nombre: Optional[str] = None
   umbral: Optional[float] = None
   histeresis: Optional[float] = None
   activa: Optional[bool] = None
+  muestras_confirmacion: Optional[int] = Field(default=None, ge=1, le=20)
 
 class AlertaOut(BaseModel):
   id: UUID
@@ -26,6 +29,7 @@ class AlertaOut(BaseModel):
   condicion: Condicion
   umbral: float
   histeresis: float
+  muestras_confirmacion: int
   activa: bool
   estado: Literal["normal", "disparada"]
   estado_desde: Optional[datetime]
