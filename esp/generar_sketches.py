@@ -40,26 +40,59 @@ SKETCHES = {
 }
 Serial.println("[OK] AHT10 inicializado.");""",
         "lectura": "leerAHT10();",
-        "funcion": """void leerAHT10() {
-  // Obtiene los nuevos eventos del sensor con las lecturas
+        # Rango del datasheet del AHT10.
+        "funcion": """const float   AHT10_TEMP_MIN   = -40.0;
+const float   AHT10_TEMP_MAX   =  85.0;
+const uint8_t AHT10_REINTENTOS = 3;
+
+void leerAHT10() {
   sensors_event_t humedadEvento, temperaturaEvento;
-  aht.getEvent(&humedadEvento, &temperaturaEvento);
+  bool ok = false;
+
+  for (uint8_t intento = 0; intento < AHT10_REINTENTOS && !ok; intento++) {
+    // getEvent() devuelve false cuando falla el I2C, y en ese caso NO llena los
+    // eventos. Ignorar el retorno publica memoria de stack sin inicializar, que
+    // casi nunca es NaN: por eso el isnan() de antes no atajaba nada.
+    if (!aht.getEvent(&humedadEvento, &temperaturaEvento)) {
+      delay(50);
+      continue;
+    }
+
+    // CALIBRATED caído = el sensor se reinició y perdió sus coeficientes.
+    // Sigue decodificando, pero el número ya no significa nada.
+    uint8_t estado = aht.getStatus();
+    if (estado == 0xFF || !(estado & AHT10_STATUS_CALIBRATED)) {
+      delay(50);
+      continue;
+    }
+
+    ok = true;
+  }
+
+  if (!ok) {
+    lecturasFallidas++;
+    Serial.printf("[ERROR] AHT10 sin respuesta tras %u intentos (%lu fallidas).\\n",
+                  AHT10_REINTENTOS, lecturasFallidas);
+    return;
+  }
 
   float temperaturaValue = temperaturaEvento.temperature;        // °C
   float humedadValue     = humedadEvento.relative_humidity;      // %
 
   Serial.printf("[Sensor] Temp: %.2f °C | Hum: %.2f %%\\n", temperaturaValue, humedadValue);
 
-  if (isnan(temperaturaValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Se descarta.");
+  if (enRango(temperaturaValue, AHT10_TEMP_MIN, AHT10_TEMP_MAX)) {
+    registrarMuestra(SENSOR_TEMP, temperaturaValue);
   } else {
-    bufferizar(SENSOR_TEMP, temperaturaValue);
+    lecturasFallidas++;
+    Serial.println("[ERROR] Temperatura fuera del rango del sensor. Se descarta.");
   }
 
-  if (isnan(humedadValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor humedad. Se descarta.");
+  if (enRango(humedadValue, 0.0, 100.0)) {
+    registrarMuestra(SENSOR_HUM, humedadValue);
   } else {
-    bufferizar(SENSOR_HUM, humedadValue);
+    lecturasFallidas++;
+    Serial.println("[ERROR] Humedad fuera del rango del sensor. Se descarta.");
   }
 }""",
     },
@@ -80,22 +113,44 @@ Serial.println("[OK] AHT10 inicializado.");""",
 }
 Serial.println("[OK] BMP085 inicializado.");""",
         "lectura": "leerBMP085();",
-        "funcion": """void leerBMP085() {
-  float temperaturaValue = bmp.readTemperature();     // °C
-  float presionValue     = bmp.readPressure() / 100.0;  // hPa (convierte Pa → hPa)
+        # Rango del datasheet del BMP085.
+        "funcion": """const float   BMP085_TEMP_MIN   =  -40.0;
+const float   BMP085_TEMP_MAX   =   85.0;
+const float   BMP085_PRES_MIN   =  300.0;
+const float   BMP085_PRES_MAX   = 1100.0;
+const uint8_t BMP085_REINTENTOS = 3;
+
+void leerBMP085() {
+  float temperaturaValue = NAN;
+  float presionValue     = NAN;
+
+  // Esta librería no reporta el error de I2C: devuelve lo que haya en el bus.
+  // Lo único verificable es que el número caiga donde el sensor puede medir.
+  for (uint8_t intento = 0; intento < BMP085_REINTENTOS; intento++) {
+    temperaturaValue = bmp.readTemperature();       // °C
+    presionValue     = bmp.readPressure() / 100.0;  // hPa (convierte Pa → hPa)
+
+    if (enRango(temperaturaValue, BMP085_TEMP_MIN, BMP085_TEMP_MAX) &&
+        enRango(presionValue, BMP085_PRES_MIN, BMP085_PRES_MAX)) {
+      break;
+    }
+    delay(50);
+  }
 
   Serial.printf("[Sensor] Temp: %.2f °C | Presión: %.2f hPa\\n", temperaturaValue, presionValue);
 
-  if (isnan(temperaturaValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor temperatura. Se descarta.");
+  if (enRango(temperaturaValue, BMP085_TEMP_MIN, BMP085_TEMP_MAX)) {
+    registrarMuestra(SENSOR_TEMP, temperaturaValue);
   } else {
-    bufferizar(SENSOR_TEMP, temperaturaValue);
+    lecturasFallidas++;
+    Serial.println("[ERROR] Temperatura fuera del rango del sensor. Se descarta.");
   }
 
-  if (isnan(presionValue)) {
-    Serial.println("[ERROR] Lectura inválida del sensor presión. Se descarta.");
+  if (enRango(presionValue, BMP085_PRES_MIN, BMP085_PRES_MAX)) {
+    registrarMuestra(SENSOR_PRESS, presionValue);
   } else {
-    bufferizar(SENSOR_PRESS, presionValue);
+    lecturasFallidas++;
+    Serial.println("[ERROR] Presión fuera del rango del sensor. Se descarta.");
   }
 }""",
     },

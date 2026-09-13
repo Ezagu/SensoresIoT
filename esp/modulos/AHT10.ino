@@ -22,8 +22,8 @@ void setup() {
   Serial.println("[OK] AHT10 inicializado.");
 }
 
-// Leer sensores. No envía nada: mete las lecturas al buffer y el loop las drena
-// cuando hay red (ver flushBuffer en programa_base.ino).
+// Leer sensores. No envía ni bufferiza: empuja a la ventana de muestreo y el
+// loop publica la mediana en cada ciclo (ver publicar() en programa_base.ino).
 void leerAHT10() {
   // Obtiene los nuevos eventos del sensor con las lecturas
   sensors_event_t humedadEvento, temperaturaEvento;
@@ -37,12 +37,12 @@ void leerAHT10() {
   if (isnan(temperaturaValue)) {
     Serial.println("[ERROR] Lectura inválida del sensor temperatura. Se descarta.");
   } else {
-    bufferizar(SENSOR_TEMP, temperaturaValue);
+    registrarMuestra(SENSOR_TEMP, temperaturaValue);
   }
 
   if (isnan(humedadValue)) {
     Serial.println("[ERROR] Lectura inválida del sensor humedad. Se descarta.");
   } else {
-    bufferizar(SENSOR_HUM, humedadValue);
+    registrarMuestra(SENSOR_HUM, humedadValue);
   }
 }
