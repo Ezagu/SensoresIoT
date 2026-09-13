@@ -11,14 +11,13 @@ import { esquemaPerfil } from '@/utils/validacion'
 
 export function SeccionPerfil({ id }: { id: string }) {
   const { sesion, refrescarSesion } = useSesion()
-  const inicial = { nombre: sesion?.nombre ?? '', email: sesion?.email ?? '' }
+  const inicial = { nombre: sesion?.nombre ?? '' }
   const { valores, campo, validar } = useFormulario(esquemaPerfil, inicial)
   const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [guardadoOk, setGuardadoOk] = useState(false)
 
-  const sucio = valores.nombre !== inicial.nombre || valores.email !== inicial.email
-  const cambiaElEmail = valores.email.trim().toLowerCase() !== inicial.email.toLowerCase()
+  const sucio = valores.nombre !== inicial.nombre
 
   async function enviar(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,7 +28,7 @@ export function SeccionPerfil({ id }: { id: string }) {
 
     setEnviando(true)
     try {
-      await actualizarPerfil({ nombre: datos.nombre, email: datos.email })
+      await actualizarPerfil({ nombre: datos.nombre })
       setGuardadoOk(true)
       await refrescarSesion()
     } catch (err) {
@@ -40,20 +39,9 @@ export function SeccionPerfil({ id }: { id: string }) {
   }
 
   return (
-    <SeccionAjustes id={id} titulo="Perfil" descripcion="Cómo te identificamos en la app y en los mails.">
+    <SeccionAjustes id={id} titulo="Perfil" descripcion="Cómo te identificamos en la app.">
       <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
         <Campo etiqueta="Nombre" autoComplete="name" {...campo('nombre')} />
-        <Campo
-          etiqueta="Email"
-          type="email"
-          autoComplete="email"
-          ayuda={
-            cambiaElEmail
-              ? 'Te vamos a mandar un link a la dirección nueva. Hasta que la abras, seguís entrando con la de ahora.'
-              : 'Es con el que entrás y al que llegan las notificaciones.'
-          }
-          {...campo('email')}
-        />
 
         {error && <TextoError>{error}</TextoError>}
 

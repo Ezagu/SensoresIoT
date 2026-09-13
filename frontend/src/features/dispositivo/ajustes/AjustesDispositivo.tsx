@@ -19,7 +19,7 @@ import { ZonaDeRiesgo } from './ZonaDeRiesgo'
 
 function EsqueletoAjustes() {
   return (
-    <div className="flex max-w-180 flex-col gap-3">
+    <div className="flex max-w-180 m-auto flex-col gap-3">
       <Skeleton className="h-6 w-56" />
       {Array.from({ length: 5 }, (_, i) => (
         <Skeleton key={i} className="h-28 w-full" />

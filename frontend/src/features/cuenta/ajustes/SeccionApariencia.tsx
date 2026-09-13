@@ -12,11 +12,7 @@ export function SeccionApariencia({ id }: { id: string }) {
   const { tema, cambiarTema } = useTema()
 
   return (
-    <SeccionAjustes
-      id={id}
-      titulo="Apariencia"
-      descripcion="Se guarda en este navegador, no en tu cuenta: podés tener el escritorio en claro y el celular en oscuro."
-    >
+    <SeccionAjustes id={id} titulo="Apariencia">
       <Segmentado valor={tema} opciones={OPCIONES} onCambiar={cambiarTema} etiqueta="Tema" />
     </SeccionAjustes>
   )

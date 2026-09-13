@@ -33,12 +33,12 @@ export function SeccionSeguridad({ id }: { id: string }) {
   }
 
   return (
-    <SeccionAjustes id={id} titulo="Seguridad" descripcion="Cómo entrás a tu cuenta y desde dónde.">
+    <SeccionAjustes id={id} titulo="Seguridad">
       <div className="flex flex-col divide-y divide-border">
         <FilaAjuste
           id="password"
           titulo="Contraseña"
-          descripcion="Vas a necesitar la actual para cambiarla."
+          descripcion="Cambia la contraseña de tu cuenta."
         >
           <div className="flex items-center gap-3">
             {passwordOk && (
@@ -61,7 +61,7 @@ export function SeccionSeguridad({ id }: { id: string }) {
         <FilaAjuste
           id="sesion-local"
           titulo="Cerrar sesión"
-          descripcion="Sólo en este navegador. Las demás quedan abiertas."
+          descripcion="Cierra la sesión en este navegador y equipo."
         >
           <Boton variante="fantasma" onClick={() => void logout()}>
             Cerrar sesión
@@ -71,7 +71,7 @@ export function SeccionSeguridad({ id }: { id: string }) {
         <FilaAjuste
           id="sesion-global"
           titulo="Cerrar sesión en todos lados"
-          descripcion="Cierra la sesión en todos los navegadores y equipos, este incluido. Es lo que hay que hacer si perdiste un teléfono."
+          descripcion="Cierra la sesión en todos los navegadores y equipos, este incluido."
         >
           {/* Fantasma y no destructivo: en una columna de botones con borde, el
               único transparente sería el más grave y el que menos se lee como
