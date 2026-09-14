@@ -5,7 +5,10 @@ from repositories import dispositivo_repo, sensor_repo, acceso_repo, alerta_repo
 from services import plan_service
 from db import get_cursor
 
-INTERVALO_MAXIMO_SEG = 24 * 60 * 60
+# Cada cuánto PUBLICA el equipo. El muestreo es fijo (15 s en el firmware) y no
+# se configura. Lista cerrada y no un número libre: 137 s no significa nada para
+# nadie, y cada escalón acá es una decisión que el cliente puede justificar.
+PRESETS_INTERVALO_SEG = (60, 300, 900, 1800)
 ROLES_EDICION = ("admin", "owner", "editor")
 ROLES_OWNER = ("admin", "owner")
 ROLES_ASIGNABLES = ("editor", "viewer")
@@ -78,6 +81,7 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
         "puede_alertas": limites["puede_alertas"],
         "max_alertas": limites["max_alertas"],
         "intervalo_minimo_seg": limites["intervalo_minimo_seg"],
+        "intervalos_disponibles": intervalos_disponibles(limites["intervalo_minimo_seg"]),
     }
     dispositivo["intervalo_efectivo_seg"] = plan_service.intervalo_efectivo_seg(
         dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"]
@@ -136,18 +140,23 @@ def configurar_notificaciones(dispositivo_id, usuario_id, notificar: bool) -> di
             raise HTTPException(404, "No tenés acceso directo a este dispositivo")
     return {"notificar": notificar}
 
+def intervalos_disponibles(piso: int) -> list[int]:
+    # El piso del plan recorta la lista; el free queda con menos opciones y el
+    # control se dibuja igual, sin caso especial.
+    return [p for p in PRESETS_INTERVALO_SEG if p >= piso]
+
 def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict:
-    # Cambiar intervalo de medición del dispositivo, se devuelve como respuesta en la medición
+    # Cambiar cada cuánto publica el dispositivo; viaja de vuelta como
+    # intervalo_sugerido en la respuesta de /mediciones/.
     with get_cursor() as cur:
         validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
 
         piso = plan_service.limites_de_dispositivo(cur, dispositivo_id)["intervalo_minimo_seg"]
+        disponibles = intervalos_disponibles(piso)
 
-        if intervalo_seg is not None:
-            if intervalo_seg > INTERVALO_MAXIMO_SEG:
-                raise HTTPException(400, "El intervalo máximo permitido es 24 horas")
-            if intervalo_seg < piso:
-                raise HTTPException(400, f"Tu plan actual permite un mínimo de {piso}s")
+        # None = automático, se queda con el piso del plan.
+        if intervalo_seg is not None and intervalo_seg not in disponibles:
+            raise HTTPException(400, f"Intervalos permitidos por tu plan: {disponibles}")
 
         dispositivo_repo.actualizar_intervalo(cur, dispositivo_id, intervalo_seg)
         efectivo = plan_service.intervalo_efectivo_seg(intervalo_seg, piso)

@@ -274,7 +274,7 @@ CREATE TABLE alertas (
     histeresis            DOUBLE PRECISION NOT NULL DEFAULT 0 CHECK (histeresis >= 0),
     -- Lecturas seguidas que tienen que cumplir la condición para transicionar:
     -- una lectura corrupta aislada no alcanza para disparar ni para normalizar.
-    muestras_confirmacion INTEGER NOT NULL DEFAULT 3 CHECK (muestras_confirmacion BETWEEN 1 AND 20),
+    muestras_confirmacion INTEGER NOT NULL DEFAULT 3 CHECK (muestras_confirmacion BETWEEN 1 AND 8),
     activa                BOOLEAN NOT NULL DEFAULT true,
     -- Estado de la máquina normal/disparada: la evaluación es stateless por
     -- request, así que la transición sólo se puede detectar si se persiste.

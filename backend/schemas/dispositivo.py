@@ -55,8 +55,10 @@ class LimitesDispositivoOut(BaseModel):
   puede_alertas: bool
   # None = sin tope. Se cuenta por dispositivo, no por cuenta ni por sensor.
   max_alertas: Optional[int] = None
-  # Piso de muestreo, no valor fijo: el dueño puede pedir un intervalo más lento.
+  # Piso de publicación, no valor fijo: el dueño puede pedir uno más lento.
   intervalo_minimo_seg: int
+  # Presets que el plan habilita, ya filtrados. Una sola fuente para el control.
+  intervalos_disponibles: list[int]
 
 class DispositivoDetalleOut(DispositivoOut):
   # GET /dispositivos/{id}: acá sí hace falta resolver el rol (rol_en_dispositivo,

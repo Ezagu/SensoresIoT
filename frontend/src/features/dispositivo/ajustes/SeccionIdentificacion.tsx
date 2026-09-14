@@ -59,7 +59,6 @@ export function SeccionIdentificacion({
   return (
     <SeccionAjustes
       titulo="Identificación"
-      descripcion="Cómo se ve este equipo en el panel y en el resto de la app."
     >
       <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
         <Campo etiqueta="Nombre" disabled={!puedeEditar} {...campo('nombre')} />

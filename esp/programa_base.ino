@@ -212,8 +212,8 @@ void loop() {
   // Se muestrea SIEMPRE, haya red o no. Antes el loop cortaba más arriba si el WiFi
   // estaba caído, así que durante el corte no se generaba ni el dato.
   if (ahora - ultimaMuestra >= MS_MUESTREO) {
-    ultimaMuestra = ahora;
     leerSensores();
+    ultimaMuestra = ahora;
 
     // Un cruce de umbral adelanta la publicación: la alerta no espera al ciclo.
     if (chequearUmbrales(ahora)) {
@@ -339,7 +339,6 @@ void conectarWiFi() {
     ESP.restart();
   }
 
-  WiFi.setSleep(false); // ← EVITA QUE EL WI-FI ENTRE EN MODO DE AHORRO DE ENERGÍA
   Serial.printf("[WiFi] Conectado a %s. IP: %s\n",
                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 

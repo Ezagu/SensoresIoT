@@ -12,14 +12,14 @@ class AlertaCreate(BaseModel):
   umbral: float
   histeresis: float = 0
   # Lecturas seguidas que confirman la transición; 1 = dispara en la primera.
-  muestras_confirmacion: int = Field(default=3, ge=1, le=20)
+  muestras_confirmacion: int = Field(default=3, ge=1, le=8)
 
 class AlertaUpdate(BaseModel):
   nombre: Optional[str] = None
   umbral: Optional[float] = None
   histeresis: Optional[float] = None
   activa: Optional[bool] = None
-  muestras_confirmacion: Optional[int] = Field(default=None, ge=1, le=20)
+  muestras_confirmacion: Optional[int] = Field(default=None, ge=1, le=8)
 
 class AlertaOut(BaseModel):
   id: UUID

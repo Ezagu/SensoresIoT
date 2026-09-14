@@ -64,7 +64,6 @@ export function SeccionAcceso({
   return (
     <SeccionAjustes
       titulo="Acceso compartido"
-      descripcion="Quién más ve este equipo, además de vos."
       accion={
         esDuenio && puedeCompartir ? (
           <Boton variante="sutil" onClick={() => setInvitando(true)}>

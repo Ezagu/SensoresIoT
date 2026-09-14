@@ -111,6 +111,8 @@ export type LimitesDispositivo = {
   max_alertas: number | null
   /* Piso, no valor fijo: el dueño puede pedir un intervalo más lento. */
   intervalo_minimo_seg: number
+  /* Presets que habilita el plan, ya filtrados por el piso. */
+  intervalos_disponibles: number[]
 }
 
 /* PATCH /dispositivos/{id}/intervalo. El equipo aplica el cambio en su próxima

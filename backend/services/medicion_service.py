@@ -16,6 +16,18 @@ ANTIGUEDAD_MAXIMA = timedelta(days=90)
 # fuera de ciclo de una alerta, el arranque rápido y el modo vivo.
 UMBRAL_THROTTLE = timedelta(seconds=10)
 
+# Arranque rápido: al enchufar un equipo por primera vez publica seguido, así el
+# cliente ve la serie moverse mientras lo instala en vez de esperar 5 minutos por
+# el segundo punto. No depende del plan — es la primera impresión del producto,
+# no una feature. Pasada la ventana cae solo a la cadencia configurada.
+VENTANA_ARRANQUE = timedelta(minutes=30)
+INTERVALO_ARRANQUE_SEG = 15
+
+def _en_arranque(first_connected_at, ahora) -> bool:
+    # None = este POST es el primero de su vida; actualizar_conexion lo sella
+    # más abajo, en esta misma transacción.
+    return first_connected_at is None or (ahora - first_connected_at) < VENTANA_ARRANQUE
+
 def _clasificar(existentes: list, timestamp) -> str | None:
     """
     Compara una lectura contra las que ya hay guardadas de ese sensor:
@@ -36,7 +48,8 @@ def _clasificar(existentes: list, timestamp) -> str | None:
 
     return None
 
-def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, intervalo_configurado_seg=None):
+def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False,
+                   intervalo_configurado_seg=None, first_connected_at=None):
     ahora = datetime.now(timezone.utc)
     timestamp_batch = time or ahora
 
@@ -51,8 +64,11 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
             limites = plan_service.limites_de_dispositivo(cur_plan, dispositivo_id)
             # Sólo para responderle al equipo qué cadencia usar; lo que se acepta
             # escribir es UMBRAL_THROTTLE, que no depende de esto.
-            intervalo_sugerido = plan_service.intervalo_efectivo_seg(
-                intervalo_configurado_seg, limites["intervalo_minimo_seg"]
+            intervalo_sugerido = (
+                INTERVALO_ARRANQUE_SEG if _en_arranque(first_connected_at, ahora)
+                else plan_service.intervalo_efectivo_seg(
+                    intervalo_configurado_seg, limites["intervalo_minimo_seg"]
+                )
             )
 
             with conn.cursor() as cur:

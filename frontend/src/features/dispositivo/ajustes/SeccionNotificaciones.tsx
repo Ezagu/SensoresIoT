@@ -51,7 +51,7 @@ export function SeccionNotificaciones({
   return (
     <SeccionAjustes
       titulo="Mis notificaciones"
-      descripcion="Los mails de alerta que te llegan por este equipo. Es tuya: no afecta a los demás usuarios con acceso."
+      descripcion="Los mails de alerta que te llegan por este equipo."
     >
       {dispositivo.limites.puede_alertas ? (
         <Segmentado

@@ -5,7 +5,7 @@ import { Boton, BotonLink } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
 import { Vacio } from '@/components/ui/Vacio'
-import { HaceCuanto } from '@/components/ui/HaceCuanto'
+import { ProximoDato } from '@/components/ui/ProximoDato'
 import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
 import { useAhora } from '@/hooks/usarAhora'
 import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/utils/tiempo'
@@ -135,13 +135,18 @@ export function DetalleDispositivo() {
                 {dispositivo.ubicacion}
               </span>
             )}
-            <span>
-              {estado.datos?.last_seen_at ? (
-                <>Reportó <HaceCuanto iso={estado.datos?.last_seen_at} /></>
-              ) : (
-                'Nunca reportó'
-              )}
-            </span>
+            {!estado.datos?.last_seen_at && 
+              (
+                <span>Nunca reportó</span>
+              )
+            }
+            {/* Sólo con el equipo en línea: en uno caído hace días el contador
+                diría "esperando dato" para siempre. */}
+            {estado.datos?.online && (
+              <span>
+                <ProximoDato enSegundos={estado.datos.siguiente_medicion} />
+              </span>
+            )}
             <span className="flex items-center gap-1">
               <IconoCompartido className="size-3.25" />
               Dueño: {dispositivo.owner_nombre ?? '—'} · Tu rol: {ETIQUETA_ROL[dispositivo.rol]}

@@ -76,6 +76,13 @@ export function fechaConAnio(ms: number): string {
 
 /* Nunca más lento que el poll más rápido en pantalla, para que estos textos no
    envejezcan entre un poll y el siguiente. */
+/* Cuenta regresiva corta: "45 s" abajo del minuto, "2:14" arriba. */
+export function cuentaRegresiva(segundos: number): string {
+  if (segundos < 60) return `${segundos} s`
+  const minutos = Math.floor(segundos / 60)
+  return `${minutos}:${String(segundos % 60).padStart(2, '0')}`
+}
+
 export const TIC_RELOJ_MS = 30_000
 
 export type EstadoDispositivo = 'nunca' | 'en-linea' | 'sin-reportar'

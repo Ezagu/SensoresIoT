@@ -13,7 +13,7 @@ def create_medicion(
 ):
     respuesta, notificaciones = medicion_service.crear_medicion(
         payload.time, payload.mediciones, dispositivo["id"], dispositivo["rotacion_pendiente"],
-        dispositivo["intervalo_configurado_seg"],
+        dispositivo["intervalo_configurado_seg"], dispositivo["first_connected_at"],
     )
     # Resend es HTTP bloqueante: el envío va después de responder al equipo,
     # no en el mismo request.

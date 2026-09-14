@@ -9,7 +9,8 @@ Acá vive lo único que cambia por pedido: los UUID del dispositivo y de sus sen
 el secret de fábrica y el bloque del sensor que lleva esa unidad.
 
 Un pedido nuevo = una entrada nueva en SKETCHES. Los .ino generados NO se editan a
-mano: la próxima corrida los pisa.
+mano: la próxima corrida los pisa. Eso incluye a esp/modulos/, que sale del mismo
+dict: son el bloque de un sensor suelto, para poder leerlo sin el resto del template.
 """
 
 import io
@@ -18,6 +19,7 @@ import os
 BASE = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE = os.path.join(BASE, "programa_base.ino")
 SALIDA = os.path.join(BASE, "programas")
+SALIDA_MODULOS = os.path.join(BASE, "modulos")
 
 ENCABEZADO = "// GENERADO por esp/generar_sketches.py desde programa_base.ino — no editar a mano.\n"
 
@@ -25,6 +27,7 @@ ENCABEZADO = "// GENERADO por esp/generar_sketches.py desde programa_base.ino �
 # índice con el que el firmware bufferea la lectura y con el que después resuelve el UUID.
 SKETCHES = {
     "programa_ath10": {
+        "modulo": "AHT10",
         "dispositivo_id": "5e97ef75-0c52-49de-a4c7-457a4320db0e",
         "secret": "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a",
         "sensores": [
@@ -97,6 +100,7 @@ void leerAHT10() {
 }""",
     },
     "programa_bmp085": {
+        "modulo": "BMP085",
         "dispositivo_id": "6e4eb952-cdb1-4507-9194-329ccbdafa1b",
         "secret": "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372",
         "sensores": [
@@ -162,7 +166,7 @@ def bloque_sensores(sensores: list) -> str:
     # traduce ese índice al UUID recién al armar el JSON.
     constantes = ", ".join(constante for constante, _, _ in sensores)
     lineas = [
-        "// Índices con los que el firmware bufferea; SENSOR_IDS traduce índice → UUID al enviar.",
+        "// Índices con los que el firmware muestrea; SENSOR_IDS traduce índice → UUID al enviar.",
         "enum SensorIdx { %s, CANT_SENSORES };" % constantes,
         "const char* SENSOR_IDS[CANT_SENSORES] = {",
     ]
@@ -215,6 +219,34 @@ def generar(nombre: str, config: dict) -> str:
     return ENCABEZADO + contenido + "\n" + config["funcion"] + "\n"
 
 
+def generar_modulo(config: dict) -> str:
+    # El mismo bloque que se inserta en el sketch, pero sin los UUID ni el secret
+    # del pedido: el módulo es material de lectura, no algo que se compile.
+    sensores = bloque_sensores(config["sensores"])
+    for _, uuid, _ in config["sensores"]:
+        sensores = sensores.replace('"%s"' % uuid, "//Replace")
+
+    return "\n".join([
+        "// Snippet de referencia — GENERADO por esp/generar_sketches.py, no editar a mano.",
+        "// Es el bloque de este sensor tal cual entra en el sketch. No compila suelto:",
+        "// usa registrarMuestra() y enRango(), que viven en programa_base.ino.",
+        config["include"],
+        "",
+        sensores,
+        "",
+        "// ── Objetos globales ───────────────────────────────────────────",
+        config["declaracion"],
+        "",
+        "// Inicialización: va en el setup() del template, después de Wire.begin().",
+        config["init"],
+        "",
+        "// Lectura. No envía ni bufferiza: empuja a la ventana de muestreo y el loop",
+        "// publica la mediana en cada ciclo (ver publicar() en programa_base.ino).",
+        config["funcion"],
+        "",
+    ])
+
+
 def main():
     for nombre, config in SKETCHES.items():
         carpeta = os.path.join(SALIDA, nombre)
@@ -224,6 +256,10 @@ def main():
         destino = os.path.join(carpeta, nombre + ".ino")
         io.open(destino, "w", encoding="utf-8", newline="\n").write(generar(nombre, config))
         print("generado %s" % os.path.relpath(destino, os.path.dirname(BASE)))
+
+        modulo = os.path.join(SALIDA_MODULOS, config["modulo"] + ".ino")
+        io.open(modulo, "w", encoding="utf-8", newline="\n").write(generar_modulo(config))
+        print("generado %s" % os.path.relpath(modulo, os.path.dirname(BASE)))
 
 
 if __name__ == "__main__":

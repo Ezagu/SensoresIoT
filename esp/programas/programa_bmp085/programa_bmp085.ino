@@ -28,7 +28,7 @@ const char* DISPOSITIVO_ID = "6e4eb952-cdb1-4507-9194-329ccbdafa1b";
 // Secret de fábrica. Después de la primera rotación manda el que está en NVS.
 const char* SECRET_DISPOSITIVO_INICIAL = "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372";
 
-// Índices con los que el firmware bufferea; SENSOR_IDS traduce índice → UUID al enviar.
+// Índices con los que el firmware muestrea; SENSOR_IDS traduce índice → UUID al enviar.
 enum SensorIdx { SENSOR_TEMP, SENSOR_PRESS, CANT_SENSORES };
 const char* SENSOR_IDS[CANT_SENSORES] = {
   "3b5f7025-82f9-4a17-9338-25ad05cad3e2",  // temperatura
@@ -223,8 +223,8 @@ void loop() {
   // Se muestrea SIEMPRE, haya red o no. Antes el loop cortaba más arriba si el WiFi
   // estaba caído, así que durante el corte no se generaba ni el dato.
   if (ahora - ultimaMuestra >= MS_MUESTREO) {
-    ultimaMuestra = ahora;
     leerSensores();
+    ultimaMuestra = ahora;
 
     // Un cruce de umbral adelanta la publicación: la alerta no espera al ciclo.
     if (chequearUmbrales(ahora)) {
@@ -350,7 +350,6 @@ void conectarWiFi() {
     ESP.restart();
   }
 
-  WiFi.setSleep(false); // ← EVITA QUE EL WI-FI ENTRE EN MODO DE AHORRO DE ENERGÍA
   Serial.printf("[WiFi] Conectado a %s. IP: %s\n",
                 WiFi.SSID().c_str(), WiFi.localIP().toString().c_str());
 
