@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
-import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
+import { PastillaEquipo } from '@/components/ui/PastillaEstado'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { IconoAlertaSonando, IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
 import { medida } from '@/utils/formato'
-import { ETIQUETA_ESTADO, lecturaDesactualizada, type EstadoDispositivo } from '@/utils/tiempo'
+import { lecturaDesactualizada, type EstadoDispositivo } from '@/utils/tiempo'
 import { nombreDeDispositivo } from '@/utils/dispositivos'
 import { etiquetarSensores, type SensorEtiquetado } from '@/utils/sensores'
 import type { DispositivoResumen, SensorResumen } from '@/tipos'
@@ -79,12 +79,7 @@ export function TarjetaDispositivo({
             </span>
           )}
         </div>
-        {/* Un dispositivo dado de baja no tiene estado de conexión que informar */}
-        {inactivo ? (
-          <Pill tono="faint">Desactivado</Pill>
-        ) : (
-          <Pill tono={TONO_POR_ESTADO[estado]}>{ETIQUETA_ESTADO[estado]}</Pill>
-        )}
+        <PastillaEquipo estado={estado} inactivo={inactivo} />
       </div>
 
       {sensores.length === 0 ? (

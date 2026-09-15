@@ -82,7 +82,7 @@ export function Panel() {
     const lista = dispositivos ?? []
     const filas: Fila[] = lista.map((d) => ({
       dispositivo: d,
-      estado: estadoDispositivo(d.last_seen_at, d.online),
+      estado: estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora),
     }))
 
     const ultimoReporte = lista.reduce<string | null>((max, d) => {

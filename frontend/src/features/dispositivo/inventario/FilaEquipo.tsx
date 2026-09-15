@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
+import { PastillaEquipo } from '@/components/ui/PastillaEstado'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import {
   IconoAjustes,
@@ -9,7 +9,7 @@ import {
   IconoUbicacion,
 } from '@/components/layout/iconos'
 import { intervalo as formatoIntervalo } from '@/utils/formato'
-import { ETIQUETA_ESTADO, type EstadoDispositivo } from '@/utils/tiempo'
+import { type EstadoDispositivo } from '@/utils/tiempo'
 import { ETIQUETA_ROL, nombreDeDispositivo, puedeEditar } from '@/utils/dispositivos'
 import { etiquetarSensores } from '@/utils/sensores'
 import type { DispositivoInventario } from '@/tipos'
@@ -57,8 +57,19 @@ export function FilaEquipo({
   const inactivo = !dispositivo.activo
   const nombre = nombreDeDispositivo(dispositivo.id, dispositivo.nombre)
 
+  /* El único acento cromático estructural del sistema: 2px a la izquierda cuando
+     la fila pide atención. "Sin reportar" no lo lleva a propósito — el silencio
+     no es falla —, pero una regla disparada sí. En estado normal, sin color. */
+  const rail = inactivo
+    ? 'border-l-transparent'
+    : dispositivo.alertas_disparadas > 0
+      ? 'border-l-danger-mark'
+      : estado === 'con-retraso'
+        ? 'border-l-attention-mark'
+        : 'border-l-transparent'
+
   return (
-    <li className="flex flex-col gap-2.5 p-3.5 md:flex-row md:items-center md:gap-4">
+    <li className={`flex flex-col gap-2.5 border-l-2 p-3.5 pl-3 md:flex-row md:items-center md:gap-4 ${rail}`}>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <Link
@@ -107,17 +118,14 @@ export function FilaEquipo({
           cada {formatoIntervalo(dispositivo.intervalo_efectivo_seg)}
         </span>
 
-        {inactivo ? (
-          <Pill tono="faint">Desactivado</Pill>
-        ) : (
-          <Pill tono={TONO_POR_ESTADO[estado]}>{ETIQUETA_ESTADO[estado]}</Pill>
-        )}
+        <PastillaEquipo estado={estado} inactivo={inactivo} />
 
         <span className="whitespace-nowrap text-note text-text-faint">
           {dispositivo.last_seen_at ? (
-            <>
-              hace <span className="num"><HaceCuanto iso={dispositivo.last_seen_at} /></span>
-            </>
+            /* `haceCuanto` ya trae el "hace": anteponerlo acá lo duplicaba. */
+            <span className="num">
+              <HaceCuanto iso={dispositivo.last_seen_at} />
+            </span>
           ) : dispositivo.first_connected_at ? (
             'Nunca reportó'
           ) : (

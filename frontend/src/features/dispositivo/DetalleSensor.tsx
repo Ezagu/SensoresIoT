@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
-import { Pill } from '@/components/ui/Pill'
+import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
@@ -129,7 +129,7 @@ export function DetalleSensor() {
           style={{ background: sensor.color }}
         />
         <h2 className="font-display text-page-lg font-semibold text-text">{sensor.etiqueta}</h2>
-        {disparada && <Pill tono="danger">Alerta disparada</Pill>}
+        {disparada && <PastillaEstado estado="critico" etiqueta="Alerta disparada" latiendo />}
       </div>
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">

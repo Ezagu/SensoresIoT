@@ -1,32 +1,22 @@
-import type { EstadoDispositivo } from '@/utils/tiempo'
-
 type Tono = 'ok' | 'warn' | 'danger' | 'faint' | 'premium'
 
 const TONOS: Record<Tono, string> = {
-  ok: 'bg-ok-soft text-ok',
-  warn: 'bg-warn-soft text-warn',
-  danger: 'bg-danger-soft text-danger',
-  faint: 'bg-surface-2 text-text-faint',
-  premium: 'bg-accent-soft text-accent',
+  ok: 'bg-ok-soft border-ok-border text-ok',
+  warn: 'bg-warn-soft border-warn-border text-warn',
+  danger: 'bg-danger-soft border-danger-border text-danger',
+  faint: 'bg-surface-2 border-border text-text-muted',
+  premium: 'bg-accent-soft border-accent-border text-accent',
 }
 
-/* El punto refuerza, no reemplaza: el texto del pill es el canal principal
-   para no depender del color solo. Geometría de cápsula de estado del sistema:
-   22 de alto, más aire a la derecha que a la izquierda porque el glifo ya
-   ocupa su propio margen óptico. */
+/* Etiqueta corta pegada a otro elemento: un rol, un plan, una condición de la
+   fila. Para el estado de un equipo o de un sensor va PastillaEstado, que lleva
+   glifo con forma propia: acá el color no codifica estado, sólo acompaña. */
 export function Pill({ tono, children }: { tono: Tono; children: React.ReactNode }) {
   return (
     <span
-      className={`inline-flex h-5.5 items-center gap-1.75 shrink-0 rounded-full pl-1.75 pr-2.25 text-body font-medium whitespace-nowrap ${TONOS[tono]}`}
+      className={`inline-flex h-5 shrink-0 items-center rounded-chip border px-1.75 text-tag font-semibold tracking-wide whitespace-nowrap uppercase ${TONOS[tono]}`}
     >
-      <span className="size-1.5 rounded-full bg-current" aria-hidden="true" />
       {children}
     </span>
   )
-}
-
-export const TONO_POR_ESTADO: Record<EstadoDispositivo, Tono> = {
-  nunca: 'faint',
-  'en-linea': 'ok',
-  'sin-reportar': 'danger',
 }

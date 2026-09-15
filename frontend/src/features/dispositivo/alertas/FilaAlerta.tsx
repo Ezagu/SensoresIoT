@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
 import { Pill } from '@/components/ui/Pill'
+import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { eliminarAlerta } from '@/services/consultas'
 import { medida } from '@/utils/formato'
 import type { Alerta } from '@/tipos'
@@ -39,9 +40,11 @@ export function FilaAlerta({
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="flex items-center gap-2 text-label-lg font-medium text-text">
           {alerta.nombre || <CondicionTexto alerta={alerta} />}
-          <Pill tono={alerta.estado === 'disparada' ? 'danger' : 'ok'}>
-            {alerta.estado === 'disparada' ? 'Disparada' : 'Normal'}
-          </Pill>
+          {alerta.estado === 'disparada' ? (
+            <PastillaEstado estado="critico" etiqueta="Disparada" latiendo />
+          ) : (
+            <PastillaEstado estado="normal" />
+          )}
           {!alerta.activa && <Pill tono="faint">Inactiva</Pill>}
         </span>
         <span className="text-note text-text-faint">

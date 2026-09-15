@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
-import { Pill } from '@/components/ui/Pill'
+import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Vacio } from '@/components/ui/Vacio'
 import { ResumenStats } from '@/components/ui/ResumenStats'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
@@ -69,7 +69,7 @@ export function BloqueSensor({
         </Link>
         {/* El panel ya pinta este sensor en rojo cuando la regla está disparada:
             sin esto el detalle contradice a la vista de la que se viene. */}
-        {disparada && <Pill tono="danger">Alerta disparada</Pill>}
+        {disparada && <PastillaEstado estado="critico" etiqueta="Alerta disparada" latiendo />}
       </div>
 
       {/* Sólo en vivo: en un rango histórico el valor "actual" no aplica. */}

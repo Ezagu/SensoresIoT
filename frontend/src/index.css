@@ -63,6 +63,15 @@
   --color-attention-soft: #fcf6e7;
   --color-warn-soft: #fdf1e8;
   --color-danger-soft: #fcedeb;
+  --color-offline-soft: #f2f5f5;
+
+  /* El cuarto token de cada estado: el borde de su cápsula. Sin él una pastilla
+     sobre su propio wash no tiene contorno y se pierde contra la superficie. */
+  --color-accent-border: #b9dfe5;
+  --color-ok-border: #d8ebe0;
+  --color-attention-border: #f8eacc;
+  --color-warn-border: #fae1cf;
+  --color-danger-border: #f8dbd8;
 
   /* Velo del drawer mobile y del ::backdrop del modal */
   --color-overlay: rgba(11, 16, 18, 0.36);
@@ -115,6 +124,20 @@
      el espacio y el peso tipográfico. */
   --shadow-overlay: 0 1px 2px rgba(11, 16, 18, 0.06), 0 8px 24px -8px rgba(11, 16, 18, 0.18);
   --shadow-modal: 0 2px 4px rgba(11, 16, 18, 0.08), 0 24px 56px -16px rgba(11, 16, 18, 0.28);
+
+  /* El único bucle del sistema: el glifo de un estado crítico, y sólo el glifo.
+     prefers-reduced-motion lo apaga con el resto, al final de este archivo. */
+  --animate-latido: latido 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+
+  @keyframes latido {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
 }
 
 /* Tema oscuro: sólo se reasignan tokens, nunca reglas de componente. El
@@ -166,6 +189,13 @@
   --color-attention-soft: #2a2010;
   --color-warn-soft: #2d1a10;
   --color-danger-soft: #2c1413;
+  --color-offline-soft: #171f22;
+
+  --color-accent-border: #164854;
+  --color-ok-border: #1c3f33;
+  --color-attention-border: #453519;
+  --color-warn-border: #4a2a19;
+  --color-danger-border: #4c201d;
 
   --color-overlay: rgba(0, 0, 0, 0.6);
 

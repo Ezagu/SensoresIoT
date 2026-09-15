@@ -85,14 +85,30 @@ export function cuentaRegresiva(segundos: number): string {
 
 export const TIC_RELOJ_MS = 30_000
 
-export type EstadoDispositivo = 'nunca' | 'en-linea' | 'sin-reportar'
+export type EstadoDispositivo = 'nunca' | 'en-linea' | 'con-retraso' | 'sin-reportar'
 
-/* `online` lo resuelve el backend contra el intervalo efectivo del equipo; acá
-   sólo se separa "nunca reportó" de "dejó de reportar", que se muestran
-   distinto. Un único criterio para panel, inventario y detalle. */
-export function estadoDispositivo(lastSeenAt: string | null, online: boolean): EstadoDispositivo {
+/* Un equipo tiene tres estados, no dos. Entre "reportó recién" y "lo damos por
+   caído" hay una banda donde la lectura esperada no llegó pero el equipo está
+   bufferreando y se va a poner al día solo: colapsarla en "sin reportar"
+   convierte el comportamiento normal de una conexión intermitente en una falla.
+   Media cadencia de tolerancia: sin ella, todo equipo sano entraría en retraso
+   una vez por ciclo, justo antes de su próximo reporte. La banda va de 1,5 a los
+   3 intervalos de gracia con los que el backend decide `online`. */
+const INTERVALOS_DE_RETRASO = 1.5
+
+/* Si el equipo está vivo o no lo decide el backend y no esta función: acá sólo
+   se reparte esa respuesta en los estados que la interfaz muestra distinto. Un
+   único criterio para panel, inventario y detalle. */
+export function estadoDispositivo(
+  lastSeenAt: string | null,
+  online: boolean,
+  intervaloSeg: number,
+  ahora: number = Date.now(),
+): EstadoDispositivo {
   if (!lastSeenAt) return 'nunca'
-  return online ? 'en-linea' : 'sin-reportar'
+  if (!online) return 'sin-reportar'
+  const seg = (ahora - new Date(lastSeenAt).getTime()) / 1000
+  return seg >= intervaloSeg * INTERVALOS_DE_RETRASO ? 'con-retraso' : 'en-linea'
 }
 
 /* Otra pregunta que `estadoDispositivo`: no es "¿el equipo está vivo?" sino
@@ -111,5 +127,6 @@ export function lecturaDesactualizada(
 export const ETIQUETA_ESTADO: Record<EstadoDispositivo, string> = {
   nunca: 'Nunca reportó',
   'en-linea': 'En línea',
+  'con-retraso': 'Con retraso',
   'sin-reportar': 'Sin reportar',
 }

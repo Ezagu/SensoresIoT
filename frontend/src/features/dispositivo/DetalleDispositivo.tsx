@@ -3,12 +3,12 @@ import { Link, useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Boton, BotonLink } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { Pill, TONO_POR_ESTADO } from '@/components/ui/Pill'
+import { PastillaEquipo, PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Vacio } from '@/components/ui/Vacio'
 import { ProximoDato } from '@/components/ui/ProximoDato'
 import { IconoAjustes, IconoCompartido, IconoExportar, IconoUbicacion } from '@/components/layout/iconos'
 import { useAhora } from '@/hooks/usarAhora'
-import { estadoDispositivo, ETIQUETA_ESTADO, TIC_RELOJ_MS } from '@/utils/tiempo'
+import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
 import { bordesDeVentana, esTiempoReal } from '@/utils/ventana'
 import { useVentanaConZoom } from './usarVentana'
 import { ETIQUETA_ROL, nombreDeDispositivo, puedeEditar as puedeEditarDispositivo } from '@/utils/dispositivos'
@@ -93,7 +93,12 @@ export function DetalleDispositivo() {
   }))
   // Del plan del dueño y no del propio: son los límites de ESTE equipo.
   const { puede_alertas: puedeAlertas, max_alertas: maxAlertas } = dispositivo.limites
-  const situacionDispositivo = estadoDispositivo(estado.datos?.last_seen_at ?? null, estado.datos?.online ?? false)
+  const situacionDispositivo = estadoDispositivo(
+    estado.datos?.last_seen_at ?? null,
+    estado.datos?.online ?? false,
+    dispositivo.intervalo_efectivo_seg,
+    hasta,
+  )
   // Todos los sensores del dispositivo comparten plan y ventana pedida, así que
   // el primero que traiga datos contesta por todos (recorte y retención).
   const graficoRef = sensoresConDatos.find((s) => s.datos)?.datos ?? null
@@ -119,13 +124,13 @@ export function DetalleDispositivo() {
             {/* role="status": conectividad y alertas cambian solas mientras la
                 página está abierta, y son dos preguntas distintas. */}
             <span role="status" aria-atomic="true" className="flex flex-wrap items-center gap-2.5">
-              <Pill tono={TONO_POR_ESTADO[situacionDispositivo]}>{ETIQUETA_ESTADO[situacionDispositivo]}</Pill>
+              <PastillaEquipo estado={situacionDispositivo} inactivo={!dispositivo.activo} />
               {disparadas > 0 && (
-                <Pill tono="danger">
-                  <span className="num">
-                    {disparadas === 1 ? '1 alerta disparada' : `${disparadas} alertas disparadas`}
-                  </span>
-                </Pill>
+                <PastillaEstado
+                  estado="critico"
+                  latiendo
+                  etiqueta={disparadas === 1 ? '1 alerta disparada' : `${disparadas} alertas disparadas`}
+                />
               )}
             </span>
           </div>

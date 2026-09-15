@@ -5,7 +5,8 @@ import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
-import { estadoDispositivo } from '@/utils/tiempo'
+import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
+import { useAhora } from '@/hooks/usarAhora'
 import { BarraInventario } from './inventario/BarraInventario'
 import { FilaEquipo } from './inventario/FilaEquipo'
 import {
@@ -35,22 +36,28 @@ function EsqueletoFila() {
 }
 
 export function Dispositivos() {
-  // Sin reloj local: el estado de cada equipo lo resuelve el backend y llega con
-  // cada poll del inventario.
   const { datos: dispositivos, cargando, refrescando, error, refrescar } = useInventario()
+
+  // Si el equipo está caído lo dice el backend, pero "con retraso" es contra el
+  // reloj: sin un tic, un equipo que se atrasa entre dos polls no se movería de
+  // categoría. Uno solo por render, compartido por conteo, filtro y orden.
+  const ahora = useAhora(TIC_RELOJ_MS)
 
   const [texto, setTexto] = useState('')
   const [estado, setEstado] = useState<FiltroInventario | 'todos'>('todos')
   const [orden, setOrden] = useState<OrdenInventario>('nombre')
 
   const lista = dispositivos ?? SIN_DISPOSITIVOS
-  const conteos = useMemo(() => contarPorEstado(lista), [lista])
+  const conteos = useMemo(() => contarPorEstado(lista, ahora), [lista, ahora])
 
   const filtrados = useMemo(
-    () => filtrarDispositivos(lista, { texto, estado: estado === 'todos' ? null : estado }),
-    [lista, texto, estado],
+    () => filtrarDispositivos(lista, { texto, estado: estado === 'todos' ? null : estado, ahora }),
+    [lista, texto, estado, ahora],
   )
-  const ordenados = useMemo(() => ordenarDispositivos(filtrados, orden), [filtrados, orden])
+  const ordenados = useMemo(
+    () => ordenarDispositivos(filtrados, orden, ahora),
+    [filtrados, orden, ahora],
+  )
 
   const hayFiltrosActivos = texto !== '' || estado !== 'todos'
 
@@ -136,7 +143,7 @@ export function Dispositivos() {
               <FilaEquipo
                 key={d.id}
                 dispositivo={d}
-                estado={estadoDispositivo(d.last_seen_at, d.online)}
+                estado={estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora)}
               />
             ))}
           </ul>
