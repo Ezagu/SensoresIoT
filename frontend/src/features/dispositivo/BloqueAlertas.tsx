@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Card } from '@/components/ui/Card'
+import { Bloque } from '@/components/ui/Bloque'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
 import { Vacio } from '@/components/ui/Vacio'
@@ -42,11 +42,15 @@ export function BloqueAlertas({
     setEditando(null)
   }
 
+  const total = alertas.length
+
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-heading font-semibold">Alertas</h2>
-        {puedeAlertas && puedeEditar ? (
+    <Bloque
+      titulo="Alertas del equipo"
+      subtitulo={puedeAlertas ? (total === 1 ? '1 regla' : `${total} reglas`) : undefined}
+      sinPadding
+      acciones={
+        puedeAlertas && puedeEditar ? (
           <Boton
             variante="sutil"
             onClick={() => setCreando(true)}
@@ -56,9 +60,9 @@ export function BloqueAlertas({
             <IconoMas className="size-3.5" />
             Nueva
           </Boton>
-        ) : null}
-      </div>
-
+        ) : undefined
+      }
+    >
       {!puedeAlertas ? (
         <Vacio
           titulo="Las alertas son premium"
@@ -83,13 +87,8 @@ export function BloqueAlertas({
           {sensores
             .filter((s) => (porSensor.get(s.id) ?? []).length > 0)
             .map((sensor) => (
-              <div key={sensor.id} className="py-1 first:pt-0">
-                <p className="flex items-center gap-1.5 pt-1.5 text-note font-medium tracking-wide text-text-faint uppercase">
-                  <span
-                    aria-hidden="true"
-                    className="size-1.5 rounded-full"
-                    style={{ background: sensor.color }}
-                  />
+              <div key={sensor.id} className="px-5 py-2">
+                <p className="pt-1 text-tag font-semibold tracking-micro text-text-faint uppercase">
                   {sensor.etiqueta}
                 </p>
                 <ul className="flex flex-col divide-y divide-border">
@@ -118,6 +117,6 @@ export function BloqueAlertas({
           <FormularioEditarAlerta alerta={editando} onGuardada={alCambiar} onCancelar={() => setEditando(null)} />
         )}
       </Modal>
-    </Card>
+    </Bloque>
   )
 }

@@ -231,28 +231,37 @@ export function Layout({ titulo }: { titulo: string }) {
         </aside>
 
         <main id="contenido" tabIndex={-1} inert={fondoInerte} className="min-w-0">
-          <header className="sticky top-0 z-5 flex h-18 items-center gap-3 border-b border-border bg-surface px-4 md:gap-4 md:px-5 lg:px-8">
-            <BotonIcono
-              ref={trigger}
-              etiqueta="Abrir menú"
-              variante="marco"
-              aria-expanded={abierto}
-              onClick={() => setAbiertoEn(location.pathname)}
-              className="lg:hidden"
-            >
-              <IconoMenu className="size-4.25" />
-            </BotonIcono>
+          {/* El marco llega de borde a borde; lo de adentro comparte columna con
+              el contenido, así el título cae sobre la misma línea vertical. */}
+          <header className="sticky top-0 z-5 h-18 border-b border-border bg-surface px-4 md:px-5 lg:px-8">
+            <div className="m-auto flex h-full w-full max-w-7xl items-center gap-3 md:gap-4">
+              <BotonIcono
+                ref={trigger}
+                etiqueta="Abrir menú"
+                variante="marco"
+                aria-expanded={abierto}
+                onClick={() => setAbiertoEn(location.pathname)}
+                className="lg:hidden"
+              >
+                <IconoMenu className="size-4.25" />
+              </BotonIcono>
 
-            <div className="flex min-w-0 flex-col">
-              {ruta.length > 0 && <Migas items={ruta} />}
-              <h1 className="truncate text-page">{encabezado}</h1>
+              <div className="flex min-w-0 flex-col">
+                {ruta.length > 0 && <Migas items={ruta} />}
+                {/* La frescura comparte renglón y línea de base con el título:
+                    es el subtítulo del dato que se está mirando, no un tercer
+                    bloque de la barra. */}
+                <div className="flex min-w-0 items-baseline gap-2.5">
+                  <h1 className="truncate text-page">{encabezado}</h1>
+                  <div
+                    ref={setNodoMeta}
+                    className="hidden min-w-0 items-baseline gap-2 truncate text-note-lg text-text-muted md:flex md:empty:hidden"
+                  />
+                </div>
+              </div>
+
+              <div ref={setNodoAcciones} className="ml-auto flex items-center gap-2 empty:hidden" />
             </div>
-
-            <div
-              ref={setNodoMeta}
-              className="hidden min-w-0 items-center gap-2 text-note-lg text-text-muted md:flex md:empty:hidden"
-            />
-            <div ref={setNodoAcciones} className="ml-auto flex items-center gap-2 empty:hidden" />
           </header>
 
           <div className="w-full m-auto max-w-7xl px-4 pt-6 pb-24 md:px-5 md:pt-8 lg:px-8 lg:pb-16">
