@@ -16,7 +16,7 @@ const FONDOS: Record<Tono, string> = {
 export function Card({ tono = 'surface', className = '', children, ...props }: Props) {
   return (
     <div
-      className={`${FONDOS[tono]} border border-border rounded-card ${className}`}
+      className={`${FONDOS[tono]} border border-border overflow-hidden rounded-card ${className}`}
       {...props}
     >
       {children}

@@ -1,76 +1,184 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Banner } from '@/components/ui/Banner'
+import { Boton, BotonLink } from '@/components/ui/Boton'
 import { Card } from '@/components/ui/Card'
-import { Boton } from '@/components/ui/Boton'
+import { Segmentado } from '@/components/ui/Segmentado'
+import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Skeleton } from '@/components/ui/Skeleton'
+import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
-import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { IconoAlertaSonando, IconoMas, IconoProblema, IconoReloj } from '@/components/layout/iconos'
+import { IconoMas } from '@/components/layout/iconos'
+import { type Estado } from '@/components/ui/MarcaEstado'
 import { useDispositivos } from './usarPanel'
 import { useAhora } from '@/hooks/usarAhora'
 import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/utils/tiempo'
-import { TarjetaDispositivo } from './TarjetaDispositivo'
+import { nombreDeDispositivo } from '@/utils/dispositivos'
+import { etiquetarSensores } from '@/utils/sensores'
+import { medida } from '@/utils/formato'
+import { estadoDeFila, FilaDispositivo } from './FilaDispositivo'
 import type { DispositivoResumen } from '@/tipos'
-import type { ReactNode } from 'react'
-import { TextoError } from '@/components/ui/TextoError'
 
-/* Los 3 indicadores del resumen. Nada de deltas porcentuales: un +5% sobre una
-   temperatura no significa nada (el cero de la escala es arbitrario). */
-function Kpi({
-  icono,
-  etiqueta,
-  valor,
-  tono,
-}: {
-  icono: ReactNode
-  etiqueta: string
-  valor: ReactNode
-  tono?: 'ok' | 'warn' | 'danger'
-}) {
-  const color = tono ? { ok: 'text-ok', warn: 'text-warn', danger: 'text-danger' }[tono] : ''
-  /* Fila y no columna: apilar la etiqueta arriba del número la deja con un tercio
-     del ancho en mobile, donde "Dispositivos con problemas" se recorta hasta
-     dejar de significar algo. La etiqueta es el indicador, no el adorno. */
+type Fila = { dispositivo: DispositivoResumen; conectividad: EstadoDispositivo }
+
+type Filtro = 'todos' | 'atencion' | 'en-linea'
+
+const OPCIONES_FILTRO: { valor: Filtro; etiqueta: string }[] = [
+  { valor: 'todos', etiqueta: 'Todos' },
+  { valor: 'atencion', etiqueta: 'Requieren atención' },
+  { valor: 'en-linea', etiqueta: 'En línea' },
+]
+
+/* Un equipo con retraso está bufferreando y se pone al día solo: no entra acá.
+   Uno mudo pasado el margen sí, y es el caso más importante — no existe alerta
+   de "dejó de reportar", así que si el panel no lo muestra no lo muestra nadie.
+   Mismo criterio para el veredicto de arriba y para el filtro: las mismas
+   palabras no pueden contar dos cosas distintas en la misma pantalla. */
+function requiereAtencion({ dispositivo, conectividad }: Fila): boolean {
+  if (!dispositivo.activo) return false
   return (
-    <Card className="flex min-w-0 items-center gap-2.5 p-3 md:gap-3 md:p-3.5">
-      <span className="flex size-6.5 shrink-0 items-center justify-center rounded-tile bg-surface-2 text-text-muted">
-        {icono}
-      </span>
-      <span className="min-w-0 flex-1 text-note text-text-muted">{etiqueta}</span>
-      <span className={`num shrink-0 text-metric leading-tight font-semibold ${color}`}>{valor}</span>
-    </Card>
+    dispositivo.alertas_disparadas > 0 || conectividad === 'sin-reportar' || conectividad === 'nunca'
   )
 }
 
-function EsqueletoDispositivo() {
+/* La tira de estados: cuántos equipos hay en cada situación. Sólo se nombra lo
+   que existe — una categoría en cero no es información, es ruido. */
+function TiraEstados({ filas }: { filas: Fila[] }) {
+  const conteo = filas.reduce(
+    (acc, { dispositivo, conectividad }) => {
+      if (!dispositivo.activo) acc.inactivo++
+      else if (dispositivo.alertas_disparadas > 0) acc.critico++
+      else if (conectividad === 'con-retraso') acc.atencion++
+      else if (conectividad === 'sin-reportar') acc['sin-reportar']++
+      else if (conectividad === 'nunca') acc['sin-datos']++
+      else acc.normal++
+      return acc
+    },
+    { critico: 0, atencion: 0, 'sin-reportar': 0, 'sin-datos': 0, normal: 0, inactivo: 0 },
+  )
+
+  /* Sólo las situaciones que un equipo puede tener hoy: "advertencia" existe en
+     el vocabulario de estados pero ningún dato del producto la produce. */
+  const items: { estado: keyof typeof conteo & Estado; etiqueta: (n: number) => string }[] = [
+    { estado: 'critico', etiqueta: (n) => (n === 1 ? '1 con alerta disparada' : `${n} con alertas disparadas`) },
+    { estado: 'atencion', etiqueta: (n) => `${n} con retraso` },
+    { estado: 'sin-reportar', etiqueta: (n) => `${n} sin reportar` },
+    { estado: 'sin-datos', etiqueta: (n) => (n === 1 ? '1 sin reportar nunca' : `${n} sin reportar nunca`) },
+    { estado: 'normal', etiqueta: (n) => (n === 1 ? '1 en línea' : `${n} en línea`) },
+    { estado: 'inactivo', etiqueta: (n) => (n === 1 ? '1 desactivado' : `${n} desactivados`) },
+  ]
+
   return (
-    <Card className="flex flex-col gap-3 p-3.5">
-      <div className="flex items-start justify-between gap-2.5">
-        <Skeleton className="h-4 w-32" />
-        <Skeleton className="h-5 w-20 rounded-full" />
+    <div className="flex flex-wrap gap-x-4.5 gap-y-2 border-b border-border pb-5">
+      {items
+        .filter(({ estado }) => conteo[estado] > 0)
+        .map(({ estado, etiqueta }) => (
+          <PastillaEstado
+            key={estado}
+            estado={estado}
+            etiqueta={etiqueta(conteo[estado])}
+            capsula={false}
+          />
+        ))}
+    </div>
+  )
+}
+
+/* El sensor que está cruzando el umbral, para poder nombrarlo en el banner. */
+function sensorEnAlerta(dispositivo: DispositivoResumen) {
+  const sensor = dispositivo.sensores.find((s) => s.disparada)
+  if (!sensor) return null
+  return { sensor, etiqueta: etiquetarSensores(dispositivo.sensores).get(sensor.id)!.etiqueta }
+}
+
+function BannerAlertas({ filas }: { filas: Fila[] }) {
+  const enAlerta = filas.filter(({ dispositivo }) => dispositivo.alertas_disparadas > 0)
+  if (enAlerta.length === 0) return null
+
+  const primero = enAlerta[0].dispositivo
+  const nombre = nombreDeDispositivo(primero.id, primero.nombre)
+  const cruzando = sensorEnAlerta(primero)
+
+  return (
+    <Banner
+      tono="critico"
+      titulo={
+        enAlerta.length === 1
+          ? cruzando
+            ? `${nombre} · ${cruzando.etiqueta} fuera de umbral`
+            : `${nombre} · alerta disparada`
+          : `${enAlerta.length} equipos con alertas disparadas`
+      }
+      acciones={
+        enAlerta.length === 1 ? (
+          <BotonLink variante="primario" to={`/dispositivos/${primero.id}`}>
+            Ver equipo
+          </BotonLink>
+        ) : undefined
+      }
+    >
+      {enAlerta.length === 1 ? (
+        /* Sólo lo que el panel sabe de verdad: el valor. El umbral y desde
+           cuándo está cruzado viven en el detalle, que es adonde lleva el botón
+           — el resumen del panel no los trae (ver nota de API en el README). */
+        cruzando !== null && cruzando.sensor.ultimo_valor !== null ? (
+          <>
+            Última lectura{' '}
+            <span className="num font-medium text-text">
+              {medida(cruzando.sensor.ultimo_valor, cruzando.sensor.unidad)}
+            </span>
+            , sobre el umbral de la regla.
+          </>
+        ) : (
+          'El equipo tiene una regla de umbral cruzada.'
+        )
+      ) : (
+        <ul className="flex flex-col gap-0.5">
+          {enAlerta.map(({ dispositivo }) => (
+            <li key={dispositivo.id}>
+              <Link to={`/dispositivos/${dispositivo.id}`} className="font-medium text-text hover:underline">
+                {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Banner>
+  )
+}
+
+function EsqueletoFila() {
+  return (
+    <li className="flex items-center justify-between gap-4 py-3 pr-3.5 pl-3">
+      <div className="flex flex-col gap-1.5">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-3 w-56" />
       </div>
-      <Skeleton className="h-12 w-full" />
-      <Skeleton className="h-12 w-full" />
-    </Card>
+      <Skeleton className="h-6 w-24" />
+    </li>
   )
 }
 
-type Fila = { dispositivo: DispositivoResumen; estado: EstadoDispositivo }
-
-function Grilla({ filas, ahora }: { filas: Fila[]; ahora: number }) {
+function ListaEquipos({ filas, ahora }: { filas: Fila[]; ahora: number }) {
   return (
-    <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {filas.map(({ dispositivo, estado }) => (
-        <li key={dispositivo.id} className="min-w-0">
-          <TarjetaDispositivo dispositivo={dispositivo} estado={estado} ahora={ahora} />
-        </li>
-      ))}
-    </ul>
+    <Card>
+      <ul className="flex flex-col divide-y divide-border">
+        {filas.map(({ dispositivo, conectividad }) => (
+          <FilaDispositivo
+            key={dispositivo.id}
+            dispositivo={dispositivo}
+            conectividad={conectividad}
+            ahora={ahora}
+          />
+        ))}
+      </ul>
+    </Card>
   )
 }
 
 export function Panel() {
   const { datos: dispositivos, cargando, refrescando, error, refrescar, cadenciaSeg } = useDispositivos()
+  const [filtro, setFiltro] = useState<Filtro>('todos')
 
   // El tic del reloj nunca es más lento que el poll del panel: si el equipo
   // más rápido de la cartera reporta cada 15 s, el "hace X" también.
@@ -79,134 +187,148 @@ export function Panel() {
   )
 
   const resumen = useMemo(() => {
-    const lista = dispositivos ?? []
-    const filas: Fila[] = lista.map((d) => ({
+    const filas: Fila[] = (dispositivos ?? []).map((d) => ({
       dispositivo: d,
-      estado: estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora),
+      conectividad: estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora),
     }))
 
-    const ultimoReporte = lista.reduce<string | null>((max, d) => {
-      const visto = d.last_seen_at
-      if (!visto) return max
-      return !max || Date.parse(visto) > Date.parse(max) ? visto : max
-    }, null)
-
     return {
-      /* El rol del vínculo es lo único que separa un dispositivo propio de uno
-         que alguien compartió: 'owner' es dueño, editor y viewer son invitados. */
-      propios: filas.filter((f) => f.dispositivo.rol === 'owner'),
-      compartidos: filas.filter((f) => f.dispositivo.rol !== 'owner'),
-      total: filas.length,
-      alertas: lista.reduce((total, d) => total + d.alertas_disparadas, 0),
-      // "Con problemas" es sólo conectividad: las alertas ya tienen su propio KPI
-      conProblemas: filas.filter((f) => f.dispositivo.activo && f.estado === 'sin-reportar').length,
-      ultimoReporte,
+      filas,
+      requierenAtencion: filas.filter(requiereAtencion).length,
     }
   }, [dispositivos, ahora])
 
+  const total = resumen.filas.length
+  const visibles = useMemo(
+    () =>
+      resumen.filas.filter((fila) =>
+        filtro === 'todos'
+          ? true
+          : filtro === 'atencion'
+            ? requiereAtencion(fila)
+            : /* El mismo estado que pinta la fila, y no la conectividad cruda:
+                 si no, un equipo con la alerta sonando caería bajo "En línea"
+                 mostrando "Alerta disparada" en su propio renglón. */
+              estadoDeFila(fila.dispositivo, fila.conectividad).estado === 'normal',
+      ),
+    [resumen.filas, filtro],
+  )
+
+  const veredicto =
+    resumen.requierenAtencion === 0
+      ? 'Todo en orden'
+      : resumen.requierenAtencion === 1
+        ? '1 equipo requiere atención'
+        : `${resumen.requierenAtencion} equipos requieren atención`
+
+  if (cargando) {
+    return (
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-7 w-72" />
+        <Card>
+          <ul className="flex flex-col divide-y divide-border">
+            <EsqueletoFila />
+            <EsqueletoFila />
+          </ul>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error && !dispositivos) {
+    return (
+      <Card>
+        <Vacio
+          titulo="No pudimos cargar tus dispositivos"
+          detalle={error}
+          accion={
+            <Boton variante="sutil" onClick={refrescar}>
+              Reintentar
+            </Boton>
+          }
+        />
+      </Card>
+    )
+  }
+
   return (
-    <div className="flex flex-col gap-7">
-      <section aria-label="Resumen">
-        <div className="grid gap-2 md:grid-cols-3 md:gap-3">
-          <Kpi
-            icono={<IconoAlertaSonando className="size-3.5" />}
-            etiqueta="Alertas disparadas"
-            valor={cargando ? '—' : resumen.alertas}
-            tono={resumen.alertas > 0 ? 'danger' : undefined}
-          />
-          <Kpi
-            icono={<IconoProblema className="size-3.5" />}
-            etiqueta="Dispositivos con problemas"
-            valor={cargando ? '—' : resumen.conProblemas}
-            tono={resumen.conProblemas > 0 ? 'warn' : undefined}
-          />
-          <Kpi
-            icono={<IconoReloj className="size-3.5" />}
-            etiqueta="Última actualización"
-            valor={
-              <span className="text-heading-lg">
-                {cargando ? '—' : <HaceCuanto iso={resumen.ultimoReporte} />}
-              </span>
-            }
-          />
+    <div className="flex flex-col gap-6">
+      <section aria-label="Resumen" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="font-display text-hero font-semibold text-text">{veredicto}</h2>
+          {total > 0 && (
+            <span className="text-body text-text-muted">
+              de {total} {total === 1 ? 'equipo vinculado' : 'equipos vinculados'}
+            </span>
+          )}
+          {refrescando && (
+            <span className="ml-auto text-note text-text-faint">actualizando…</span>
+          )}
         </div>
+        {total > 0 && <TiraEstados filas={resumen.filas} />}
       </section>
 
-      <section aria-label="Tus dispositivos">
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
-          <h2 className="flex items-baseline gap-2 text-heading-lg">
-            Tus dispositivos
-            {refrescando && <span className="text-note font-normal text-text-faint">actualizando…</span>}
-          </h2>
-          <Link to="/vincular">
-            <Boton>
-              <IconoMas className="size-4" />
-              Vincular dispositivo
-            </Boton>
-          </Link>
-        </div>
+      <BannerAlertas filas={resumen.filas} />
 
-        {/* Un fallo de poll con datos ya en pantalla es un aviso al costado, no
-            un reemplazo: la última foto buena sigue siendo útil. */}
-        {error && dispositivos && (
-          <TextoError className="mb-3">
-            No pudimos actualizar: {error}
-          </TextoError>
-        )}
+      {/* Un fallo de poll con datos ya en pantalla es un aviso al costado, no
+          un reemplazo: la última foto buena sigue siendo útil. */}
+      {error && dispositivos && <TextoError>No pudimos actualizar: {error}</TextoError>}
 
-        {cargando ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <EsqueletoDispositivo />
-            <EsqueletoDispositivo />
-          </div>
-        ) : error && !dispositivos ? (
+      <section aria-label="Tus dispositivos" className="flex flex-col gap-3">
+        {total === 0 ? (
           <Card>
             <Vacio
-              titulo="No pudimos cargar tus dispositivos"
-              detalle={error}
-              accion={
-                <Boton variante="sutil" onClick={refrescar}>
-                  Reintentar
-                </Boton>
-              }
-            />
-          </Card>
-        ) : resumen.propios.length === 0 ? (
-          <Card>
-            <Vacio
-              titulo={
-                resumen.total === 0
-                  ? 'Todavía no tenés dispositivos'
-                  : 'Todavía no vinculaste uno propio'
-              }
+              titulo="Todavía no tenés dispositivos"
               detalle="Vinculá tu primer dispositivo con el código impreso en su base y empezá a ver sus lecturas acá."
               accion={
-                <Link to="/vincular">
-                  <Boton>
-                    <IconoMas className="size-4" />
-                    Vincular dispositivo
-                  </Boton>
-                </Link>
+                <BotonLink to="/vincular">
+                  <IconoMas className="size-4" />
+                  Vincular dispositivo
+                </BotonLink>
               }
             />
           </Card>
         ) : (
-          <Grilla filas={resumen.propios} ahora={ahora} />
+          <>
+            <Segmentado
+              etiqueta="Filtrar equipos"
+              valor={filtro}
+              opciones={OPCIONES_FILTRO}
+              onCambiar={setFiltro}
+            />
+
+            {visibles.length === 0 ? (
+              <Card>
+                <Vacio
+                  titulo={
+                    filtro === 'atencion'
+                      ? 'Ningún equipo requiere atención'
+                      : 'Ningún equipo está en línea'
+                  }
+                  detalle={
+                    filtro === 'atencion'
+                      ? 'Ninguno tiene una alerta disparada ni dejó de reportar.'
+                      : 'Mirá «Todos» para ver en qué estado está cada uno.'
+                  }
+                  accion={
+                    <Boton variante="sutil" onClick={() => setFiltro('todos')}>
+                      Ver todos
+                    </Boton>
+                  }
+                />
+              </Card>
+            ) : (
+              <ListaEquipos filas={visibles} ahora={ahora} />
+            )}
+          </>
         )}
       </section>
 
-      {/* Sin compartidos no se anuncia la sección: hoy nada en la app crea
-          vínculos que no sean 'owner', así que para la mayoría no existe. */}
-      {resumen.compartidos.length > 0 && (
-        <section aria-label="Dispositivos compartidos">
-          <div className="mb-3 flex flex-col gap-0.5">
-            <h2 className="text-heading-lg">Dispositivos compartidos</h2>
-            <p className="text-note text-text-faint">
-              De otras cuentas, con acceso de lectura o edición.
-            </p>
-          </div>
-          <Grilla filas={resumen.compartidos} ahora={ahora} />
-        </section>
+      {total > 0 && (
+        <p className="text-note-lg text-text-faint">
+          Un equipo con retraso no es una falla: guarda lo que no pudo enviar y se pone al día solo
+          cuando vuelve la conexión.
+        </p>
       )}
     </div>
   )
