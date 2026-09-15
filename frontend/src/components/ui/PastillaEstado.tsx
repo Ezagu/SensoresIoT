@@ -1,4 +1,5 @@
 import { ETIQUETA_ESTADO, type EstadoDispositivo } from '@/utils/tiempo'
+import type { EstadoAlerta } from '@/tipos'
 import { ETIQUETA, MarcaEstado, type Estado } from './MarcaEstado'
 
 const TONOS: Record<Estado, string> = {
@@ -78,4 +79,28 @@ export function PastillaEquipo({
       detalle={detalle}
     />
   )
+}
+
+/* El estado de una regla de umbral, que no es sólo el `estado` guardado: un
+   equipo mudo no produce lecturas, así que ninguna de sus reglas se está
+   evaluando y decir "Normal" ahí afirma algo que nadie comprobó. Una disparada
+   sí se sostiene — es el último estado conocido y bajarle el tono es el error
+   caro. `con-retraso` no cambia nada: ese equipo bufferea y se pone al día solo. */
+export function PastillaRegla({
+  estado,
+  conectividad,
+}: {
+  estado: EstadoAlerta
+  conectividad: EstadoDispositivo
+}) {
+  if (estado === 'disparada') {
+    return <PastillaEstado estado="critico" etiqueta="Disparada" latiendo />
+  }
+  if (conectividad === 'nunca') {
+    return <PastillaEstado estado="sin-datos" etiqueta="Sin evaluar" />
+  }
+  if (conectividad === 'sin-reportar') {
+    return <PastillaEstado estado="sin-reportar" etiqueta="Sin evaluar" />
+  }
+  return <PastillaEstado estado="normal" />
 }

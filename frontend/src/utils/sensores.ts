@@ -57,6 +57,12 @@ function metaDeTipo(nombre: string): MetaSensor {
   return META[claveDeTipo(nombre)]
 }
 
+/* El log global nombra un sensor sin tener la lista del equipo: ahí no hay con
+   qué numerar los repetidos, así que el tipo solo es todo lo que se puede decir. */
+export function etiquetaDeTipo(nombre: string): string {
+  return metaDeTipo(nombre).etiqueta
+}
+
 /* Tipos cuyas lecturas llegan de verdad al cero. En temperatura o presión el
    cero es arbitrario y anclar aplasta la serie contra el borde superior. */
 const DESDE_CERO: ClaveSensor[] = ['luz', 'ruido']

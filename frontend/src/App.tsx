@@ -79,7 +79,7 @@ export default function App() {
               <Route path="/dispositivos/:id/ajustes" element={<AjustesDispositivo />} />
               <Route path="/vincular" element={<Vincular />} />
             </Route>
-            <Route element={<Layout titulo="Alertas" />}>
+            <Route element={<Layout titulo="Avisos" />}>
               <Route path="/alertas" element={<Alertas />} />
             </Route>
             <Route element={<Layout titulo="Plan" />}>

@@ -5,6 +5,7 @@ import type {
   Alerta,
   AlertaCreatePayload,
   AlertaUpdatePayload,
+  EventosAlerta,
   DatosGrafico,
   DispositivoDetalle,
   DispositivoEstado,
@@ -79,6 +80,17 @@ export function actualizarAlerta(alertaId: string, payload: AlertaUpdatePayload)
 
 export function eliminarAlerta(alertaId: string) {
   return api.delete(`/alertas/${alertaId}`)
+}
+
+/* Log global: transiciones de las reglas de todos los equipos a los que el
+   usuario llega, sin importar el rol. Paginado por cursor hacia atrás. */
+export function listarEventosAlerta(
+  params: { cursor?: string; limite?: number } = {},
+  signal?: AbortSignal,
+) {
+  return api
+    .get<EventosAlerta>('/alertas/eventos', { signal, params })
+    .then((r) => r.data)
 }
 
 /* Opt-out de mails del equipo entero, del usuario que llama. */

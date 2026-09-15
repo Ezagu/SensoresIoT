@@ -209,6 +209,37 @@ export type AlertaUpdatePayload = {
   activa?: boolean
 }
 
+/* GET /alertas/eventos. Cada transición de una regla, con el contexto que hace
+   falta para juzgarla sin abrir el equipo. No trae sensor_id: el log enlaza al
+   equipo, no al sensor. */
+export type AlertaEvento = {
+  id: string
+  alerta_id: string
+  tipo: 'disparada' | 'normalizada'
+  valor: number
+  /* El instante de la lectura. `detectado_at` es cuándo la evaluó el servidor:
+     en un envío diferido pueden separarse horas, y eso es `tardio`. */
+  medicion_at: string
+  detectado_at: string
+  tardio: boolean
+  /* Cuántos iban a recibir el mail y a cuántos se les pudo mandar. De un lote
+     sólo se notifica la última transición de cada regla: el resto queda en 0. */
+  destinatarios: number
+  notificados: number
+  alerta_nombre: string | null
+  condicion: CondicionAlerta
+  umbral: number
+  dispositivo_id: string
+  dispositivo_nombre: string
+  tipo_sensor_nombre: string
+  tipo_sensor_unidad: string
+}
+
+export type EventosAlerta = {
+  eventos: AlertaEvento[]
+  siguiente_cursor: string | null
+}
+
 export type NotificacionUpdatePayload = { notificar: boolean }
 
 /* PATCH /dispositivos/{id}. Sólo identificación: intervalo tiene su propio

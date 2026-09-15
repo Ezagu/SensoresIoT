@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Vacio } from '@/components/ui/Vacio'
 import { IconoMas } from '@/components/layout/iconos'
 import { agruparAlertasPorSensor } from '@/utils/alertas'
+import type { EstadoDispositivo } from '@/utils/tiempo'
 import type { Alerta } from '@/tipos'
 import type { SensorConMeta } from './usarDispositivo'
 import { FormularioNuevaAlerta } from './alertas/FormularioNuevaAlerta'
@@ -15,6 +16,7 @@ import { FilaAlerta } from './alertas/FilaAlerta'
 export function BloqueAlertas({
   sensores,
   alertas,
+  conectividad,
   puedeAlertas,
   puedeEditar,
   maxAlertas,
@@ -22,6 +24,8 @@ export function BloqueAlertas({
 }: {
   sensores: SensorConMeta[]
   alertas: Alerta[]
+  /* Ninguna regla de un equipo mudo se está evaluando: la fila lo dice. */
+  conectividad: EstadoDispositivo
   puedeAlertas: boolean
   /* Rol de edición sobre el equipo. Un viewer ve las reglas y elige si quiere
      sus mails, pero no las crea, edita ni borra. */
@@ -97,6 +101,7 @@ export function BloqueAlertas({
                       key={alerta.id}
                       alerta={alerta}
                       unidad={unidadPorSensor.get(alerta.sensor_id) ?? ''}
+                      conectividad={conectividad}
                       puedeEditar={puedeEditar}
                       onEditar={() => setEditando(alerta)}
                       onCambio={onCambio}

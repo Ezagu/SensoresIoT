@@ -1,7 +1,8 @@
-type Tono = 'ok' | 'warn' | 'danger' | 'faint' | 'premium'
+type Tono = 'ok' | 'atencion' | 'warn' | 'danger' | 'faint' | 'premium'
 
 const TONOS: Record<Tono, string> = {
   ok: 'bg-ok-soft border-ok-border text-ok',
+  atencion: 'bg-attention-soft border-attention-border text-attention',
   warn: 'bg-warn-soft border-warn-border text-warn',
   danger: 'bg-danger-soft border-danger-border text-danger',
   faint: 'bg-surface-2 border-border text-text-muted',

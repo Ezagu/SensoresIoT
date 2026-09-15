@@ -210,6 +210,7 @@ export function DetalleDispositivo() {
           <BloqueAlertas
             sensores={sensoresBase}
             alertas={alertas}
+            conectividad={situacionDispositivo}
             puedeAlertas={puedeAlertas}
             puedeEditar={puedeEditar}
             maxAlertas={maxAlertas}
