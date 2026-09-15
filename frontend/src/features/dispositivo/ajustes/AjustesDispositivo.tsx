@@ -1,8 +1,8 @@
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Pill } from '@/components/ui/Pill'
 import { useSesion } from '@/features/auth/sesion'
-import { useTituloPagina } from '@/hooks/usarTitulo'
+import { useRastro } from '@/hooks/usarCabecera'
 import {
   esDuenio as esDuenioDispositivo,
   nombreDeDispositivo,
@@ -19,7 +19,7 @@ import { ZonaDeRiesgo } from './ZonaDeRiesgo'
 
 function EsqueletoAjustes() {
   return (
-    <div className="flex max-w-180 m-auto flex-col gap-3">
+    <div className="flex max-w-180 flex-col gap-3">
       <Skeleton className="h-6 w-56" />
       {Array.from({ length: 5 }, (_, i) => (
         <Skeleton key={i} className="h-28 w-full" />
@@ -35,7 +35,18 @@ export function AjustesDispositivo() {
   const sensores = useSensoresConMeta(id ?? '')
 
   const dispositivo = equipo.datos
-  useTituloPagina(dispositivo ? `Ajustes — ${nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}` : null)
+  useRastro(
+    dispositivo
+      ? [
+          { etiqueta: 'Dispositivos', a: '/dispositivos' },
+          {
+            etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre),
+            a: `/dispositivos/${dispositivo.id}`,
+          },
+          { etiqueta: 'Ajustes del equipo' },
+        ]
+      : null,
+  )
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" volverA="/" />
 
@@ -60,18 +71,12 @@ export function AjustesDispositivo() {
   const sensoresBase = sensores.datos ?? []
 
   return (
-    <div className="flex max-w-180 flex-col gap-3 m-auto">
-      <Link
-        to={`/dispositivos/${dispositivo.id}`}
-        className="w-fit text-label font-medium text-text-muted hover:text-text"
-      >
-        ← {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
-      </Link>
-
-      <div className="mb-1 flex items-center gap-2.5">
-        <h2 className="font-display text-page-lg font-semibold text-text">Ajustes del equipo</h2>
-        {!puedeEditar && <Pill tono="faint">Solo lectura</Pill>}
-      </div>
+    <div className="flex max-w-180 flex-col gap-3">
+      {!puedeEditar && (
+        <div className="mb-1">
+          <Pill tono="faint">Solo lectura</Pill>
+        </div>
+      )}
 
       <SeccionIdentificacion dispositivo={dispositivo} puedeEditar={puedeEditar} onGuardado={equipo.refrescar} />
 

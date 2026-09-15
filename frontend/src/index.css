@@ -110,6 +110,11 @@
   --text-hero: 28px;
   --text-display: 36px;
 
+  /* El interletrado de titular vive en @layer base; estos dos son los que se
+     aplican como utilidad: la etiqueta versalita y el wordmark. */
+  --tracking-micro: 0.08em;
+  --tracking-brand: -0.02em;
+
   --radius-card: 10px;
   --radius-control: 7px;
   /* tile: cuadrado chico (ícono, mini-botón).

@@ -9,6 +9,9 @@ type Estado<T> = {
   /* El error tal cual lo tiró `cargar`, para distinguir un 404/403 de un fallo
      de red (ver ErrorDeCarga). */
   errorCrudo: unknown
+  /* Cuándo llegó la última respuesta buena, para que la pantalla pueda decir
+     cuán vieja es la foto que está mostrando. Se conserva si el poll falla. */
+  actualizadoAt: string | null
 }
 
 const INICIAL = {
@@ -17,6 +20,7 @@ const INICIAL = {
   refrescando: false,
   error: null,
   errorCrudo: null,
+  actualizadoAt: null,
 }
 
 /* Carga asíncrona con cancelación, refresco manual y polling opcional.
@@ -49,7 +53,14 @@ export function useCarga<T>(
     try {
       const datos = await cargar(control.signal)
       if (!control.signal.aborted) {
-        setEstado({ datos, cargando: false, refrescando: false, error: null, errorCrudo: null })
+        setEstado({
+          datos,
+          cargando: false,
+          refrescando: false,
+          error: null,
+          errorCrudo: null,
+          actualizadoAt: new Date().toISOString(),
+        })
       }
     } catch (err) {
       if (!control.signal.aborted) {

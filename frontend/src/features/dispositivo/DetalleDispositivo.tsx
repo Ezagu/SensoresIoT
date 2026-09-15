@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { Boton, BotonLink } from '@/components/ui/Boton'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -13,7 +13,7 @@ import { bordesDeVentana, esTiempoReal } from '@/utils/ventana'
 import { useVentanaConZoom } from './usarVentana'
 import { ETIQUETA_ROL, nombreDeDispositivo, puedeEditar as puedeEditarDispositivo } from '@/utils/dispositivos'
 import { limiteDeVentana } from '@/utils/retencion'
-import { useTituloPagina } from '@/hooks/usarTitulo'
+import { useRastro } from '@/hooks/usarCabecera'
 import { useAlertasDispositivo, useDispositivo, useSensoresConMeta, useEstadoDispositivo } from './usarDispositivo'
 import { useGraficosDeSensores } from './usarGraficos'
 import type { SensorConDatos } from './usarDispositivo'
@@ -59,7 +59,14 @@ export function DetalleDispositivo() {
 
   const dispositivo = equipo.datos
   
-  useTituloPagina(dispositivo ? nombreDeDispositivo(dispositivo.id, dispositivo.nombre) : null)
+  useRastro(
+    dispositivo
+      ? [
+          { etiqueta: 'Dispositivos', a: '/dispositivos' },
+          { etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre) },
+        ]
+      : null,
+  )
 
   if (!id) return <Navegable titulo="Dispositivo no encontrado" volverA="/" />
 
@@ -111,17 +118,12 @@ export function DetalleDispositivo() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Link to="/" className="w-fit text-label font-medium text-text-muted hover:text-text">
-        ← Panel
-      </Link>
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="font-display text-page-lg font-semibold text-text">
-              {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
-            </h2>
-            {/* role="status": conectividad y alertas cambian solas mientras la
+            {/* El nombre del equipo lo dice la cabecera de la app; acá empieza
+                directo por su situación.
+                role="status": conectividad y alertas cambian solas mientras la
                 página está abierta, y son dos preguntas distintas. */}
             <span role="status" aria-atomic="true" className="flex flex-wrap items-center gap-2.5">
               <PastillaEquipo estado={situacionDispositivo} inactivo={!dispositivo.activo} />

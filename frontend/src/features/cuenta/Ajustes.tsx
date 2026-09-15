@@ -21,7 +21,7 @@ export function Ajustes() {
   const esPago = plan !== null && plan.plan.id !== 'free'
 
   return (
-    <div className="mx-auto flex max-w-180 flex-col gap-3 xl:max-w-232 xl:flex-row xl:gap-8">
+    <div className="flex max-w-180 flex-col gap-3 xl:max-w-232 xl:flex-row xl:gap-8">
       <IndiceAjustes secciones={SECCIONES} />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3">

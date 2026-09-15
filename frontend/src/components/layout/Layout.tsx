@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSesion } from '@/features/auth/sesion'
-import { ContextoTitulo, MARCA } from '@/hooks/usarTitulo'
+import {
+  ContextoRanuras,
+  ContextoRastro,
+  MARCA,
+  type Miga,
+} from '@/hooks/usarCabecera'
 import { useMediaQuery } from '@/hooks/usarMedios'
+import { BotonIcono } from '@/components/ui/BotonIcono'
 import { Logo } from './Logo'
 import {
   IconoAjustes,
@@ -27,12 +33,23 @@ export function iniciales(nombre?: string) {
     .join('')
 }
 
-const NAV = [
-  { a: '/', etiqueta: 'Panel', Icono: IconoPanel, grupo: 'Monitoreo' },
-  { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo, grupo: 'Monitoreo' },
-  { a: '/alertas', etiqueta: 'Alertas', Icono: IconoAlerta, grupo: 'Monitoreo' },
-  { a: '/plan', etiqueta: 'Plan', Icono: IconoPlan, grupo: 'Cuenta' },
-  { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes, grupo: 'Cuenta' },
+/* El primer grupo no lleva encabezado: es la navegación primaria y no necesita
+   que la presenten. "Cuenta" sí, porque separa dos cosas distintas. */
+const NAV: { etiqueta?: string; items: { a: string; etiqueta: string; Icono: typeof IconoPanel }[] }[] = [
+  {
+    items: [
+      { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
+      { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
+      { a: '/alertas', etiqueta: 'Alertas', Icono: IconoAlerta },
+    ],
+  },
+  {
+    etiqueta: 'Cuenta',
+    items: [
+      { a: '/plan', etiqueta: 'Plan', Icono: IconoPlan },
+      { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
+    ],
+  },
 ]
 
 const NAV_INFERIOR = [
@@ -41,6 +58,35 @@ const NAV_INFERIOR = [
   { a: '/alertas', etiqueta: 'Alertas', Icono: IconoAlerta },
   { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
+
+function claseItem({ isActive }: { isActive: boolean }) {
+  return `flex h-8 items-center gap-3 rounded-control px-2 text-body transition-colors duration-130 ${
+    isActive
+      ? 'bg-accent-soft font-medium text-accent'
+      : 'text-text-muted hover:bg-surface-2 hover:text-text'
+  }`
+}
+
+/* Sólo los ancestros: la última miga es el título que va justo abajo, y
+   repetirlo en dos renglones pegados no agrega una ruta, agrega ruido. */
+function Migas({ items }: { items: Miga[] }) {
+  return (
+    <nav aria-label="Ruta" className="flex min-w-0 items-center gap-1.5 text-note-lg text-text-muted">
+      {items.map((m, i) => (
+        <Fragment key={`${m.etiqueta}-${i}`}>
+          {i > 0 && <span aria-hidden="true">/</span>}
+          {m.a ? (
+            <Link to={m.a} className="truncate transition-colors duration-130 hover:text-text">
+              {m.etiqueta}
+            </Link>
+          ) : (
+            <span className="truncate">{m.etiqueta}</span>
+          )}
+        </Fragment>
+      ))}
+    </nav>
+  )
+}
 
 export function Layout({ titulo }: { titulo: string }) {
   const { sesion, plan } = useSesion()
@@ -82,11 +128,21 @@ export function Layout({ titulo }: { titulo: string }) {
   const sidebarInerte = overlay && !abierto
   const fondoInerte = overlay && abierto
 
-  /* La pantalla puede afinarlo (el nombre del equipo, no "Dispositivos"). */
-  const [especifico, setEspecifico] = useState<string | null>(null)
+  /* La pantalla puede afinar la cabecera: la ruta hasta ella y su propio título
+     (el nombre del equipo, no "Dispositivos"). */
+  const [migas, setMigas] = useState<Miga[] | null>(null)
+  const encabezado = migas?.at(-1)?.etiqueta ?? titulo
+  const ruta = migas?.slice(0, -1) ?? []
+
   useEffect(() => {
-    document.title = `${especifico ?? titulo} · ${MARCA}`
-  }, [especifico, titulo])
+    document.title = `${encabezado} · ${MARCA}`
+  }, [encabezado])
+
+  /* Por callback ref y no useRef: el portal de la pantalla necesita que un
+     cambio de nodo dispare un render, y una ref no lo hace. */
+  const [nodoMeta, setNodoMeta] = useState<HTMLElement | null>(null)
+  const [nodoAcciones, setNodoAcciones] = useState<HTMLElement | null>(null)
+  const ranuras = useMemo(() => ({ meta: nodoMeta, acciones: nodoAcciones }), [nodoMeta, nodoAcciones])
 
   return (
     <>
@@ -104,10 +160,10 @@ export function Layout({ titulo }: { titulo: string }) {
         }`}
       />
 
-      <div className="min-h-full lg:grid lg:grid-cols-[232px_1fr]">
+      <div className="min-h-full lg:grid lg:grid-cols-[248px_1fr]">
         <aside
           inert={sidebarInerte}
-          className={`fixed top-0 left-0 z-50 flex h-screen w-62.5 flex-col gap-6 overflow-y-auto overscroll-contain border-r border-border bg-sidebar p-5 px-3.5 transition-transform duration-200 lg:sticky lg:w-auto lg:translate-x-0 ${
+          className={`fixed top-0 left-0 z-50 flex h-screen w-62 flex-col gap-6 overflow-y-auto overscroll-contain border-r border-border bg-sidebar px-4 pt-3.5 pb-5 transition-transform duration-200 lg:sticky lg:w-auto lg:translate-x-0 ${
             abierto ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -115,35 +171,28 @@ export function Layout({ titulo }: { titulo: string }) {
             ref={cerrar}
             onClick={() => setAbiertoEn(null)}
             aria-label="Cerrar menú"
-            className="-mt-1.5 -mr-1 -mb-3 flex size-7.5 items-center justify-center self-end rounded-control border border-border text-text-muted lg:hidden cursor-pointer"
+            className="-mt-1.5 -mr-1 -mb-3 flex size-7.5 cursor-pointer items-center justify-center self-end rounded-control border border-border-control text-text-muted lg:hidden"
           >
             <IconoCerrar className="size-4" />
           </button>
 
+          {/* El padding superior es menor que el resto para que el wordmark caiga
+              en la misma línea óptica que el título de la cabecera. */}
           <div className="px-2">
             <Logo />
           </div>
 
-          <nav className="flex flex-col gap-0.5">
-            {['Monitoreo', 'Cuenta'].map((grupo) => (
-              <div key={grupo} className="flex flex-col gap-0.5">
-                <span className="px-3 pt-3 pb-1.5 text-tag font-medium tracking-[0.08em] text-text-faint uppercase">
-                  {grupo}
-                </span>
-                {NAV.filter((i) => i.grupo === grupo).map(({ a, etiqueta, Icono }) => (
-                  <NavLink
-                    key={a}
-                    to={a}
-                    end={a === '/'}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2.5 rounded-control px-3 py-2 text-body font-medium transition-colors duration-150 ${
-                        isActive
-                          ? 'bg-accent-soft text-text'
-                          : 'text-text-muted hover:bg-surface-2 hover:text-text'
-                      }`
-                    }
-                  >
-                    <Icono className="size-4.25 shrink-0" />
+          <nav aria-label="Secciones" className="flex flex-col gap-6">
+            {NAV.map((grupo, i) => (
+              <div key={grupo.etiqueta ?? i} className="flex flex-col gap-0.5">
+                {grupo.etiqueta && (
+                  <span className="px-2 pb-1.5 text-tag font-semibold tracking-micro text-text-faint uppercase">
+                    {grupo.etiqueta}
+                  </span>
+                )}
+                {grupo.items.map(({ a, etiqueta, Icono }) => (
+                  <NavLink key={a} to={a} end={a === '/'} className={claseItem}>
+                    <Icono className="size-4 shrink-0" />
                     {etiqueta}
                   </NavLink>
                 ))}
@@ -151,17 +200,17 @@ export function Layout({ titulo }: { titulo: string }) {
             ))}
           </nav>
 
-          <div className="mt-auto border-t border-border pt-2.5">
+          <div className="mt-auto flex flex-col gap-3 border-t border-border pt-4">
             {/* Sin estado activo propio: lleva a /ajustes, que ya se marca en el
                 nav de arriba, y dos bloques encendidos por la misma ruta se leen
                 como dos destinos distintos. */}
             <NavLink
               to="/ajustes"
-              className="flex items-center gap-2.5 rounded-control px-2 py-2 transition-colors duration-150 hover:bg-surface-2"
+              className="flex items-center gap-2.5 rounded-control px-2 py-1.5 transition-colors duration-130 hover:bg-surface-2"
             >
               <span
                 aria-hidden="true"
-                className="flex size-7.5 shrink-0 items-center justify-center rounded-control border border-border bg-surface-2 font-display text-label-lg font-bold text-text"
+                className="flex size-7.5 shrink-0 items-center justify-center rounded-chip border border-border bg-surface-2 text-tag font-semibold text-text"
               >
                 {iniciales(sesion?.nombre)}
               </span>
@@ -171,8 +220,10 @@ export function Layout({ titulo }: { titulo: string }) {
                 </strong>
                 {/* El espacio duro reserva el renglón mientras carga el plan,
                     para que el bloque no crezca después de montar. */}
-                <small className={`truncate text-note  ${plan?.plan.id !== "free" ? "text-accent" : "text-text-faint"}`}>
-                {plan ? `Plan ${plan.plan.nombre}` : ' '}
+                <small
+                  className={`truncate text-note ${plan?.plan.id !== 'free' ? 'text-accent' : 'text-text-faint'}`}
+                >
+                  {plan ? `Plan ${plan.plan.nombre}` : ' '}
                 </small>
               </span>
             </NavLink>
@@ -180,23 +231,36 @@ export function Layout({ titulo }: { titulo: string }) {
         </aside>
 
         <main id="contenido" tabIndex={-1} inert={fondoInerte} className="min-w-0">
-          <div className="sticky top-0 z-5 flex min-h-13 items-center gap-2.5 border-b border-border bg-bg px-4 md:min-h-14 md:gap-3.5 md:px-5.5">
-            <button
+          <header className="sticky top-0 z-5 flex h-18 items-center gap-3 border-b border-border bg-surface px-4 md:gap-4 md:px-5 lg:px-8">
+            <BotonIcono
               ref={trigger}
-              onClick={() => setAbiertoEn(location.pathname)}
-              aria-label="Abrir menú"
+              etiqueta="Abrir menú"
+              variante="marco"
               aria-expanded={abierto}
-              className="flex size-9 shrink-0 items-center justify-center rounded-group border border-border bg-surface text-text-muted lg:hidden cursor-pointer"
+              onClick={() => setAbiertoEn(location.pathname)}
+              className="lg:hidden"
             >
               <IconoMenu className="size-4.25" />
-            </button>
-            <h1 className="text-page md:text-page-lg">{titulo}</h1>
-          </div>
+            </BotonIcono>
 
-          <div className="mx-auto w-full max-w-340 px-4 pt-4.5 pb-24 md:px-5.5 md:pt-5.5 lg:pb-16">
-            <ContextoTitulo.Provider value={setEspecifico}>
-              <Outlet />
-            </ContextoTitulo.Provider>
+            <div className="flex min-w-0 flex-col">
+              {ruta.length > 0 && <Migas items={ruta} />}
+              <h1 className="truncate text-page">{encabezado}</h1>
+            </div>
+
+            <div
+              ref={setNodoMeta}
+              className="hidden min-w-0 items-center gap-2 text-note-lg text-text-muted md:flex md:empty:hidden"
+            />
+            <div ref={setNodoAcciones} className="ml-auto flex items-center gap-2 empty:hidden" />
+          </header>
+
+          <div className="w-full m-auto max-w-7xl px-4 pt-6 pb-24 md:px-5 md:pt-8 lg:px-8 lg:pb-16">
+            <ContextoRastro.Provider value={setMigas}>
+              <ContextoRanuras.Provider value={ranuras}>
+                <Outlet />
+              </ContextoRanuras.Provider>
+            </ContextoRastro.Provider>
           </div>
         </main>
       </div>

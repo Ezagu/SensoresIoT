@@ -2,15 +2,18 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Banner } from '@/components/ui/Banner'
 import { Boton, BotonLink } from '@/components/ui/Boton'
+import { BotonIcono } from '@/components/ui/BotonIcono'
 import { Card } from '@/components/ui/Card'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Segmentado } from '@/components/ui/Segmentado'
 import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
-import { IconoMas } from '@/components/layout/iconos'
+import { IconoActualizar, IconoMas } from '@/components/layout/iconos'
 import { type Estado } from '@/components/ui/MarcaEstado'
 import { useDispositivos } from './usarPanel'
+import { AccionesCabecera, MetaCabecera } from '@/hooks/usarCabecera'
 import { useAhora } from '@/hooks/usarAhora'
 import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/utils/tiempo'
 import { nombreDeDispositivo } from '@/utils/dispositivos'
@@ -176,8 +179,55 @@ function ListaEquipos({ filas, ahora }: { filas: Fila[]; ahora: number }) {
   )
 }
 
+/* La frescura y el refresco viven en la cabecera de la app, no en la pantalla:
+   son la misma pregunta en todas y ahí no compiten con el veredicto. */
+function CabeceraPanel({
+  actualizadoAt,
+  refrescando,
+  refrescar,
+  vincular,
+}: {
+  actualizadoAt: string | null
+  refrescando: boolean
+  refrescar: () => void
+  vincular: boolean
+}) {
+  return (
+    <>
+      <MetaCabecera>
+        {refrescando ? (
+          <span>actualizando…</span>
+        ) : actualizadoAt ? (
+          <span className="truncate">
+            actualizado <HaceCuanto iso={actualizadoAt} />
+          </span>
+        ) : null}
+      </MetaCabecera>
+      <AccionesCabecera>
+        <BotonIcono etiqueta="Actualizar" onClick={refrescar} disabled={refrescando}>
+          <IconoActualizar className="size-4" />
+        </BotonIcono>
+        {vincular && (
+          <BotonLink to="/vincular">
+            <IconoMas className="size-4" />
+            Vincular
+          </BotonLink>
+        )}
+      </AccionesCabecera>
+    </>
+  )
+}
+
 export function Panel() {
-  const { datos: dispositivos, cargando, refrescando, error, refrescar, cadenciaSeg } = useDispositivos()
+  const {
+    datos: dispositivos,
+    cargando,
+    refrescando,
+    error,
+    refrescar,
+    cadenciaSeg,
+    actualizadoAt,
+  } = useDispositivos()
   const [filtro, setFiltro] = useState<Filtro>('todos')
 
   // El tic del reloj nunca es más lento que el poll del panel: si el equipo
@@ -221,9 +271,19 @@ export function Panel() {
         ? '1 equipo requiere atención'
         : `${resumen.requierenAtencion} equipos requieren atención`
 
+  const cabecera = (
+    <CabeceraPanel
+      actualizadoAt={actualizadoAt}
+      refrescando={refrescando}
+      refrescar={refrescar}
+      vincular={total > 0}
+    />
+  )
+
   if (cargando) {
     return (
       <div className="flex flex-col gap-6">
+        {cabecera}
         <Skeleton className="h-7 w-72" />
         <Card>
           <ul className="flex flex-col divide-y divide-border">
@@ -237,22 +297,26 @@ export function Panel() {
 
   if (error && !dispositivos) {
     return (
-      <Card>
-        <Vacio
-          titulo="No pudimos cargar tus dispositivos"
-          detalle={error}
-          accion={
-            <Boton variante="sutil" onClick={refrescar}>
-              Reintentar
-            </Boton>
-          }
-        />
-      </Card>
+      <>
+        {cabecera}
+        <Card>
+          <Vacio
+            titulo="No pudimos cargar tus dispositivos"
+            detalle={error}
+            accion={
+              <Boton variante="sutil" onClick={refrescar}>
+                Reintentar
+              </Boton>
+            }
+          />
+        </Card>
+      </>
     )
   }
 
   return (
     <div className="flex flex-col gap-6">
+      {cabecera}
       <section aria-label="Resumen" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h2 className="font-display text-hero font-semibold text-text">{veredicto}</h2>
@@ -260,9 +324,6 @@ export function Panel() {
             <span className="text-body text-text-muted">
               de {total} {total === 1 ? 'equipo vinculado' : 'equipos vinculados'}
             </span>
-          )}
-          {refrescando && (
-            <span className="ml-auto text-note text-text-faint">actualizando…</span>
           )}
         </div>
         {total > 0 && <TiraEstados filas={resumen.filas} />}

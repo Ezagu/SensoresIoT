@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { Card } from '@/components/ui/Card'
 import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -16,7 +16,7 @@ import { nombreDeDispositivo } from '@/utils/dispositivos'
 import { anclaEnCero } from '@/utils/sensores'
 import { limiteDeVentana } from '@/utils/retencion'
 import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
-import { useTituloPagina } from '@/hooks/usarTitulo'
+import { useRastro } from '@/hooks/usarCabecera'
 import {
   useAlertasDispositivo,
   useDispositivo,
@@ -59,9 +59,16 @@ export function DetalleSensor() {
   const dispositivo = equipo.datos
   const sensor = sensores.datos?.find((s) => s.id === sensorId)
 
-  useTituloPagina(
+  useRastro(
     dispositivo && sensor
-      ? `${sensor.etiqueta} — ${nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}`
+      ? [
+          { etiqueta: 'Dispositivos', a: '/dispositivos' },
+          {
+            etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre),
+            a: `/dispositivos/${dispositivo.id}`,
+          },
+          { etiqueta: sensor.etiqueta },
+        ]
       : null,
   )
 
@@ -115,22 +122,11 @@ export function DetalleSensor() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Link
-        to={`/dispositivos/${dispositivo.id}`}
-        className="w-fit text-label font-medium text-text-muted hover:text-text"
-      >
-        ← {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
-      </Link>
-
-      <div className="flex items-center gap-2.5">
-        <span
-          aria-hidden="true"
-          className="size-3 shrink-0 rounded-full"
-          style={{ background: sensor.color }}
-        />
-        <h2 className="font-display text-page-lg font-semibold text-text">{sensor.etiqueta}</h2>
-        {disparada && <PastillaEstado estado="critico" etiqueta="Alerta disparada" latiendo />}
-      </div>
+      {disparada && (
+        <div>
+          <PastillaEstado estado="critico" etiqueta="Alerta disparada" latiendo />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="flex flex-col gap-0.5">
