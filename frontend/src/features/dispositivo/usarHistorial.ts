@@ -6,54 +6,59 @@ import type { Medicion } from '@/tipos'
 /* "Últimas lecturas" hacia atrás en el tiempo, con filtro de fechas opcional
    resuelto del lado del cliente (el endpoint no acepta `desde`). */
 
+export const TAMANO_TRAMO = 20
+
 export type FiltroHistorial = {
   desde?: Date
   hasta?: Date
-  limite: number
 }
 
-export type PaginaHistorial = {
+type Tramo = {
   mediciones: Medicion[]
-  /* true = esta página es la última porque el filtro `desde` del cliente cortó
-     la lista, no porque el backend se quedó sin cursor. */
+  /* Cursor de lo que viene después: null = el backend no tiene más. */
+  siguiente: string | null
+  /* true = este tramo se cortó por el filtro `desde` del cliente, no porque el
+     backend se haya quedado sin datos. */
   cortadaPorFiltro: boolean
   retencionDias: number | null
 }
 
-/* `cursores[pagina]` es el cursor con el que se pidió esa página (undefined en
-   la primera): volver atrás no dispara un request nuevo. `clave` ata la pila al
-   filtro que la armó — con otro filtro esos cursores no significan nada. */
-type Paginacion = { clave: string; cursores: (string | undefined)[]; pagina: number }
+const INICIO = 'inicio'
+const llaveDe = (cursor: string | undefined) => cursor ?? INICIO
 
-const primeraPagina = (clave: string): Paginacion => ({ clave, cursores: [undefined], pagina: 0 })
+/* La cadena de cursores pedidos, con lo que trajo cada uno. Se guarda por llave
+   en vez de concatenarse al vuelo para que un doble montaje (StrictMode) o un
+   reintento reescriban el mismo tramo en vez de duplicarlo. */
+type Acumulado = { clave: string; cursores: (string | undefined)[]; tramos: Record<string, Tramo> }
+
+const desdeCero = (clave: string): Acumulado => ({ clave, cursores: [undefined], tramos: {} })
 
 export function useHistorial(sensorId: string, filtro: FiltroHistorial) {
   /* Las fechas se reducen a epoch antes de entrar a cualquier lista de
      dependencias: un Date como dep cambiaría de identidad en cada render. */
   const desdeMs = filtro.desde?.getTime()
   const hastaMs = filtro.hasta?.getTime()
-  const { limite } = filtro
-  const clave = `${sensorId}|${desdeMs}|${hastaMs}|${limite}`
+  const clave = `${sensorId}|${desdeMs}|${hastaMs}`
 
-  const [guardada, setPaginacion] = useState(() => primeraPagina(clave))
+  const [guardado, setAcumulado] = useState(() => desdeCero(clave))
   // Derivado en el render y no en un efecto: cambiar el filtro no necesita un
-  // commit de más para volver a la primera página.
-  let paginacion = guardada
-  if (guardada.clave !== clave) {
-    paginacion = primeraPagina(clave)
-    setPaginacion(paginacion)
+  // commit de más para volver al principio.
+  let acumulado = guardado
+  if (guardado.clave !== clave) {
+    acumulado = desdeCero(clave)
+    setAcumulado(acumulado)
   }
-  const { pagina, cursores } = paginacion
-  const cursor = cursores[pagina]
+  const { cursores, tramos } = acumulado
+  const cursor = cursores[cursores.length - 1]
 
   const cargar = useCallback(
-    async (signal: AbortSignal): Promise<PaginaHistorial> => {
+    async (signal: AbortSignal): Promise<Tramo> => {
       const { mediciones, siguiente_cursor, retencion_dias } = await obtenerHistorial(
         sensorId,
         {
           cursor,
           hasta: cursor === undefined && hastaMs !== undefined ? new Date(hastaMs) : undefined,
-          limite,
+          limite: TAMANO_TRAMO,
         },
         signal,
       )
@@ -70,27 +75,42 @@ export function useHistorial(sensorId: string, filtro: FiltroHistorial) {
         }
       }
 
-      if (!cortadaPorFiltro && siguiente_cursor !== null) {
-        setPaginacion((previa) => {
-          if (previa.clave !== clave || previa.cursores[pagina + 1] === siguiente_cursor) return previa
-          return { ...previa, cursores: [...previa.cursores.slice(0, pagina + 1), siguiente_cursor] }
-        })
+      const tramo: Tramo = {
+        mediciones: filas,
+        siguiente: cortadaPorFiltro ? null : siguiente_cursor,
+        cortadaPorFiltro,
+        retencionDias: retencion_dias,
       }
 
-      return { mediciones: filas, cortadaPorFiltro, retencionDias: retencion_dias }
+      setAcumulado((previo) =>
+        previo.clave !== clave ? previo : { ...previo, tramos: { ...previo.tramos, [llaveDe(cursor)]: tramo } },
+      )
+      return tramo
     },
-    [sensorId, cursor, hastaMs, desdeMs, limite, pagina, clave],
+    [sensorId, cursor, hastaMs, desdeMs, clave],
   )
 
   const estado = useCarga(cargar)
 
+  const mediciones = cursores.flatMap((c) => tramos[llaveDe(c)]?.mediciones ?? [])
+  const ultimo = tramos[llaveDe(cursor)]
+  const hayMas = ultimo?.siguiente != null
+
   return {
-    ...estado,
-    pagina,
-    hayAnterior: pagina > 0,
-    haySiguiente: cursores[pagina + 1] !== undefined,
-    anterior: () => setPaginacion((p) => (p.pagina > 0 ? { ...p, pagina: p.pagina - 1 } : p)),
-    siguiente: () =>
-      setPaginacion((p) => (p.cursores[p.pagina + 1] !== undefined ? { ...p, pagina: p.pagina + 1 } : p)),
+    mediciones,
+    cargando: estado.cargando,
+    /* No es lo mismo que la primera carga: la tabla ya está en pantalla y lo
+       único que pasa es que el botón está trabajando. */
+    cargandoMas: estado.refrescando,
+    error: estado.error,
+    retencionDias: ultimo?.retencionDias ?? null,
+    cortadaPorFiltro: ultimo?.cortadaPorFiltro ?? false,
+    hayMas,
+    cargarMas: () =>
+      setAcumulado((previo) => {
+        const siguiente = previo.tramos[llaveDe(previo.cursores[previo.cursores.length - 1])]?.siguiente
+        if (siguiente == null) return previo
+        return { ...previo, cursores: [...previo.cursores, siguiente] }
+      }),
   }
 }

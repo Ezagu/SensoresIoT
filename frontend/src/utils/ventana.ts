@@ -10,7 +10,9 @@ export const RANGOS: { valor: RangoGrafico; etiqueta: string }[] = [
   { valor: '1a', etiqueta: '1a' },
 ]
 
-export const HORAS_POR_RANGO: Record<RangoGrafico, number> = { 'tiempo-real': 1, '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '6m': 24 * 30 * 6, '1a': 24 * 30 * 12 }
+/* "En tiempo real" es el único que pollea; su ventana es de 6 h porque con una
+   publicación cada 15 o 30 min una hora dibuja cuatro puntos y no una serie. */
+export const HORAS_POR_RANGO: Record<RangoGrafico, number> = { 'tiempo-real': 6, '24h': 24, '7d': 24 * 7, '30d': 24 * 30, '6m': 24 * 30 * 6, '1a': 24 * 30 * 12 }
 
 export function duracionMsDeRango(rango: RangoGrafico): number {
   return HORAS_POR_RANGO[rango] * 3600_000

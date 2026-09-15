@@ -22,3 +22,26 @@ export function serieDeGrafico(datos: DatosGrafico): PuntoGrilla[] {
   }
   return grilla
 }
+
+export type Huecos = { cortes: number; faltantes: number }
+
+/* Cuántas lecturas faltan, no cuántos cortes hay: un corte puede valer una
+   lectura o quinientas, y lo que hay que poder decir en voz alta es el tamaño
+   del silencio. Mismo umbral que serieDeGrafico, para que lo que se cuenta sea
+   exactamente lo que se ve cortado. */
+export function huecosDeGrafico(datos: DatosGrafico): Huecos {
+  const paso = (datos.bucket_seg ?? datos.intervalo_seg) * 1000
+  let cortes = 0
+  let faltantes = 0
+
+  let anterior: number | null = null
+  for (const punto of datos.puntos) {
+    const t = new Date(punto.bucket).getTime()
+    if (anterior !== null && t - anterior > FACTOR_HUECO * paso) {
+      cortes++
+      faltantes += Math.max(1, Math.round((t - anterior) / paso) - 1)
+    }
+    anterior = t
+  }
+  return { cortes, faltantes }
+}

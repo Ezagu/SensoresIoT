@@ -1,14 +1,16 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Card } from '@/components/ui/Card'
+import { Bloque } from '@/components/ui/Bloque'
 import { PastillaEstado } from '@/components/ui/PastillaEstado'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { ResumenStats } from '@/components/ui/ResumenStats'
+import { Metrica, TiraMetricas } from '@/components/ui/Metrica'
+import { ProximoDato } from '@/components/ui/ProximoDato'
 import { Grafico } from '@/components/graficos/Grafico'
+import { LeyendaGrafico } from '@/components/graficos/LeyendaGrafico'
 import { useAhora } from '@/hooks/usarAhora'
-import { serieDeGrafico } from '@/utils/series'
-import { medida } from '@/utils/formato'
+import { huecosDeGrafico, serieDeGrafico } from '@/utils/series'
 import { lecturaDesactualizada, TIC_RELOJ_MS } from '@/utils/tiempo'
 import { bordesDeVentana, esTiempoReal, resolverVentana } from '@/utils/ventana'
 import { useVentanaConZoom } from './usarVentana'
@@ -28,6 +30,7 @@ import { BarraVentana } from './BarraVentana'
 import { AvisoVentana } from './AvisoVentana'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { BloqueHistorial } from './BloqueHistorial'
+import { BloqueExport } from './BloqueExport'
 import { TextoError } from '@/components/ui/TextoError'
 
 function EsqueletoSensor() {
@@ -42,6 +45,7 @@ function EsqueletoSensor() {
 
 export function DetalleSensor() {
   const { id, sensorId } = useParams<{ id: string; sensorId: string }>()
+  const [exportAbierto, setExportAbierto] = useState(false)
   const { ventana, elegir, zoomear, restablecer, hayZoom } = useVentanaConZoom({
     tipo: 'preset',
     rango: 'tiempo-real',
@@ -120,57 +124,11 @@ export function DetalleSensor() {
   // este valor, que puede estar viejo aunque el equipo siga reportando otros.
   const valorApagado = lecturaDesactualizada(ultima?.time ?? null, dispositivo.intervalo_efectivo_seg, tic)
 
+  const huecos = datosGrafico ? huecosDeGrafico(datosGrafico) : { cortes: 0, faltantes: 0 }
+
   return (
     <div className="flex flex-col gap-5">
-      {disparada && (
-        <div>
-          <PastillaEstado estado="critico" etiqueta="Alerta disparada" latiendo />
-        </div>
-      )}
-
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="flex flex-col gap-0.5">
-          {/* Igual que en BloqueSensor: la lectura se renueva por polling y hay
-              que anunciarla, con el nombre del sensor adentro del anuncio. */}
-          <span
-            role="status"
-            aria-atomic="true"
-            className={`num text-display font-semibold ${
-              valorApagado ? 'text-text-muted' : disparada ? 'text-danger' : 'text-text'
-            }`}
-          >
-            <span className="sr-only">{sensor.etiqueta}: </span>
-            {ultima ? medida(ultima.value, sensor.unidad) : '—'}
-          </span>
-          <span className="text-note text-text-faint">
-            {ultima ? <>Reportó <span className="num"><HaceCuanto iso={ultima.time} /></span></> : 'Nunca reportó'}
-          </span>
-        </div>
-        {hayResumen && resumen && (
-          /* Cuando envuelve se lleva el renglón entero: al ancho del contenido,
-             tres valores de cuatro cifras no entran en un celular. */
-          <ResumenStats resumen={resumen} unidad={sensor.unidad} tamano="md" className="w-full sm:w-auto" />
-        )}
-      </div>
-
-      {error && (
-        <TextoError>
-          No pudimos actualizar: {error}
-        </TextoError>
-      )}
-
-      <BarraVentana
-        ventana={ventana}
-        onCambiar={elegir}
-        retencionDias={retencionDias}
-        primeraConexion={dispositivo.first_connected_at}
-        enVivo={enVivo}
-        refrescar={polling.refrescar}
-        refrescando={polling.refrescando}
-        desactualizado={polling.desactualizado}
-        hayZoom={hayZoom}
-        onRestablecer={restablecer}
-      />
+      {error && <TextoError>No pudimos actualizar: {error}</TextoError>}
 
       <AvisoVentana
         grafico={datosGrafico}
@@ -178,34 +136,137 @@ export function DetalleSensor() {
         desdePedidoMs={desde.getTime()}
       />
 
-      <Card className="p-4">
-        <div className={`h-96 transition-opacity duration-150 ${polling.desactualizado ? 'opacity-60' : ''}`}>
-          {hayDatos ? (
-            <Grafico
-              puntos={grilla}
-              color={sensor.color}
-              unidad={sensor.unidad}
-              etiqueta={sensor.etiqueta}
-              desdeMs={limite.desdeMs}
-              hastaMs={hastaGrilla}
-              corteDePlanMs={limite.corteDePlanMs}
-              umbrales={umbrales}
-              desdeCero={anclaEnCero(sensor.tipo)}
-              onZoom={zoomear}
-              onRestablecer={restablecer}
-            />
-          ) : (
-            <div className="grid h-full place-items-center">
-              <Vacio
-                titulo="Sin lecturas para mostrar"
-                detalle="El sensor no reportó nada en el rango seleccionado."
+      {/* El gráfico manda en esta pantalla: es lo primero, lo más alto, y lo que
+          gobierna el rango. La pastilla va acá y no en una barra aparte — habla
+          de este sensor, que es lo que el cuadro está dibujando. */}
+      <Bloque
+        destacado
+        titulo={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {sensor.etiqueta}
+            <span className="font-normal text-text-muted">{sensor.unidad}</span>
+            {/* Sólo cuando hay algo que decir: la calma es la ausencia de marcas,
+                y un "todo bien" permanente sobre un sensor sin reglas sería
+                además una afirmación sobre umbrales que no existen. */}
+            {disparada && <PastillaEstado estado="critico" etiqueta="Alerta disparada" latiendo />}
+          </span>
+        }
+        subtitulo={
+          estadoEquipo.datos?.online && estadoEquipo.datos.siguiente_medicion !== null ? (
+            <span className="num font-normal">
+              <ProximoDato enSegundos={estadoEquipo.datos.siguiente_medicion} />
+            </span>
+          ) : undefined
+        }
+        acciones={
+          <BarraVentana
+            ventana={ventana}
+            onCambiar={elegir}
+            retencionDias={retencionDias}
+            primeraConexion={dispositivo.first_connected_at}
+            enVivo={enVivo}
+            refrescar={polling.refrescar}
+            refrescando={polling.refrescando}
+            desactualizado={polling.desactualizado}
+            hayZoom={hayZoom}
+            onRestablecer={restablecer}
+          />
+        }
+        sinPadding
+      >
+        <div className="flex flex-col gap-3 p-4">
+          <div className={`h-96 transition-opacity duration-150 ${polling.desactualizado ? 'opacity-60' : ''}`}>
+            {hayDatos ? (
+              <Grafico
+                puntos={grilla}
+                color={sensor.color}
+                unidad={sensor.unidad}
+                etiqueta={sensor.etiqueta}
+                desdeMs={limite.desdeMs}
+                hastaMs={hastaGrilla}
+                corteDePlanMs={limite.corteDePlanMs}
+                umbrales={umbrales}
+                desdeCero={anclaEnCero(sensor.tipo)}
+                onZoom={zoomear}
+                onRestablecer={restablecer}
               />
-            </div>
+            ) : (
+              <div className="grid h-full place-items-center">
+                <Vacio
+                  titulo="Sin lecturas para mostrar"
+                  detalle="El sensor no reportó nada en el rango seleccionado."
+                />
+              </div>
+            )}
+          </div>
+
+          {hayDatos && (
+            <LeyendaGrafico
+              bucketSeg={datosGrafico!.bucket_seg}
+              hayUmbral={umbrales.length > 0}
+              huecos={huecos}
+              hayCorteDePlan={limite.corteDePlanMs !== null}
+            />
           )}
         </div>
-      </Card>
+      </Bloque>
 
-      <BloqueHistorial sensorId={sensor.id} unidad={sensor.unidad} />
+      <TiraMetricas>
+        {/* role="status": se renueva sola por polling, y el anuncio tiene que
+            decir de qué sensor habla. */}
+        <div role="status" aria-atomic="true">
+          <span className="sr-only">{sensor.etiqueta}: </span>
+          <Metrica
+            etiqueta="Última lectura"
+            valor={ultima?.value ?? null}
+            unidad={sensor.unidad}
+            tono={disparada ? 'critico' : 'normal'}
+            apagado={valorApagado}
+            pie={ultima ? <HaceCuanto iso={ultima.time} /> : 'nunca reportó'}
+          />
+        </div>
+        <Metrica
+          etiqueta="Promedio"
+          valor={hayResumen ? (resumen!.promedio ?? null) : null}
+          unidad={sensor.unidad}
+          pie="del rango elegido"
+        />
+        <Metrica
+          etiqueta="Máxima"
+          valor={hayResumen ? (resumen!.maximo ?? null) : null}
+          unidad={sensor.unidad}
+        />
+        <Metrica
+          etiqueta="Mínima"
+          valor={hayResumen ? (resumen!.minimo ?? null) : null}
+          unidad={sensor.unidad}
+        />
+        <Metrica
+          etiqueta="Puntos"
+          valor={datosGrafico?.puntos.length ?? null}
+          pie={
+            huecos.faltantes > 0 ? (
+              <>
+                <span className="num">{huecos.faltantes}</span> sin llegar
+              </>
+            ) : (
+              'sin huecos'
+            )
+          }
+        />
+      </TiraMetricas>
+
+      <BloqueHistorial
+        sensorId={sensor.id}
+        unidad={sensor.unidad}
+        umbrales={umbrales}
+        onExportar={() => setExportAbierto(true)}
+      />
+
+      {/* Montado sólo mientras está abierto: siembra estado de sus props. */}
+      {exportAbierto && (
+        <BloqueExport dispositivoId={dispositivo.id} abierto onCerrar={() => setExportAbierto(false)} />
+      )}
     </div>
   )
 }

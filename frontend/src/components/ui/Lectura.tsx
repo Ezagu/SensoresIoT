@@ -41,7 +41,11 @@ export function Lectura({
       ) : (
         <>
           {numero(valor)}
-          <span className="text-note-lg font-medium tracking-normal text-text-muted">{unidad}</span>
+          {/* Sin unidad no hay span vacío: dejaría el hueco del gap colgando
+              después del número (un conteo de lecturas no mide nada). */}
+          {unidad && (
+            <span className="text-note-lg font-medium tracking-normal text-text-muted">{unidad}</span>
+          )}
         </>
       )}
     </span>

@@ -115,6 +115,13 @@ export const IconoReloj = ({ className }: Props) => (
   </svg>
 )
 
+export const IconoInfo = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </svg>
+)
+
 export const IconoProblema = ({ className }: Props) => (
   <svg {...base(className)}>
     <path d="M12 9v4M12 17h.01" />

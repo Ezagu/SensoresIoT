@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
-import { IconoAlerta, IconoProblema, IconoReloj } from '@/components/layout/iconos'
+import { IconoAlerta, IconoInfo, IconoProblema, IconoReloj } from '@/components/layout/iconos'
 
 type Tono = 'info' | 'atencion' | 'advertencia' | 'critico'
 
 const MARCA: Record<Tono, { Icono: typeof IconoAlerta; color: string }> = {
-  info: { Icono: IconoAlerta, color: 'text-accent' },
+  info: { Icono: IconoInfo, color: 'text-accent' },
   atencion: { Icono: IconoReloj, color: 'text-attention-mark' },
   advertencia: { Icono: IconoProblema, color: 'text-warn-mark' },
   critico: { Icono: IconoProblema, color: 'text-danger-mark' },

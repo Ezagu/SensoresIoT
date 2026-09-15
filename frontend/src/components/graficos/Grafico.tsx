@@ -180,9 +180,8 @@ export function Grafico({
       className={`h-full w-full ${arrastre ? 'select-none' : ''}`}
     >
       <ResponsiveContainer width="100%" height="100%">
-        {/* El margen de arriba le hace lugar a la unidad del eje Y, que se dibuja
-            por fuera del área de trazado. */}
-        <AreaChart data={puntos} margin={{ top: 16, right: 8, bottom: 0, left: 0 }} {...manejadores}>
+        {/* Aire arriba para que el tick más alto no toque el borde del cuadro. */}
+        <AreaChart data={puntos} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} {...manejadores}>
           <defs>
             <linearGradient id={uid} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.3} />
@@ -196,28 +195,22 @@ export function Grafico({
             domain={[desdeMs, hastaMs]}
             tickFormatter={formatearTick}
             stroke="var(--color-text-faint)"
-            tick={{ fontSize: 11, fontFamily: 'var(--font-reading)', fontWeight: 600 }}
+            tick={{ fontSize: 11, fontFamily: 'var(--font-reading)', fontWeight: 400 }}
             tickLine={false}
             axisLine={{ stroke: 'var(--color-border)' }}
             minTickGap={40}
           />
           {/* width="auto": con ancho fijo una presión de 1.015 hPa sale recortada.
-              La unidad va una vez arriba de la escala y no en cada tick. */}
+              Sin etiqueta de unidad: dibujada arriba de la escala se encimaba con
+              el tick más alto. La unidad la dice la cabecera del gráfico, una vez. */}
           <YAxis
             domain={escala?.dominio}
             stroke="var(--color-text-faint)"
-            tick={{ fontSize: 11, fontFamily: 'var(--font-reading)', fontWeight: 600 }}
+            tick={{ fontSize: 11, fontFamily: 'var(--font-reading)', fontWeight: 400 }}
             tickLine={false}
             axisLine={false}
             width="auto"
             tickFormatter={(v: number) => (escala ? numeroCon(v, escala.decimales) : numero(v))}
-            label={{
-              value: unidad,
-              position: 'top',
-              fill: 'var(--color-text-faint)',
-              fontSize: 10,
-              offset: 0,
-            }}
           />
           <Tooltip content={<TooltipGrafico unidad={unidad} />} />
           {lineas.map(({ umbral, condicion, disparada, posicion }) => (
@@ -237,7 +230,7 @@ export function Grafico({
                 fill: 'var(--color-danger)',
                 fontSize: 10,
                 fontFamily: 'var(--font-reading)',
-                fontWeight: 600,
+                fontWeight: 500,
               }}
             />
           ))}

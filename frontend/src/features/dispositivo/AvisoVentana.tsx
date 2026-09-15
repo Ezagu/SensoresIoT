@@ -1,12 +1,13 @@
-import { Link } from 'react-router-dom'
-import { Boton } from '@/components/ui/Boton'
-import { Card } from '@/components/ui/Card'
+import { Banner } from '@/components/ui/Banner'
+import { BotonLink } from '@/components/ui/Boton'
 import { limiteDeVentana } from '@/utils/retencion'
 import { fecha } from '@/utils/tiempo'
 import type { DatosGrafico } from '@/tipos'
 
 /* Una región vacía puede ser silencio del equipo, instalación posterior, corte
-   del plan o carga en curso. Esto nombra las dos que el backend deja afirmar. */
+   del plan o carga en curso. Esto nombra las dos que el backend deja afirmar.
+   El corte de plan va en tono informativo y no de advertencia: no se perdió
+   nada, hay una puerta cerrada con la llave a la vista. */
 export function AvisoVentana({
   grafico,
   primeraConexion,
@@ -20,28 +21,30 @@ export function AvisoVentana({
 
   if (limite.corteDePlanMs !== null && grafico) {
     return (
-      <Card tono="warn" className="flex flex-wrap items-center justify-between gap-3 p-3.5">
-        <p className="text-label text-warn">
-          Mostramos desde el <span className="num">{fecha(grafico.desde_efectivo)}</span>
-          {grafico.retencion_dias !== null && (
-            <>
-              : tu plan retiene los últimos <span className="num">{grafico.retencion_dias}</span> días
-            </>
-          )}
-          .
-        </p>
-        <Link to="/plan">
-          <Boton variante="sutil">Ver planes</Boton>
-        </Link>
-      </Card>
+      <Banner
+        tono="info"
+        titulo={
+          grafico.retencion_dias !== null
+            ? `Tu plan guarda todo, pero muestra ${grafico.retencion_dias} días`
+            : 'Estás viendo una parte del rango pedido'
+        }
+        acciones={
+          <BotonLink variante="sutil" to="/plan">
+            Ver planes
+          </BotonLink>
+        }
+      >
+        Desde el <span className="num font-medium text-text">{fecha(grafico.desde_efectivo)}</span> en
+        adelante. Lo anterior sigue guardado: al pasar a premium aparece completo, sin huecos.
+      </Banner>
     )
   }
 
   if (limite.primeraConexion) {
     return (
       <p className="text-note-lg text-text-muted">
-        Este equipo reportó por primera vez el <span className="num">{fecha(limite.primeraConexion)}</span>. Antes
-        de esa fecha no hay datos.
+        Este equipo reportó por primera vez el{' '}
+        <span className="num">{fecha(limite.primeraConexion)}</span>. Antes de esa fecha no hay datos.
       </p>
     )
   }

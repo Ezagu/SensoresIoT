@@ -67,8 +67,9 @@ function claseItem({ isActive }: { isActive: boolean }) {
   }`
 }
 
-/* Sólo los ancestros: la última miga es el título que va justo abajo, y
-   repetirlo en dos renglones pegados no agrega una ruta, agrega ruido. */
+/* La ruta entera, hoja incluida: repite el título de abajo, pero es lo que hace
+   que la miga diga dónde estás y no sólo de dónde venís. La hoja no es enlace
+   —ya estás ahí— y va en tinta plena. */
 function Migas({ items }: { items: Miga[] }) {
   return (
     <nav aria-label="Ruta" className="flex min-w-0 items-center gap-1.5 text-note-lg text-text-muted">
@@ -80,7 +81,7 @@ function Migas({ items }: { items: Miga[] }) {
               {m.etiqueta}
             </Link>
           ) : (
-            <span className="truncate">{m.etiqueta}</span>
+            <span className="truncate text-text">{m.etiqueta}</span>
           )}
         </Fragment>
       ))}
@@ -132,7 +133,7 @@ export function Layout({ titulo }: { titulo: string }) {
      (el nombre del equipo, no "Dispositivos"). */
   const [migas, setMigas] = useState<Miga[] | null>(null)
   const encabezado = migas?.at(-1)?.etiqueta ?? titulo
-  const ruta = migas?.slice(0, -1) ?? []
+  const ruta = migas ?? []
 
   useEffect(() => {
     document.title = `${encabezado} · ${MARCA}`
