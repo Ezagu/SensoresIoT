@@ -94,13 +94,16 @@ export function BloqueExport({
           <div role="status" className="flex flex-col gap-1.5 rounded-control border border-border bg-surface-2 p-3">
             <p className="text-label text-text">
               Descargado <strong className="font-medium">{resultado.nombreArchivo}</strong> — resolución{' '}
-              {resultado.resolucion}.
+              <span className="num">{resultado.resolucion}</span>.
             </p>
             {resultado.recortado && (
               <p className="text-label text-warn">
-                Arranca el {fecha(resultado.desdeEfectivo)}
-                {resultado.retencionDias !== null &&
-                  `: tu plan sólo exporta los últimos ${resultado.retencionDias} días`}
+                Arranca el <span className="num">{fecha(resultado.desdeEfectivo)}</span>
+                {resultado.retencionDias !== null && (
+                  <>
+                    : tu plan sólo exporta los últimos <span className="num">{resultado.retencionDias}</span> días
+                  </>
+                )}
                 .{' '}
                 <Link to="/plan" className="font-medium underline">
                   Ver planes

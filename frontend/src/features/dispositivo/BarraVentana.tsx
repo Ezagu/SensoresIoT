@@ -60,6 +60,7 @@ export function BarraVentana({
         fueraDelPlan={(v) =>
           v === 'maximo' ? !permiteHistorialCompleto(retencionDias) : rangoExcedeRetencion(v, retencionDias)
         }
+        numerico
       />
       {!enVivo && (
         <Boton variante="fantasma" onClick={refrescar} disabled={refrescando}>

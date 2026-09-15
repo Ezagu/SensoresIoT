@@ -196,7 +196,7 @@ export function Grafico({
             domain={[desdeMs, hastaMs]}
             tickFormatter={formatearTick}
             stroke="var(--color-text-faint)"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 11, fontFamily: 'var(--font-reading)', fontWeight: 600 }}
             tickLine={false}
             axisLine={{ stroke: 'var(--color-border)' }}
             minTickGap={40}
@@ -206,7 +206,7 @@ export function Grafico({
           <YAxis
             domain={escala?.dominio}
             stroke="var(--color-text-faint)"
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 11, fontFamily: 'var(--font-reading)', fontWeight: 600 }}
             tickLine={false}
             axisLine={false}
             width="auto"
@@ -236,6 +236,8 @@ export function Grafico({
                 position: posicion,
                 fill: 'var(--color-danger)',
                 fontSize: 10,
+                fontFamily: 'var(--font-reading)',
+                fontWeight: 600,
               }}
             />
           ))}
@@ -245,7 +247,7 @@ export function Grafico({
             <ReferenceArea
               x1={corteDePlanMs}
               x2={corteDePlanMs + (hastaMs - corteDePlanMs) * 0.008}
-              fill="var(--color-premium)"
+              fill="var(--color-accent)"
               fillOpacity={0.55}
               stroke="none"
             />

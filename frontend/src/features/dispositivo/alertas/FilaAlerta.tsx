@@ -5,7 +5,7 @@ import { Pill } from '@/components/ui/Pill'
 import { eliminarAlerta } from '@/services/consultas'
 import { medida } from '@/utils/formato'
 import type { Alerta } from '@/tipos'
-import { condicionTexto } from './condicion'
+import { condicionTexto, CondicionTexto } from './condicion'
 
 export function FilaAlerta({
   alerta,
@@ -38,15 +38,25 @@ export function FilaAlerta({
     <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 py-2.5">
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="flex items-center gap-2 text-label-lg font-medium text-text">
-          {alerta.nombre || condicionTexto(alerta)}
+          {alerta.nombre || <CondicionTexto alerta={alerta} />}
           <Pill tono={alerta.estado === 'disparada' ? 'danger' : 'ok'}>
             {alerta.estado === 'disparada' ? 'Disparada' : 'Normal'}
           </Pill>
           {!alerta.activa && <Pill tono="faint">Inactiva</Pill>}
         </span>
         <span className="text-note text-text-faint">
-          {alerta.nombre && `${condicionTexto(alerta)} · `}
-          {alerta.ultimo_valor !== null ? `Último: ${medida(alerta.ultimo_valor, unidad)}` : 'Sin lecturas evaluadas'}
+          {alerta.nombre && (
+            <>
+              <CondicionTexto alerta={alerta} /> ·{' '}
+            </>
+          )}
+          {alerta.ultimo_valor !== null ? (
+            <>
+              Último: <span className="num">{medida(alerta.ultimo_valor, unidad)}</span>
+            </>
+          ) : (
+            'Sin lecturas evaluadas'
+          )}
         </span>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-1.5">

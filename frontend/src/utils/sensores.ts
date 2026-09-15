@@ -13,13 +13,17 @@ type MetaSensor = {
   color: string
 }
 
+/* El sistema Bitácora eliminó los seis hues por tipo de sensor: el color queda
+   reservado para significado de estado, no para identidad de tipo. Todos los
+   tipos comparten la línea de datos hasta que exista una paleta categórica
+   propia (ver handoff/MAPEO.md — "Series categóricas": no improvisarla). */
 const META: Record<ClaveSensor, MetaSensor> = {
-  temperatura: { etiqueta: 'Temperatura', color: 'var(--color-sensor-temperatura)' },
-  humedad: { etiqueta: 'Humedad', color: 'var(--color-sensor-humedad)' },
-  presion: { etiqueta: 'Presión', color: 'var(--color-sensor-presion)' },
-  co2: { etiqueta: 'CO₂', color: 'var(--color-sensor-co2)' },
-  luz: { etiqueta: 'Luz', color: 'var(--color-sensor-luz)' },
-  ruido: { etiqueta: 'Ruido', color: 'var(--color-sensor-ruido)' },
+  temperatura: { etiqueta: 'Temperatura', color: 'var(--color-chart-line)' },
+  humedad: { etiqueta: 'Humedad', color: 'var(--color-chart-line)' },
+  presion: { etiqueta: 'Presión', color: 'var(--color-chart-line)' },
+  co2: { etiqueta: 'CO₂', color: 'var(--color-chart-line)' },
+  luz: { etiqueta: 'Luz', color: 'var(--color-chart-line)' },
+  ruido: { etiqueta: 'Ruido', color: 'var(--color-chart-line)' },
   desconocido: { etiqueta: 'Sensor', color: 'var(--color-text-muted)' },
 }
 

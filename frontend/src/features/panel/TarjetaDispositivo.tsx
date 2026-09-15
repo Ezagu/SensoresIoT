@@ -105,7 +105,7 @@ export function TarjetaDispositivo({
       <div className="mt-auto flex items-center justify-between gap-2 border-t border-border pt-2.5 text-note text-text-faint">
         <span className="truncate">
           {dispositivo.last_seen_at ? (
-            <>Reportó <HaceCuanto iso={dispositivo.last_seen_at} /></>
+            <>Reportó <span className="num"><HaceCuanto iso={dispositivo.last_seen_at} /></span></>
           ) : (
             'Nunca reportó'
           )}

@@ -22,8 +22,13 @@ export function AvisoVentana({
     return (
       <Card tono="warn" className="flex flex-wrap items-center justify-between gap-3 p-3.5">
         <p className="text-label text-warn">
-          Mostramos desde el {fecha(grafico.desde_efectivo)}
-          {grafico.retencion_dias !== null && `: tu plan retiene los últimos ${grafico.retencion_dias} días`}.
+          Mostramos desde el <span className="num">{fecha(grafico.desde_efectivo)}</span>
+          {grafico.retencion_dias !== null && (
+            <>
+              : tu plan retiene los últimos <span className="num">{grafico.retencion_dias}</span> días
+            </>
+          )}
+          .
         </p>
         <Link to="/plan">
           <Boton variante="sutil">Ver planes</Boton>
@@ -35,7 +40,8 @@ export function AvisoVentana({
   if (limite.primeraConexion) {
     return (
       <p className="text-note-lg text-text-muted">
-        Este equipo reportó por primera vez el {fecha(limite.primeraConexion)}. Antes de esa fecha no hay datos.
+        Este equipo reportó por primera vez el <span className="num">{fecha(limite.primeraConexion)}</span>. Antes
+        de esa fecha no hay datos.
       </p>
     )
   }

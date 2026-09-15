@@ -161,7 +161,7 @@ export function Layout({ titulo }: { titulo: string }) {
             >
               <span
                 aria-hidden="true"
-                className="flex size-7.5 shrink-0 items-center justify-center rounded-control bg-linear-to-br from-avatar-from to-avatar-to font-display text-label-lg font-bold text-accent-ink"
+                className="flex size-7.5 shrink-0 items-center justify-center rounded-control border border-border bg-surface-2 font-display text-label-lg font-bold text-text"
               >
                 {iniciales(sesion?.nombre)}
               </span>
@@ -171,7 +171,7 @@ export function Layout({ titulo }: { titulo: string }) {
                 </strong>
                 {/* El espacio duro reserva el renglón mientras carga el plan,
                     para que el bloque no crezca después de montar. */}
-                <small className={`truncate text-note  ${plan?.plan.id !== "free" ? "text-premium" : "text-text-faint"}`}>
+                <small className={`truncate text-note  ${plan?.plan.id !== "free" ? "text-accent" : "text-text-faint"}`}>
                 {plan ? `Plan ${plan.plan.nombre}` : ' '}
                 </small>
               </span>

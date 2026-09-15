@@ -147,7 +147,7 @@ export function DetalleSensor() {
             {ultima ? medida(ultima.value, sensor.unidad) : '—'}
           </span>
           <span className="text-note text-text-faint">
-            {ultima ? <>Reportó <HaceCuanto iso={ultima.time} /></> : 'Nunca reportó'}
+            {ultima ? <>Reportó <span className="num"><HaceCuanto iso={ultima.time} /></span></> : 'Nunca reportó'}
           </span>
         </div>
         {hayResumen && resumen && (

@@ -3,143 +3,152 @@
 /* Los tokens se declaran en @theme para que Tailwind genere utilidades
    (bg-surface, text-text-muted, border-border…) y además queden como custom
    properties reasignables por tema más abajo. Los valores acá son el tema
-   oscuro: el diseño es dark-first. */
+   claro: el diseño es light-first (papel cálido / tinta fría, ver
+   readme del sistema Bitácora). */
 @theme {
-  --color-bg: #0b0d12;
-  --color-surface: #12151d;
-  --color-surface-2: #191d27;
+  --color-bg: #fbfaf7;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f3ed;
   /* Campo deshabilitado: más hundido que surface, para que el "pozo" del campo
      activo (surface-2) no se lea como editable. Ver components/ui/Campo.tsx */
-  --color-surface-inert: #101319;
-  --color-sidebar: #07080c;
-  --color-border: #242a36;
-  --color-border-strong: #333b4a;
+  --color-surface-inert: #f5f3ed;
+  --color-sidebar: #ffffff;
+  --color-border: #e8eced;
+  --color-border-strong: #c9d0d3;
 
-  /* Los tres escalones sostienen ~15:1 / ~7:1 / ~4.5:1 contra surface-2, que es
-     el fondo más claro sobre el que se apoyan. El más tenue también es texto
-     normal (metadatos, notas al pie), así que le aplica el 4.5:1 de AA. */
-  --color-text: #e8ebf0;
-  --color-text-muted: #9fa8ba;
-  --color-text-faint: #7c8597;
+  /* Los tres escalones sostienen AAA (≥7:1) contra bg, surface y surface-2. */
+  --color-text: #121a1d;
+  --color-text-muted: #39454b;
+  --color-text-faint: #495359;
 
   /* accent es el tono claro para texto/íconos/foco; accent-strong el relleno
      sólido donde va texto blanco encima (el claro no llega a 4.5:1 con blanco). */
-  --color-accent: #6c93ff;
-  --color-accent-strong: #3d68e6;
+  --color-accent: #075462;
+  --color-accent-strong: #0a5c6b;
   --color-accent-ink: #ffffff;
 
-  --color-ok: #29c07a;
-  --color-warn: #f0a62b;
-  --color-danger: #f2544b;
-  /* Plan premium: mismo hue que --color-sensor-co2, nombre semántico propio
-     porque acá representa "función de pago", no un tipo de sensor. */
-  --color-premium: #a78bfa;
+  /* Estados de monitoreo. Un equipo tiene tres estados (en línea / con retraso /
+     sin reportar): "attention" es el ámbar propio de "con retraso", separado de
+     "warn" (advertencia, naranja) para que el buffer normal no se lea como falla. */
+  --color-ok: #144a31;
+  --color-attention: #6e4705;
+  --color-warn: #7f3a0c;
+  --color-danger: #7c1613;
+  --color-offline: #3c484e;
 
-  /* Los tonos -soft se derivan del base para que el hue tenga una sola fuente
-     de verdad: cambiar --color-ok arrastra su fondo. El porcentaje sí varía por
-     tema (el claro necesita menos velo). */
-  --color-accent-soft: color-mix(in oklab, var(--color-accent) 16%, transparent);
-  --color-ok-soft: color-mix(in oklab, var(--color-ok) 14%, transparent);
-  --color-warn-soft: color-mix(in oklab, var(--color-warn) 14%, transparent);
-  --color-danger-soft: color-mix(in oklab, var(--color-danger) 14%, transparent);
-  --color-premium-soft: color-mix(in oklab, var(--color-premium) 16%, transparent);
+  /* Tono del glifo/relleno de cada estado (más claro que el de texto).
+     El punto, la barra y la línea de umbral usan estos; el texto usa los de arriba. */
+  --color-ok-mark: #268056;
+  --color-attention-mark: #b5780c;
+  --color-warn-mark: #c55f18;
+  --color-danger-mark: #9e332b;
+  --color-offline-mark: #78848a;
+
+  /* Fondos de estado: opacos, calculados para sostener su propio texto a ≥7:1
+     (un velo translúcido sobre un fondo variable no garantiza contraste). */
+  --color-accent-soft: #edf5f6;
+  --color-ok-soft: #edf6f1;
+  --color-attention-soft: #fcf6e7;
+  --color-warn-soft: #fdf1e8;
+  --color-danger-soft: #fcedeb;
 
   /* Velo del drawer mobile y del ::backdrop del modal */
-  --color-overlay: rgba(0, 0, 0, 0.55);
+  --color-overlay: rgba(11, 16, 18, 0.36);
 
-  --color-avatar-from: #4c7dff;
-  --color-avatar-to: #8b5cf6;
+  /* Datos: línea de promedio, segunda línea, grilla, eje, umbral y la franja
+     que marca un hueco en la serie. */
+  --color-chart-line: #146272;
+  --color-chart-line-2: #495359;
+  --color-chart-grid: #e8eced;
+  --color-chart-axis: #a5afb4;
+  --color-chart-band: #f2f5f5;
+  --color-chart-threshold: #9e332b;
 
-  /* Hue fijo por tipo de sensor: el mismo tipo lleva el mismo color en toda la
-     app, y ningún sensor usa el hue del chrome. Ver lib/sensores.ts */
-  --color-sensor-temperatura: #f97316;
-  --color-sensor-humedad: #22c6e0;
-  --color-sensor-presion: #94a3b8;
-  --color-sensor-co2: #a78bfa;
-  --color-sensor-luz: #eab308;
-  --color-sensor-ruido: #f472b6;
-
-  --font-display: 'Space Grotesk', ui-sans-serif, sans-serif;
-  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-reading: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   /* Se borra la escala default (text-xs, text-lg…) para que no haya tamaño sin
-     token. Los pares -lg son los tres saltos de medio píxel del diseño: quedan
-     a la vista en el nombre en vez de escondidos en un valor arbitrario.
-     Ninguno declara su --text-*--line-height: el interlineado lo hereda del
-     body (1.5), como cuando eran valores arbitrarios. */
+     token. Los nombres se conservan; los valores pasan a la escala del sistema
+     (11 / 12 / 13 / 14 / 16 / 18 / 22 / 28 / 36), sin saltos de medio píxel. */
   --text-*: initial;
-  --text-tag: 10.5px;
+  --text-tag: 11px;
   --text-note: 11px;
-  --text-note-lg: 11.5px;
+  --text-note-lg: 12px;
   --text-label: 12px;
-  --text-label-lg: 12.5px;
+  --text-label-lg: 12px;
   --text-body: 13px;
-  --text-body-lg: 13.5px;
+  --text-body-lg: 14px;
   --text-heading: 14px;
-  --text-heading-lg: 15px;
-  --text-brand: 16px;
-  --text-page: 17px;
-  --text-page-lg: 19px;
-  --text-metric: 21px;
-  --text-hero: 22px;
-  --text-display: 30px;
+  --text-heading-lg: 16px;
+  --text-brand: 18px;
+  --text-page: 18px;
+  --text-page-lg: 22px;
+  --text-metric: 20px;
+  --text-hero: 28px;
+  --text-display: 36px;
 
-  --radius-card: 12px;
-  --radius-control: 8px;
+  --radius-card: 10px;
+  --radius-control: 7px;
   /* tile: cuadrado chico (ícono, ítem de segmentado, mini-botón).
      group: contenedor de un grupo de controles, un escalón por encima. */
   --radius-tile: 7px;
-  --radius-group: 9px;
+  --radius-group: 10px;
 }
 
-/* Tema claro: sólo se reasignan tokens, nunca reglas de componente. El atributo
-   está siempre puesto — lib/tema.ts resuelve "sistema" a light/dark antes de
-   pintar, así que no hace falta duplicar esta paleta en un @media. */
+/* Tema oscuro: sólo se reasignan tokens, nunca reglas de componente. El
+   atributo está siempre puesto — lib/tema.ts resuelve "sistema" a light/dark
+   antes de pintar, así que no hace falta duplicar esta paleta en un @media. */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
-:root[data-theme='light'] {
-  color-scheme: light;
-  --color-bg: #f4f6fa;
-  --color-surface: #ffffff;
-  --color-surface-2: #edf0f6;
-  --color-surface-inert: #f2f4f8;
-  --color-sidebar: #ffffff;
-  --color-border: #e1e6ee;
-  --color-border-strong: #c9d1de;
+:root[data-theme='dark'] {
+  color-scheme: dark;
 
-  --color-text: #131720;
-  --color-text-muted: #475163;
-  --color-text-faint: #656e7e;
+  --color-bg: #0b1012;
+  --color-surface: #101719;
+  --color-surface-2: #1b2529;
+  --color-surface-inert: #141b1e;
+  --color-sidebar: #101719;
+  --color-border: #1e282c;
+  --color-border-strong: #3c4a50;
 
-  --color-accent: #1f53e5;
-  --color-accent-strong: #1f53e5;
-  --color-accent-ink: #ffffff;
+  --color-text: #edf0f0;
+  --color-text-muted: #b6c1c5;
+  --color-text-faint: #a6b2b7;
 
-  /* Más oscuros que su equivalente en el tema oscuro: acá el color va sobre su
-     propio -soft (Pill, Boton sutil, Card tono="warn"), que es translúcido, así
-     que el 4.5:1 se mide contra ese compuesto. Y el fondo que se compone atrás
-     es surface-2 —las filas de alerta, no las cards blancas—, que es el más
-     oscuro de los que las pills pisan y por lo tanto el peor caso. */
-  --color-ok: #00713e;
-  --color-warn: #8e5500;
-  --color-danger: #b62d26;
-  --color-premium: #7530ec;
+  --color-accent: #86c5ce;
+  --color-accent-strong: #62bcc9;
+  --color-accent-ink: #04181d;
 
-  --color-accent-soft: color-mix(in oklab, var(--color-accent) 10%, transparent);
-  --color-ok-soft: color-mix(in oklab, var(--color-ok) 10%, transparent);
-  --color-warn-soft: color-mix(in oklab, var(--color-warn) 10%, transparent);
-  --color-danger-soft: color-mix(in oklab, var(--color-danger) 10%, transparent);
-  --color-premium-soft: color-mix(in oklab, var(--color-premium) 10%, transparent);
+  --color-ok: #7cc6a2;
+  --color-attention: #e6bc6c;
+  --color-warn: #efa477;
+  --color-danger: #f09189;
+  --color-offline: #b6c1c5;
 
-  --color-sensor-temperatura: #ea6a0a;
-  --color-sensor-humedad: #0891b2;
-  --color-sensor-presion: #64748b;
-  --color-sensor-co2: #7c3aed;
-  --color-sensor-luz: #ca8a04;
-  --color-sensor-ruido: #db2777;
+  --color-ok-mark: #6fb491;
+  --color-attention-mark: #dcad52;
+  --color-warn-mark: #e09566;
+  --color-danger-mark: #e89a92;
+  --color-offline-mark: #7f8c91;
+
+  --color-accent-soft: #0b2b33;
+  --color-ok-soft: #0e2620;
+  --color-attention-soft: #2a2010;
+  --color-warn-soft: #2d1a10;
+  --color-danger-soft: #2c1413;
+
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-chart-line: #4ba6b4;
+  --color-chart-line-2: #a6b2b7;
+  --color-chart-grid: #1e282c;
+  --color-chart-axis: #3c4a50;
+  --color-chart-band: #141b1e;
+  --color-chart-threshold: #e89a92;
 }
 
 @layer base {
@@ -154,8 +163,8 @@
     background: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-sans);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -164,7 +173,8 @@
   h3 {
     font-family: var(--font-display);
     font-weight: 600;
-    text-wrap: balance;
+    letter-spacing: -0.014em;
+    text-wrap: pretty;
   }
 
   /* Sin delay de doble-tap y sin el flash gris nativo, que no respeta
@@ -177,7 +187,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-accent);
+    outline: 2px solid var(--color-accent-strong);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -193,13 +203,16 @@
   }
 
   ::selection {
-    background: var(--color-accent-soft);
+    background: #b9dfe5;
+    color: #121a1d;
   }
 
-  /* Toda cifra alineada en columna o comparable entre sí */
+  /* Toda cifra medida: misma familia, tabular, peso 600. */
   .num {
-    font-family: var(--font-mono);
+    font-family: var(--font-reading);
     font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.015em;
   }
 }
 

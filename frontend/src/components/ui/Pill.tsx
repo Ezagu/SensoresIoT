@@ -7,7 +7,7 @@ const TONOS: Record<Tono, string> = {
   warn: 'bg-warn-soft text-warn',
   danger: 'bg-danger-soft text-danger',
   faint: 'bg-surface-2 text-text-faint',
-  premium: 'bg-premium-soft text-premium',
+  premium: 'bg-accent-soft text-accent',
 }
 
 /* El punto refuerza, no reemplaza: el texto del pill es el canal principal

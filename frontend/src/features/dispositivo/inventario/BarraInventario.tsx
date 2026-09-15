@@ -73,7 +73,7 @@ export function BarraInventario({
       {/* Sin equipos no hay nada que resumir: la barra de estado desaparece
           entera en vez de mostrar "Todos 0". */}
       {total > 0 && (
-        <Segmentado etiqueta="Filtrar por estado" valor={estado} opciones={opciones} onCambiar={onEstado} />
+        <Segmentado etiqueta="Filtrar por estado" valor={estado} opciones={opciones} onCambiar={onEstado} numerico />
       )}
     </div>
   )

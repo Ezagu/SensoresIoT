@@ -23,13 +23,14 @@ export function FichaEquipo({
         <div className="min-w-0">
           <dt className="text-text-faint">ID del equipo</dt>
           <dd className="flex min-w-0 items-center gap-1.5">
-            <span className="num truncate text-text">{dispositivo.id}</span>
+            {/* Identificador, no una cifra medida: IBM Plex Mono, nunca .num. */}
+            <span className="font-mono truncate text-text">{dispositivo.id}</span>
             <BotonCopiar texto={dispositivo.id} etiqueta="Copiar ID del equipo" variante="icono" />
           </dd>
         </div>
         <div>
           <dt className="text-text-faint">Primera conexión</dt>
-          <dd className="text-text">
+          <dd className="num text-text">
             {dispositivo.first_connected_at ? fechaHora(dispositivo.first_connected_at) : 'Todavía no se conectó'}
           </dd>
         </div>

@@ -9,11 +9,14 @@ export function Segmentado<T extends string>({
   mensajeFueraDelPlan,
   columnasAngosto,
   disabled,
+  numerico,
 }: {
   valor: T | null
   opciones: { valor: T; etiqueta: string }[]
   onCambiar: (valor: T) => void
   etiqueta: string
+  /* Las opciones son una cifra medida (duración, cantidad): tipografía de lectura. */
+  numerico?: boolean
   /* Opción que excede el plan del dueño: se marca pero se elige igual, y quien
      la consume explica qué parte quedó afuera. Sin la prop no hay marca. */
   fueraDelPlan?: (valor: T) => boolean
@@ -97,15 +100,15 @@ export function Segmentado<T extends string>({
             onClick={() => !disabled && onCambiar(o.valor)}
             /* 44px con el dedo (pointer-coarse), 32px con mouse: la densidad de
                escritorio no tiene por qué pagar el tamaño de toque. */
-            className={`flex min-h-8 items-center justify-center gap-1 rounded-tile text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`flex min-h-8 items-center justify-center gap-1 rounded-tile text-label font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${numerico ? 'num' : ''} ${
               columnasAngosto
                 ? `px-1.5 sm:px-3 ${indice === 0 ? 'col-span-full sm:col-auto' : ''}`
                 : 'px-3'
             } ${
               o.valor === valor
-                ? `bg-surface shadow-sm ${excede ? 'text-premium' : 'text-text'}`
+                ? `bg-surface shadow-sm ${excede ? 'text-accent' : 'text-text'}`
                 : excede
-                  ? 'text-premium hover:bg-premium-soft'
+                  ? 'text-accent hover:bg-accent-soft'
                   : 'text-text-muted hover:text-text'
             }`}
           >

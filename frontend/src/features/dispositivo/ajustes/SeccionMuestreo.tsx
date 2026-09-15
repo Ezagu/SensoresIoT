@@ -90,11 +90,13 @@ export function SeccionMuestreo({
           fueraDelPlan={(valor) => !habilitados.includes(segundosDe(valor))}
           mensajeFueraDelPlan={() => 'Tu plan no permite guardar tan seguido'}
           disabled={!puedeEditar}
+          numerico
         />
 
         <div className="flex flex-col gap-1 text-note text-text-faint">
           <p>
-            El dispositivo muestrea cada 15 segundos, pero sólo guarda un dato cada intervalo elegido.
+            El dispositivo muestrea cada <span className="num">15</span> segundos, pero sólo guarda un dato cada
+            intervalo elegido.
           </p>
           <p>Se aplica en el próximo reporte del dispositivo.</p>
         </div>
@@ -107,8 +109,8 @@ export function SeccionMuestreo({
                 que en vez de ofrecer un Guardar que va a fallar, se marca y se
                 explica qué falta. */}
             {fueraDelPlan && (
-              <p className="mr-auto text-note text-premium">
-                Guardar cada {PRESETS.find((p) => p.valor === preset)!.etiqueta} es de
+              <p className="mr-auto text-note text-accent">
+                Guardar cada <span className="num">{PRESETS.find((p) => p.valor === preset)!.etiqueta}</span> es de
                 Premium. <Link to="/plan" className="underline">Ver planes</Link>
               </p>
             )}

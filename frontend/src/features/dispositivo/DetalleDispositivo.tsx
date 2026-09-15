@@ -122,7 +122,9 @@ export function DetalleDispositivo() {
               <Pill tono={TONO_POR_ESTADO[situacionDispositivo]}>{ETIQUETA_ESTADO[situacionDispositivo]}</Pill>
               {disparadas > 0 && (
                 <Pill tono="danger">
-                  {disparadas === 1 ? '1 alerta disparada' : `${disparadas} alertas disparadas`}
+                  <span className="num">
+                    {disparadas === 1 ? '1 alerta disparada' : `${disparadas} alertas disparadas`}
+                  </span>
                 </Pill>
               )}
             </span>
@@ -143,7 +145,7 @@ export function DetalleDispositivo() {
             {/* Sólo con el equipo en línea: en uno caído hace días el contador
                 diría "esperando dato" para siempre. */}
             {estado.datos?.online && (
-              <span>
+              <span className="num">
                 <ProximoDato enSegundos={estado.datos.siguiente_medicion} />
               </span>
             )}

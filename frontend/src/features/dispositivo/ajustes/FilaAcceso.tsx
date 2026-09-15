@@ -62,7 +62,7 @@ export function FilaAcceso({
       <div className="flex items-center gap-2.5">
         <span
           aria-hidden="true"
-          className="flex size-7.5 shrink-0 items-center justify-center rounded-control bg-linear-to-br from-avatar-from to-avatar-to font-display text-label-lg font-bold text-accent-ink"
+          className="flex size-7.5 shrink-0 items-center justify-center rounded-control border border-border bg-surface-2 font-display text-label-lg font-bold text-text"
         >
           {iniciales(acceso.nombre)}
         </span>

@@ -101,10 +101,10 @@ export function FilaInvitacion({
             </span>
             {/* A 390px la URL visible es sólo el prefijo: no se puede leer ni
                 verificar, y el afford real es Copiar. Vuelve en sm. */}
-            {global && <span className="num hidden truncate text-note text-text-faint sm:block">{link}</span>}
+            {global && <span className="font-mono hidden truncate text-note text-text-faint sm:block">{link}</span>}
             <span className="text-note text-text-faint">
               {vencida ? 'Venció el ' : 'Vence el '}
-              {fecha(invitacion.expires_at)}
+              <span className="num">{fecha(invitacion.expires_at)}</span>
             </span>
           </div>
 
@@ -124,7 +124,7 @@ export function FilaInvitacion({
                 title={restante > 0 ? `Disponible en ${restanteLegible(restante)}` : undefined}
               >
                 {global ? <IconoActualizar className="size-3.5" /> : <IconoSobre className="size-3.5" />}
-                {restante > 0 ? restanteLegible(restante) : global ? 'Regenerar' : 'Reenviar'}
+                {restante > 0 ? <span className="num">{restanteLegible(restante)}</span> : global ? 'Regenerar' : 'Reenviar'}
               </Boton>
               <Boton
                 type="button"

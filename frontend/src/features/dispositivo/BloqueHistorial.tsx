@@ -132,7 +132,7 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
                       <th
                         colSpan={2}
                         scope="colgroup"
-                        className="pt-3 pb-1 text-left text-note font-medium tracking-wide text-text-faint uppercase"
+                        className="num pt-3 pb-1 text-left text-note font-medium tracking-wide text-text-faint uppercase"
                       >
                         {dia}
                       </th>
@@ -152,7 +152,7 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
       {finPorRetencion && (
         <Card tono="warn" className="flex flex-wrap items-center justify-between gap-3 p-3.5">
           <p className="text-label text-warn">
-            Tu plan sólo retiene los últimos {datos!.retencionDias} días de historial.
+            Tu plan sólo retiene los últimos <span className="num">{datos!.retencionDias}</span> días de historial.
           </p>
           <Link to="/plan">
             <Boton variante="sutil">Ver planes</Boton>
@@ -165,7 +165,7 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
           <Boton type="button" variante="fantasma" disabled={!hayAnterior || cargando} onClick={anterior}>
             ← Anterior
           </Boton>
-          <span className="text-note text-text-faint">Página {pagina + 1}</span>
+          <span className="num text-note text-text-faint">Página {pagina + 1}</span>
           <Boton type="button" variante="fantasma" disabled={!haySiguiente || cargando} onClick={siguiente}>
             Siguiente →
           </Boton>
@@ -175,6 +175,7 @@ export function BloqueHistorial({ sensorId, unidad }: { sensorId: string; unidad
           valor={String(limite)}
           opciones={OPCIONES_FILAS}
           onCambiar={(v) => setLimite(Number(v))}
+          numerico
         />
       </div>
     </Card>

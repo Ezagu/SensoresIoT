@@ -98,7 +98,7 @@ export function FilaEquipo({
         <TiraSensores sensores={dispositivo.sensores} apagada={inactivo} />
 
         {dispositivo.alertas_total > 0 && (
-          <span className="text-note text-text-faint">
+          <span className="num text-note text-text-faint">
             {dispositivo.alertas_total === 1 ? '1 alerta' : `${dispositivo.alertas_total} alertas`}
           </span>
         )}
@@ -116,7 +116,7 @@ export function FilaEquipo({
         <span className="whitespace-nowrap text-note text-text-faint">
           {dispositivo.last_seen_at ? (
             <>
-              hace <HaceCuanto iso={dispositivo.last_seen_at} />
+              hace <span className="num"><HaceCuanto iso={dispositivo.last_seen_at} /></span>
             </>
           ) : dispositivo.first_connected_at ? (
             'Nunca reportó'

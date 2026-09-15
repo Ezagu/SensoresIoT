@@ -89,7 +89,7 @@ export function BloqueSensor({
               {medida(ultimo.promedio, sensor.unidad)}
             </span>
             <span className="text-note text-text-faint">
-              Reportó <HaceCuanto iso={ultimo.bucket} />
+              Reportó <span className="num"><HaceCuanto iso={ultimo.bucket} /></span>
             </span>
           </div>
           {hayDatos && resumen && <ResumenStats resumen={resumen} unidad={sensor.unidad} />}
