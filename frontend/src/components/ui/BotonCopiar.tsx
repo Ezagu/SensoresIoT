@@ -36,7 +36,7 @@ export function BotonCopiar({
         type="button"
         onClick={copiar}
         aria-label={etiqueta}
-        className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-control text-text-muted hover:text-text"
+        className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-control text-text-muted transition-colors duration-130 hover:bg-surface-2 hover:text-text active:bg-border"
       >
         {copiado ? <IconoTilde className="size-3.5 text-ok" /> : <IconoCopiar className="size-3.5" />}
       </button>

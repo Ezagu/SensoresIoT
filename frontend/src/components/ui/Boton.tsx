@@ -8,27 +8,30 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
-/* pointer-coarse sube el alto: 36 alcanza con un mouse, no con un dedo. Las de
-   pantalla van a 44; las de fila (texto/destructivo) a 40, porque vienen de a
-   tres en un grupo con separación propia y son transparentes: a 44 el label de
-   11px queda nadando en un bloque vacío, que es justo lo que ensucia el mobile. */
+/* Dos de las tres alturas del sistema: 34 para los botones de pantalla, 28 para
+   los de fila. El borde transparente está siempre puesto, así una variante con
+   borde y una sin él no se corren un píxel cuando conviven en la misma barra.
+   Deshabilitado tiene relleno y texto propios: nunca opacidad sobre el activo. */
 const BASE =
-  'inline-flex items-center justify-center gap-1.5 rounded-control font-semibold whitespace-nowrap cursor-pointer ' +
-  'transition-[filter,background-color,color] duration-150 disabled:opacity-50 disabled:cursor-not-allowed'
+  'inline-flex items-center justify-center rounded-control border border-transparent font-medium whitespace-nowrap ' +
+  'cursor-pointer transition-colors duration-130 disabled:cursor-not-allowed disabled:border-border ' +
+  'disabled:bg-surface-inert disabled:text-disabled-text disabled:hover:border-border ' +
+  'disabled:hover:bg-surface-inert disabled:hover:text-disabled-text'
+
+const MEDIA = 'h-8.5 gap-2 px-3.5 text-body-lg'
+const FILA = 'h-7 gap-1.5 px-2.5 text-body'
 
 const VARIANTES: Record<Variante, string> = {
-  primario:
-    'bg-accent-strong text-accent-ink text-label-lg min-h-9 px-3.5 shadow-sm hover:brightness-110 active:translate-y-px',
-  sutil:
-    'bg-accent-soft text-accent text-note-lg min-h-9 px-3.5 hover:bg-border',
-  fantasma:
-    'bg-transparent text-text-muted text-label-lg min-h-9 px-3 border border-border hover:text-text hover:border-border-strong',
+  primario: `${MEDIA} bg-accent-strong text-accent-ink hover:bg-accent-strong-hover active:bg-accent-strong-active`,
+  /* La alternativa a la acción principal: lleva marco, no color de marca. */
+  sutil: `${MEDIA} border-border-control bg-surface text-text hover:border-border-strong hover:bg-surface-2 active:bg-border`,
+  /* Barra de herramientas: sin marco, para no competir con la acción principal. */
+  fantasma: `${MEDIA} bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
   /* Acciones dentro de una fila de lista: pesan menos que un botón de pantalla. */
-  texto: 'bg-transparent text-text-muted text-note min-h-8 px-2 hover:bg-surface-2 hover:text-text',
+  texto: `${FILA} bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
   /* Se pinta de rojo recién con el puntero o el foco: en reposo, la más llamativa
      de la fila sería la más fácil de apretar sin querer. */
-  destructivo:
-    'bg-transparent text-text-muted text-note min-h-8 px-2 hover:bg-danger-soft hover:text-danger focus-visible:text-danger',
+  destructivo: `${FILA} bg-transparent text-text-muted hover:bg-danger-soft hover:text-danger focus-visible:text-danger`,
 }
 
 export function Boton({ variante = 'primario', className = '', children, ...props }: Props) {

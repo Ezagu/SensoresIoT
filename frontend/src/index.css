@@ -12,8 +12,14 @@
   /* Campo deshabilitado: más hundido que surface, para que el "pozo" del campo
      activo (surface-2) no se lea como editable. Ver components/ui/Campo.tsx */
   --color-surface-inert: #f5f3ed;
+  /* Lo que flota sobre la página y se va a cerrar: modal, menú, popover. */
+  --color-elevated: #ffffff;
   --color-sidebar: #ffffff;
   --color-border: #e8eced;
+  /* Un paso más oscuro que el hairline: lo que encierra un control (campo,
+     select, botón con marco, modal) tiene que verse como un borde, no como una
+     regla de separación. Sobre blanco, el hairline solo no se lee. */
+  --color-border-control: #dce1e3;
   --color-border-strong: #c9d0d3;
 
   /* Los tres escalones sostienen AAA (≥7:1) contra bg, surface y surface-2. */
@@ -25,7 +31,13 @@
      sólido donde va texto blanco encima (el claro no llega a 4.5:1 con blanco). */
   --color-accent: #075462;
   --color-accent-strong: #0a5c6b;
+  /* El relleno primario baja un escalón al pasar el puntero y otro al apretar.
+     Es todo el feedback que hay: nada escala, nada se hunde. */
+  --color-accent-strong-hover: #08505e;
+  --color-accent-strong-active: #063f4b;
   --color-accent-ink: #ffffff;
+  /* Control inactivo: relleno y texto propios, nunca opacidad sobre el activo. */
+  --color-disabled-text: #78848a;
 
   /* Estados de monitoreo. Un equipo tiene tres estados (en línea / con retraso /
      sin reportar): "attention" es el ámbar propio de "con retraso", separado de
@@ -91,10 +103,18 @@
 
   --radius-card: 10px;
   --radius-control: 7px;
-  /* tile: cuadrado chico (ícono, ítem de segmentado, mini-botón).
-     group: contenedor de un grupo de controles, un escalón por encima. */
+  /* tile: cuadrado chico (ícono, mini-botón).
+     group: contenedor de un grupo de controles, un escalón por encima.
+     chip: lo más chico del sistema (badge, ítem de segmentado, check). */
   --radius-tile: 7px;
   --radius-group: 10px;
+  --radius-chip: 4px;
+
+  /* Dos niveles de elevación y nada más: lo que flota y se va a cerrar, y lo que
+     bloquea. El resto de la interfaz es plana — la jerarquía la hacen las reglas,
+     el espacio y el peso tipográfico. */
+  --shadow-overlay: 0 1px 2px rgba(11, 16, 18, 0.06), 0 8px 24px -8px rgba(11, 16, 18, 0.18);
+  --shadow-modal: 0 2px 4px rgba(11, 16, 18, 0.08), 0 24px 56px -16px rgba(11, 16, 18, 0.28);
 }
 
 /* Tema oscuro: sólo se reasignan tokens, nunca reglas de componente. El
@@ -111,8 +131,10 @@
   --color-surface: #101719;
   --color-surface-2: #1b2529;
   --color-surface-inert: #141b1e;
+  --color-elevated: #172023;
   --color-sidebar: #101719;
   --color-border: #1e282c;
+  --color-border-control: #273438;
   --color-border-strong: #3c4a50;
 
   --color-text: #edf0f0;
@@ -121,7 +143,11 @@
 
   --color-accent: #86c5ce;
   --color-accent-strong: #62bcc9;
+  /* En oscuro el relleno es claro, así que los escalones suben en vez de bajar. */
+  --color-accent-strong-hover: #7dcad5;
+  --color-accent-strong-active: #93d4dd;
   --color-accent-ink: #04181d;
+  --color-disabled-text: #5c686d;
 
   --color-ok: #7cc6a2;
   --color-attention: #e6bc6c;
@@ -149,6 +175,9 @@
   --color-chart-axis: #3c4a50;
   --color-chart-band: #141b1e;
   --color-chart-threshold: #e89a92;
+
+  --shadow-overlay: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px -8px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 2px 6px rgba(0, 0, 0, 0.55), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
 }
 
 @layer base {

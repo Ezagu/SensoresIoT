@@ -8,20 +8,21 @@ type Tamaño = 'normal' | 'compacto'
    su flecha pegada al borde y un hover del sistema que ignora la paleta. Con la
    caja apagada, el estilo es el mismo que el de cualquier otro control. */
 const BASE =
-  'w-full cursor-pointer appearance-none rounded-control border bg-surface-2 font-sans text-text ' +
-  'transition-colors duration-150 hover:border-border-strong outline-none ' +
+  'w-full cursor-pointer appearance-none rounded-control border bg-surface font-sans text-text ' +
+  'transition-colors duration-130 outline-none ' +
   /* El menú desplegable lo dibuja el sistema: en los navegadores que lo
      permiten, al menos que no aparezca en blanco sobre el tema oscuro. */
-  '[&>option]:bg-surface-2 [&>option]:text-text ' +
-  'disabled:cursor-not-allowed disabled:bg-surface-inert disabled:text-text-muted disabled:hover:border-border'
+  '[&>option]:bg-surface [&>option]:text-text ' +
+  'disabled:cursor-not-allowed disabled:bg-surface-inert disabled:text-text-muted disabled:hover:border-border-control'
 
+/* Las dos alturas de control que usa el sistema acá: 34 en pantalla, 28 en fila. */
 const TAMAÑOS: Record<Tamaño, string> = {
-  normal: 'min-h-10 pl-3 pr-9 text-body',
-  compacto: 'min-h-8 pl-2.5 pr-7.5 text-note',
+  normal: 'h-8.5 pl-2.5 pr-7.5 text-body-lg',
+  compacto: 'h-7 pl-2.5 pr-7 text-body',
 }
 
 const CHEVRON: Record<Tamaño, string> = {
-  normal: 'right-3 size-4',
+  normal: 'right-2.25 size-4',
   compacto: 'right-2 size-3.5',
 }
 
@@ -64,7 +65,7 @@ export function Select({
           {children}
         </select>
         <IconoChevronAbajo
-          className={`pointer-events-none absolute inset-y-0 my-auto text-text-muted peer-disabled:text-text-faint ${CHEVRON[tamaño]}`}
+          className={`pointer-events-none absolute inset-y-0 my-auto text-text-muted peer-disabled:text-disabled-text ${CHEVRON[tamaño]}`}
         />
       </div>
       <Pie id={id} error={error} ayuda={ayuda} />

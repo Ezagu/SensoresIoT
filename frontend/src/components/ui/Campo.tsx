@@ -1,14 +1,25 @@
 import { useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
 import { IconoOjo, IconoOjoTachado } from '@/components/layout/iconos'
 
+/* Sin alto: lo pone cada control, porque el <textarea> crece y el <input> no.
+   Dos clases de alto en el mismo elemento no se resuelven por orden de atributo,
+   se resuelven por orden de hoja de estilos. */
 const CLASES_INPUT =
-  'min-h-10 w-full rounded-control border bg-surface-2 px-3 text-body text-text placeholder:text-text-faint ' +
-  /* Deshabilitado pierde el "pozo" pero el valor sigue legible: no es un dato
-     tachado. Sin opacidad, que dejaría el valor bajo el contraste mínimo. */
+  'w-full rounded-control border bg-surface px-2.5 text-body-lg text-text placeholder:text-text-faint ' +
+  'transition-colors duration-130 ' +
+  /* Deshabilitado pierde el fondo pero el valor sigue legible con text-muted y no
+     con disabled-text: es un dato que hay que poder leer, no un rótulo apagado. */
   'disabled:cursor-not-allowed disabled:bg-surface-inert disabled:text-text-muted'
 
+/* El hover sólo en el estado normal: un campo con error ya eligió su borde y
+   teñirlo de gris al pasar por encima lo desmarca justo cuando hay que mirarlo. */
 export const borde = (error?: string) =>
-  error ? 'border-danger focus-visible:border-danger' : 'border-border focus-visible:border-accent'
+  error
+    ? 'border-danger-mark focus-visible:border-danger-mark'
+    : 'border-border-control hover:border-border-strong focus-visible:border-accent'
+
+/* La altura media del sistema (34px), compartida por Campo y Select. */
+export const ALTO_CAMPO = 'h-8.5'
 
 /* La etiqueta acompaña el estado del control: deshabilitada baja un escalón
    para que el bloque entero se lea como inactivo, no sólo la caja. */
@@ -42,14 +53,14 @@ export function Etiqueta({
 export function Pie({ id, error, ayuda }: { id: string; error?: string; ayuda?: string }) {
   if (error) {
     return (
-      <p id={`${id}-error`} className="text-note text-danger">
+      <p id={`${id}-error`} className="text-note-lg text-danger">
         {error}
       </p>
     )
   }
   if (ayuda) {
     return (
-      <p id={`${id}-ayuda`} className="text-note text-text-faint">
+      <p id={`${id}-ayuda`} className="text-note-lg text-text-faint">
         {ayuda}
       </p>
     )
@@ -81,7 +92,7 @@ export function Campo({ id, etiqueta, ayuda, error, className = '', ...props }: 
         name={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={descrito(id, error, ayuda)}
-        className={`${CLASES_INPUT} ${borde(error)} ${className}`}
+        className={`${CLASES_INPUT} ${ALTO_CAMPO} ${borde(error)} ${className}`}
         {...props}
       />
       <Pie id={id} error={error} ayuda={ayuda} />
@@ -106,7 +117,7 @@ export function CampoPassword({ id, etiqueta, ayuda, error, className = '', ...p
           type={visible ? 'text' : 'password'}
           aria-invalid={error ? true : undefined}
           aria-describedby={descrito(id, error, ayuda)}
-          className={`${CLASES_INPUT} pr-10 ${borde(error)} ${className}`}
+          className={`${CLASES_INPUT} ${ALTO_CAMPO} pr-8.5 ${borde(error)} ${className}`}
           {...props}
         />
         <button
@@ -115,7 +126,7 @@ export function CampoPassword({ id, etiqueta, ayuda, error, className = '', ...p
           disabled={props.disabled}
           aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
           aria-pressed={visible}
-          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-control text-text-muted transition-colors duration-150 hover:text-text disabled:cursor-not-allowed disabled:text-text-faint disabled:hover:text-text-faint"
+          className="absolute inset-y-0 right-0 flex w-8.5 items-center justify-center rounded-r-control text-text-muted transition-colors duration-130 hover:text-text disabled:cursor-not-allowed disabled:text-disabled-text disabled:hover:text-disabled-text"
         >
           {visible ? <IconoOjoTachado className="size-4" /> : <IconoOjo className="size-4" />}
         </button>
@@ -143,7 +154,7 @@ export function AreaTexto({ id, etiqueta, ayuda, error, className = '', ...props
         name={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={descrito(id, error, ayuda)}
-        className={`${CLASES_INPUT} min-h-20 resize-y py-2 ${borde(error)} ${className}`}
+        className={`${CLASES_INPUT} min-h-22 resize-y py-2 ${borde(error)} ${className}`}
         {...props}
       />
       <Pie id={id} error={error} ayuda={ayuda} />
