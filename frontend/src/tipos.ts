@@ -18,10 +18,17 @@ export type Dispositivo = {
   ubicacion: string | null
   descripcion: string | null
   activo: boolean
+  /* Cuándo HABLÓ el equipo, heartbeats incluidos -> ¿está vivo? */
   last_seen_at: string | null
+  /* Cuándo mandó DATOS -> ¿sus lecturas llegan a tiempo? Son dos preguntas
+     distintas desde que el equipo habla cada 5 min aunque no publique. */
+  last_data_at: string | null
   first_connected_at: string | null
   /* null = automático: usa el piso del plan del dueño */
   intervalo_configurado_seg: number | null
+  /* Cuándo se cambió el intervalo. El equipo se entera en su próximo contacto,
+     así que hasta ahí no se lo puede marcar atrasado contra el valor nuevo. */
+  intervalo_modificado_at: string | null
 }
 
 export type RolDispositivo = 'owner' | 'editor' | 'viewer'
@@ -95,11 +102,13 @@ export type DispositivoDetalle = Dispositivo & {
 /* Lo único que cambia solo mientras se mira un equipo: lo que el detalle pollea. */
 export type DispositivoEstado = {
   last_seen_at: string | null
+  last_data_at: string | null
   online: boolean
   alertas_disparadas: number
   /* Segundos hasta el próximo reporte esperado; null = nunca reportó. Es de
      dónde sale la cadencia del poll. */
   siguiente_medicion: number | null
+  intervalo_modificado_at: string | null
 }
 
 /* Salen del plan del DUEÑO del equipo. No confundir con `useSesion().plan`, que
@@ -209,16 +218,13 @@ export type AlertaUpdatePayload = {
   activa?: boolean
 }
 
-/* GET /alertas/eventos. Cada transición de una regla, con el contexto que hace
-   falta para juzgarla sin abrir el equipo. No trae sensor_id: el log enlaza al
-   equipo, no al sensor. */
-export type AlertaEvento = {
+/* GET /alertas/eventos. Lo que le pasó a cada equipo al que llegás, con el
+   contexto que hace falta para juzgarlo sin abrirlo. No trae sensor_id: el log
+   enlaza al equipo, no al sensor. */
+type EventoBase = {
   id: string
-  alerta_id: string
-  tipo: 'disparada' | 'normalizada'
-  valor: number
-  /* El instante de la lectura. `detectado_at` es cuándo la evaluó el servidor:
-     en un envío diferido pueden separarse horas, y eso es `tardio`. */
+  /* El instante al que se refiere el evento. `detectado_at` es cuándo lo vio el
+     servidor: en un envío diferido pueden separarse horas, y eso es `tardio`. */
   medicion_at: string
   detectado_at: string
   tardio: boolean
@@ -226,14 +232,45 @@ export type AlertaEvento = {
      sólo se notifica la última transición de cada regla: el resto queda en 0. */
   destinatarios: number
   notificados: number
+  dispositivo_id: string
+  dispositivo_nombre: string
+}
+
+/* Una transición de umbral. El nombre, la condición y el umbral son el SNAPSHOT
+   de cómo era la regla cuando pasó, no un JOIN: editarla después no reescribe el
+   pasado. `alerta_id` es null si desde entonces la borraron — el historial es
+   del equipo y sobrevive a la regla. */
+export type AvisoDeRegla = EventoBase & {
+  tipo: 'disparada' | 'normalizada'
+  alerta_id: string | null
+  valor: number
   alerta_nombre: string | null
   condicion: CondicionAlerta
   umbral: number
-  dispositivo_id: string
-  dispositivo_nombre: string
   tipo_sensor_nombre: string
   tipo_sensor_unidad: string
+  silencio_desde: null
 }
+
+/* El equipo se quedó mudo, o volvió. No cuelga de ninguna regla: se dispara por
+   la ausencia de datos, así que no hay valor ni umbral que mostrar. */
+export type AvisoDeEquipo = EventoBase & {
+  tipo: 'sin_reportar' | 'reconectado'
+  alerta_id: null
+  valor: null
+  alerta_nombre: null
+  condicion: null
+  umbral: null
+  tipo_sensor_nombre: null
+  tipo_sensor_unidad: null
+  /* Desde cuándo dura el silencio: con `medicion_at` da cuánto duró el corte. */
+  silencio_desde: string
+}
+
+export type AlertaEvento = AvisoDeRegla | AvisoDeEquipo
+
+export const esAvisoDeEquipo = (e: AlertaEvento): e is AvisoDeEquipo =>
+  e.tipo === 'sin_reportar' || e.tipo === 'reconectado'
 
 export type EventosAlerta = {
   eventos: AlertaEvento[]

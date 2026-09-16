@@ -37,8 +37,25 @@ CREATE TABLE dispositivos (
     secret_hash_anterior  TEXT,
     rotacion_pendiente    BOOLEAN NOT NULL DEFAULT false,
     secret_rotado_at      TIMESTAMPTZ,
+    -- Cuándo HABLÓ el equipo. Con heartbeat cada 5 min, esto ya no dice nada
+    -- sobre si mandó datos: contesta "¿está vivo?" y nada más.
     last_seen_at          TIMESTAMPTZ,
+    -- Cuándo mandó DATOS. Un equipo con el bus I2C muerto sigue heartbeateando y
+    -- no bufferea una lectura nunca más; sin esta columna el panel lo mostraría
+    -- "En línea" para siempre. now() y no el `time` de la lectura: un flush de
+    -- datos viejos es dato fluyendo.
+    last_data_at          TIMESTAMPTZ,
     first_connected_at    TIMESTAMPTZ,
+    -- Cuándo se cambió intervalo_configurado_seg. El equipo se entera recién en
+    -- su próximo contacto (≤ 5 min por el heartbeat) y hasta entonces publica con
+    -- el viejo: sin esto, bajar el intervalo marca el equipo "con retraso" al
+    -- instante. Saber cuándo alcanza; no hace falta el valor anterior.
+    intervalo_modificado_at TIMESTAMPTZ,
+    -- Caída abierta: guarda el last_seen_at congelado al detectarla, no el
+    -- instante de detección. Cuando el equipo vuelve, last_seen_at ya fue pisado
+    -- por el POST, así que es lo único que sabe cuánto duró el corte. NULL = no
+    -- hay caída abierta, y es también el candado que evita repetir el mail.
+    sin_reportar_desde    TIMESTAMPTZ,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
     -- NULL = automático: usa el piso del plan del owner vigente en cada momento.
     -- Un valor propio nunca se pisa por un downgrade de plan, sólo deja de cumplirse
@@ -294,20 +311,57 @@ CREATE INDEX idx_alertas_sensor_activa ON alertas (sensor_id) WHERE activa;
 -- Completo: sirve a los listados por dispositivo, que también muestran inactivas.
 CREATE INDEX idx_alertas_sensor ON alertas (sensor_id);
 
+-- El registro de avisos DEL EQUIPO, no sólo de sus reglas: dos formas en una
+-- tabla, discriminadas por `tipo`. Una transición de umbral trae el snapshot de
+-- la regla; un corte de conectividad (Tier 4.3.b, detectado por el barrido de
+-- vigilancia_service) trae `silencio_desde` y el resto en NULL.
 CREATE TABLE alerta_eventos (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    alerta_id     UUID NOT NULL REFERENCES alertas(id) ON DELETE CASCADE,
-    tipo          TEXT NOT NULL CHECK (tipo IN ('disparada', 'normalizada')),
-    valor         DOUBLE PRECISION NOT NULL,
-    medicion_at   TIMESTAMPTZ NOT NULL,  -- `time` de la lectura que causó la transición
-    detectado_at  TIMESTAMPTZ NOT NULL,  -- cuándo la evaluó el backend
-    tardio        BOOLEAN NOT NULL DEFAULT false,
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- El ancla de scope y de autorización: todo evento es de un equipo, incluso
+    -- los que no son de ninguna regla.
+    dispositivo_id UUID NOT NULL REFERENCES dispositivos(id) ON DELETE CASCADE,
+    -- SET NULL y no CASCADE: el historial es del equipo. Borrar "temp > 30" no
+    -- puede borrar el hecho de que la heladera se fue a 34° el martes.
+    alerta_id      UUID REFERENCES alertas(id) ON DELETE SET NULL,
+    tipo           TEXT NOT NULL
+                   CHECK (tipo IN ('disparada', 'normalizada', 'sin_reportar', 'reconectado')),
+    valor          DOUBLE PRECISION,
+    medicion_at    TIMESTAMPTZ NOT NULL,  -- `time` de la lectura que causó la transición
+    detectado_at   TIMESTAMPTZ NOT NULL,  -- cuándo la evaluó el backend
+    tardio         BOOLEAN NOT NULL DEFAULT false,
     -- Varios destinatarios posibles (todos los que tienen acceso al equipo,
     -- menos quien se dio de baja): un booleano no alcanza para saber si el
     -- envío falló para alguno.
-    destinatarios INTEGER NOT NULL DEFAULT 0,
-    notificados   INTEGER NOT NULL DEFAULT 0,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    destinatarios  INTEGER NOT NULL DEFAULT 0,
+    notificados    INTEGER NOT NULL DEFAULT 0,
+    -- Snapshot de la regla al momento del evento: las reglas se editan, así que
+    -- joinear `alertas` mostraba un evento viejo contra el umbral de hoy.
+    alerta_nombre      TEXT,
+    condicion          TEXT CHECK (condicion IS NULL OR condicion IN ('mayor', 'menor')),
+    umbral             DOUBLE PRECISION,
+    tipo_sensor_nombre TEXT,
+    tipo_sensor_unidad TEXT,
+    -- Sólo las dos formas de conectividad: desde cuándo dura el silencio.
+    silencio_desde     TIMESTAMPTZ,
+    created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    -- El discriminador es `tipo` y NO `alerta_id IS NULL`: el SET NULL de arriba
+    -- deja eventos de regla sin alerta_id. Por eso la rama de regla no exige
+    -- alerta_id IS NOT NULL y la de conectividad sí exige IS NULL.
+    CONSTRAINT alerta_eventos_forma CHECK (
+        CASE WHEN tipo IN ('sin_reportar', 'reconectado') THEN
+            alerta_id IS NULL AND valor IS NULL AND alerta_nombre IS NULL
+            AND condicion IS NULL AND umbral IS NULL
+            AND tipo_sensor_nombre IS NULL AND tipo_sensor_unidad IS NULL
+            AND silencio_desde IS NOT NULL
+        ELSE
+            valor IS NOT NULL AND condicion IS NOT NULL AND umbral IS NOT NULL
+            AND tipo_sensor_nombre IS NOT NULL AND tipo_sensor_unidad IS NOT NULL
+            AND silencio_desde IS NULL
+        END
+    )
 );
 
-CREATE INDEX idx_alerta_eventos_alerta ON alerta_eventos (alerta_id, medicion_at DESC);
+-- Parcial: el SET NULL mete NULLs que `alerta_id = %s` no puede matchear nunca.
+CREATE INDEX idx_alerta_eventos_alerta ON alerta_eventos (alerta_id, medicion_at DESC)
+    WHERE alerta_id IS NOT NULL;
+CREATE INDEX idx_alerta_eventos_dispositivo ON alerta_eventos (dispositivo_id, medicion_at DESC);

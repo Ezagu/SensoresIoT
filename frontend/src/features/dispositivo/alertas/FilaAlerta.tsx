@@ -94,7 +94,7 @@ export function FilaAlerta({
           )}
         </span>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
         {puedeEditar && (
           <>
             <Interruptor
@@ -103,12 +103,14 @@ export function FilaAlerta({
               etiquetaId={idTitulo}
               disabled={ocupado}
             />
-            <Boton type="button" variante="texto" onClick={onEditar}>
-              Editar
-            </Boton>
-            <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
-              Borrar
-            </Boton>
+            <div className="flex gap-0.5">
+              <Boton type="button" variante="texto" onClick={onEditar}>
+                Editar
+              </Boton>
+              <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
+                Borrar
+              </Boton>
+            </div>
           </>
         )}
       </div>
@@ -128,7 +130,8 @@ export function FilaAlerta({
           <div className="flex flex-col gap-3.5">
             <p className="text-label text-text-muted">
               Se borra <strong className="font-medium text-text">{alerta.nombre || condicionTexto(alerta)}</strong> y
-              su historial de eventos deja de estar asociado a una regla. No se puede deshacer.
+              el equipo deja de evaluarla. Lo que ya avisó queda en el registro, con el umbral que
+              tenía cuando disparó. No se puede deshacer.
             </p>
             <div className="mt-1 flex justify-end gap-2">
               <Boton type="button" variante="fantasma" onClick={() => setConfirmando(false)}>

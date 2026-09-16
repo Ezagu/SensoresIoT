@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Segmentado } from '@/components/ui/Segmentado'
 import { TextoError } from '@/components/ui/TextoError'
-import { Vacio } from '@/components/ui/Vacio'
 import { configurarNotificaciones } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import type { DispositivoDetalle } from '@/tipos'
@@ -51,19 +50,18 @@ export function SeccionNotificaciones({
   return (
     <SeccionAjustes
       titulo="Mis notificaciones"
-      descripcion="Los mails de alerta que te llegan por este equipo."
+      descripcion="Los mails que te llegan por este equipo: cruces de umbral y cortes de reporte."
     >
-      {dispositivo.limites.puede_alertas ? (
-        <Segmentado
-          valor={valor}
-          opciones={OPCIONES}
-          onCambiar={cambiar}
-          etiqueta="Notificaciones de este equipo"
-          disabled={ocupado}
-        />
-      ) : (
-        <Vacio titulo="Este equipo no tiene alertas habilitadas en su plan" />
-      )}
+      {/* Sin gatear por puede_alertas: el aviso de "dejó de reportar" sale igual
+          en todos los planes, así que esconder el control dejaba sin opt-out
+          justo a quien no puede tener reglas. */}
+      <Segmentado
+        valor={valor}
+        opciones={OPCIONES}
+        onCambiar={cambiar}
+        etiqueta="Notificaciones de este equipo"
+        disabled={ocupado}
+      />
 
       {error && <TextoError>{error}</TextoError>}
     </SeccionAjustes>

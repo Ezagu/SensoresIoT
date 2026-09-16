@@ -83,6 +83,19 @@ export function cuentaRegresiva(segundos: number): string {
   return `${minutos}:${String(segundos % 60).padStart(2, '0')}`
 }
 
+/* Cuánto duró algo, entre dos instantes. No es `haceCuanto`: ese contesta "qué
+   tan viejo es esto" contra el reloj y redondea a una sola unidad, y acá la
+   segunda unidad es el dato ("4 h 12 min" de corte, no "hace 4 horas"). */
+export function duracion(desdeIso: string, hastaIso: string): string {
+  const minutos = Math.max(1, Math.floor((new Date(hastaIso).getTime() - new Date(desdeIso).getTime()) / 60_000))
+  if (minutos < 60) return `${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  const resto = minutos % 60
+  if (horas < 24) return resto ? `${horas} h ${resto} min` : `${horas} h`
+  const dias = Math.floor(horas / 24)
+  return horas % 24 ? `${dias} d ${horas % 24} h` : `${dias} d`
+}
+
 export const TIC_RELOJ_MS = 30_000
 
 export type EstadoDispositivo = 'nunca' | 'en-linea' | 'con-retraso' | 'sin-reportar'
@@ -92,29 +105,53 @@ export type EstadoDispositivo = 'nunca' | 'en-linea' | 'con-retraso' | 'sin-repo
    bufferreando y se va a poner al día solo: colapsarla en "sin reportar"
    convierte el comportamiento normal de una conexión intermitente en una falla.
    Media cadencia de tolerancia: sin ella, todo equipo sano entraría en retraso
-   una vez por ciclo, justo antes de su próximo reporte. La banda va de 1,5 a los
-   3 intervalos de gracia con los que el backend decide `online`. */
+   una vez por ciclo, justo antes de su próximo reporte. */
 const INTERVALOS_DE_RETRASO = 1.5
+
+/* Espeja `dispositivo_service.INTERVALO_CONTACTO_SEG`: cada cuánto el equipo
+   habla, publique o no. Acá sólo se usa para acotar cuánto puede tardar en
+   enterarse de un cambio de intervalo. */
+const CONTACTO_SEG = 300
+
+type Conectividad = {
+  /* Cuándo habló (incluye heartbeats) -> ¿está vivo? Lo resuelve el backend. */
+  last_seen_at: string | null
+  online: boolean
+  /* Cuándo mandó datos -> ¿llegan a tiempo? Con heartbeat cada 5 min, last_seen_at
+     ya no sabe nada de esto: un equipo con el bus I2C muerto sigue hablando. */
+  last_data_at: string | null
+  intervalo_efectivo_seg: number
+  intervalo_modificado_at: string | null
+}
 
 /* Si el equipo está vivo o no lo decide el backend y no esta función: acá sólo
    se reparte esa respuesta en los estados que la interfaz muestra distinto. Un
    único criterio para panel, inventario y detalle. */
-export function estadoDispositivo(
-  lastSeenAt: string | null,
-  online: boolean,
-  intervaloSeg: number,
-  ahora: number = Date.now(),
-): EstadoDispositivo {
-  if (!lastSeenAt) return 'nunca'
-  if (!online) return 'sin-reportar'
-  const seg = (ahora - new Date(lastSeenAt).getTime()) / 1000
-  return seg >= intervaloSeg * INTERVALOS_DE_RETRASO ? 'con-retraso' : 'en-linea'
+export function estadoDispositivo(d: Conectividad, ahora: number = Date.now()): EstadoDispositivo {
+  if (!d.last_seen_at) return 'nunca'
+  if (!d.online) return 'sin-reportar'
+  if (!d.last_data_at) return 'con-retraso'
+
+  const seg = (ahora - new Date(d.last_data_at).getTime()) / 1000
+  if (seg < d.intervalo_efectivo_seg * INTERVALOS_DE_RETRASO) return 'en-linea'
+
+  /* El equipo se entera del intervalo nuevo recién en su próximo contacto y hasta
+     entonces publica con el viejo. Sin esta gracia, bajar de 5 min a 1 min pone el
+     equipo en amarillo al instante — justo cuando quien lo cambió está mirando.
+     El heartbeat acota esa ignorancia a CONTACTO_SEG para cualquier transición,
+     así que no hace falta conocer el intervalo anterior. */
+  if (d.intervalo_modificado_at) {
+    const graciaSeg = CONTACTO_SEG + d.intervalo_efectivo_seg * INTERVALOS_DE_RETRASO
+    const desdeCambio = (ahora - new Date(d.intervalo_modificado_at).getTime()) / 1000
+    if (desdeCambio < graciaSeg) return 'en-linea'
+  }
+
+  return 'con-retraso'
 }
 
 /* Otra pregunta que `estadoDispositivo`: no es "¿el equipo está vivo?" sino
-   "¿esta lectura ya debería haber sido reemplazada?". El backend resuelve la
-   primera, pero no expone frescura por sensor, así que ésta se deriva acá.
-   Mismos 3 intervalos de gracia que `dispositivo_service.INTERVALOS_DE_GRACIA`. */
+   "¿esta lectura ya debería haber sido reemplazada?". Se deriva acá porque el
+   backend expone frescura por equipo (last_data_at) pero no por sensor. */
 export function lecturaDesactualizada(
   ultimoAt: string | null,
   intervaloSeg: number,

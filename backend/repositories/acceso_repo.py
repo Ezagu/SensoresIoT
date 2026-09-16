@@ -27,6 +27,22 @@ def actualizar_notificar(cur, dispositivo_id, usuario_id, notificar: bool) -> bo
     )
     return cur.fetchone() is not None
 
+def destinatarios(cur, dispositivo_id) -> list[dict]:
+    # Quién recibe los mails de este equipo: todo el que tiene acceso (owner,
+    # editor, viewer) salvo quien lo silenció. Esta tabla ES la definición de
+    # "todos los que llegan a este equipo", que es exactamente el conjunto
+    # buscado, y vale igual para una transición de umbral que para un corte.
+    cur.execute(
+        """
+        SELECT u.id, u.email, u.nombre
+        FROM usuario_dispositivo ud
+        JOIN usuarios u ON u.id = ud.usuario_id
+        WHERE ud.dispositivo_id = %s AND ud.notificar
+        """,
+        (dispositivo_id,)
+    )
+    return cur.fetchall()
+
 def listar_accesos(cur, dispositivo_id):
     cur.execute(
         """

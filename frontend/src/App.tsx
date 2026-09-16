@@ -80,7 +80,7 @@ export default function App() {
               <Route path="/vincular" element={<Vincular />} />
             </Route>
             <Route element={<Layout titulo="Avisos" />}>
-              <Route path="/alertas" element={<Alertas />} />
+              <Route path="/avisos" element={<Alertas />} />
             </Route>
             <Route element={<Layout titulo="Plan" />}>
               <Route path="/plan" element={<PlanPagina />} />
@@ -91,6 +91,9 @@ export default function App() {
             {/* Perfil, plan y preferencias viven todos en /ajustes: dos puertas
                 a lo mismo obligaban a adivinar en cuál estaba cada cosa. */}
             <Route path="/cuenta" element={<Navigate to="/ajustes" replace />} />
+            {/* "Alerta" es la regla y "aviso" el evento: acá sólo se miran los
+                segundos. Renombrada antes de que los mails linkeen la URL. */}
+            <Route path="/alertas" element={<Navigate to="/avisos" replace />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

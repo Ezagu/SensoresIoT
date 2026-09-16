@@ -92,7 +92,7 @@ def eliminar(cur, alerta_id) -> bool:
 
 def buscar_activas_por_sensores(cur, sensor_ids: list) -> list[dict]:
     # Trae el contexto que necesita el mail (dispositivo, tipo de sensor) en
-    # una sola query. Los destinatarios se resuelven aparte (destinatarios_de_alerta)
+    # una sola query. Los destinatarios se resuelven aparte (acceso_repo.destinatarios)
     if not sensor_ids:
         return []
 
@@ -112,22 +112,6 @@ def buscar_activas_por_sensores(cur, sensor_ids: list) -> list[dict]:
         WHERE a.activa AND a.sensor_id = ANY(%s)
         """,
         (sensor_ids,)
-    )
-    return cur.fetchall()
-
-def destinatarios_de_alerta(cur, alerta_id) -> list[dict]:
-    # Todo el que tiene acceso al dispositivo (owner, editor, viewer), salvo
-    # quien silenció ese equipo. La preferencia es del vínculo, no de la regla.
-    cur.execute(
-        """
-        SELECT u.id, u.email, u.nombre
-        FROM alertas a
-        JOIN sensores s ON s.id = a.sensor_id
-        JOIN usuario_dispositivo ud ON ud.dispositivo_id = s.dispositivo_id
-        JOIN usuarios u ON u.id = ud.usuario_id
-        WHERE a.id = %s AND ud.notificar
-        """,
-        (alerta_id,)
     )
     return cur.fetchall()
 
@@ -160,7 +144,10 @@ def umbrales_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     return cur.fetchall()
 
 def insertar_eventos(cur, eventos: list[tuple]) -> list[dict]:
-    # (alerta_id, tipo, valor, medicion_at, detectado_at, tardio, destinatarios, notificados)
+    # (dispositivo_id, alerta_id, tipo, valor, medicion_at, detectado_at, tardio,
+    #  alerta_nombre, condicion, umbral, tipo_sensor_nombre, tipo_sensor_unidad)
+    # El snapshot de la regla viaja con el evento: editarla después no puede
+    # reescribir lo que decía cuando pasó.
     # RETURNING id: el service necesita el id de la última transición de cada
     # regla para poder actualizar `notificados` recién con el resultado real del envío.
     if not eventos:
@@ -168,9 +155,30 @@ def insertar_eventos(cur, eventos: list[tuple]) -> list[dict]:
     return execute_values(
         cur,
         """
-        INSERT INTO alerta_eventos (alerta_id, tipo, valor, medicion_at, detectado_at, tardio, destinatarios, notificados)
+        INSERT INTO alerta_eventos (
+            dispositivo_id, alerta_id, tipo, valor, medicion_at, detectado_at, tardio,
+            alerta_nombre, condicion, umbral, tipo_sensor_nombre, tipo_sensor_unidad
+        )
         VALUES %s
         RETURNING id
+        """,
+        eventos,
+        fetch=True
+    )
+
+def insertar_eventos_de_conectividad(cur, eventos: list[tuple]) -> list[dict]:
+    # (dispositivo_id, tipo, medicion_at, detectado_at, silencio_desde)
+    # Función aparte y no un insertar_eventos con media tupla en NULL: son dos
+    # formas distintas y cada una escribe sus propias columnas.
+    # Devuelve dispositivo_id junto al id para no depender del orden de VALUES.
+    if not eventos:
+        return []
+    return execute_values(
+        cur,
+        """
+        INSERT INTO alerta_eventos (dispositivo_id, tipo, medicion_at, detectado_at, silencio_desde)
+        VALUES %s
+        RETURNING id, dispositivo_id
         """,
         eventos,
         fetch=True
@@ -182,13 +190,17 @@ def actualizar_notificados(cur, evento_id, notificados: int) -> None:
 def actualizar_destinatarios(cur, evento_id, destinatarios: int) -> None:
     cur.execute("UPDATE alerta_eventos SET destinatarios = %s WHERE id = %s", (destinatarios, evento_id))
 
-COLUMNAS_EVENTO_CON_CONTEXTO = """
-    e.id, e.alerta_id, e.tipo, e.valor, e.medicion_at, e.detectado_at, e.tardio,
-    e.destinatarios, e.notificados,
-    a.nombre AS alerta_nombre, a.condicion, a.umbral,
-    d.id AS dispositivo_id, d.nombre AS dispositivo_nombre,
-    ts.nombre AS tipo_sensor_nombre, ts.unidad AS tipo_sensor_unidad
+COLUMNAS_EVENTO = """
+    e.id, e.dispositivo_id, e.alerta_id, e.tipo, e.valor, e.medicion_at,
+    e.detectado_at, e.tardio, e.destinatarios, e.notificados,
+    e.alerta_nombre, e.condicion, e.umbral,
+    e.tipo_sensor_nombre, e.tipo_sensor_unidad, e.silencio_desde
 """
+
+# El único JOIN que queda. El nombre del equipo se lee VIVO a propósito: es el
+# mismo objeto físico y lo querés encontrar por su nombre de hoy. El umbral, en
+# cambio, es un parámetro de un hecho pasado y por eso va en el snapshot.
+COLUMNAS_EVENTO_CON_CONTEXTO = f"{COLUMNAS_EVENTO}, d.nombre AS dispositivo_nombre"
 
 def listar_eventos_por_alerta(cur, alerta_id, hasta, cursor, limite) -> list[dict]:
     condiciones = "alerta_id = %s"
@@ -203,8 +215,8 @@ def listar_eventos_por_alerta(cur, alerta_id, hasta, cursor, limite) -> list[dic
 
     cur.execute(
         f"""
-        SELECT id, alerta_id, tipo, valor, medicion_at, detectado_at, tardio,
-               destinatarios, notificados
+        SELECT id, dispositivo_id, alerta_id, tipo, valor, medicion_at, detectado_at,
+               tardio, destinatarios, notificados
         FROM alerta_eventos
         WHERE {condiciones}
         ORDER BY medicion_at DESC
@@ -215,7 +227,7 @@ def listar_eventos_por_alerta(cur, alerta_id, hasta, cursor, limite) -> list[dic
     return cur.fetchall()
 
 def listar_eventos_por_dispositivo(cur, dispositivo_id, hasta, cursor, limite) -> list[dict]:
-    condiciones = "s.dispositivo_id = %s"
+    condiciones = "e.dispositivo_id = %s"
     params = [dispositivo_id]
 
     tope = cursor if cursor is not None else hasta
@@ -229,10 +241,7 @@ def listar_eventos_por_dispositivo(cur, dispositivo_id, hasta, cursor, limite) -
         f"""
         SELECT {COLUMNAS_EVENTO_CON_CONTEXTO}
         FROM alerta_eventos e
-        JOIN alertas a ON a.id = e.alerta_id
-        JOIN sensores s ON s.id = a.sensor_id
-        JOIN dispositivos d ON d.id = s.dispositivo_id
-        JOIN tipos_sensor ts ON ts.id = s.tipo_sensor_id
+        JOIN dispositivos d ON d.id = e.dispositivo_id
         WHERE {condiciones}
         ORDER BY e.medicion_at DESC
         LIMIT %s
@@ -242,9 +251,9 @@ def listar_eventos_por_dispositivo(cur, dispositivo_id, hasta, cursor, limite) -
     return cur.fetchall()
 
 def listar_eventos_por_usuario(cur, usuario_id, hasta, cursor, limite) -> list[dict]:
-    # Log global: eventos de alertas de todos los dispositivos a los que el
-    # usuario tiene acceso (cualquier rol), sin duplicar filas si en algún
-    # momento tiene más de un vínculo con el mismo dispositivo.
+    # Log global: todo lo que pasó en los dispositivos a los que el usuario llega
+    # (cualquier rol), sean transiciones de umbral o cortes de conectividad. Sin
+    # DISTINCT: la PK de usuario_dispositivo garantiza una fila por par.
     condiciones = "ud.usuario_id = %s"
     params = [usuario_id]
 
@@ -257,13 +266,10 @@ def listar_eventos_por_usuario(cur, usuario_id, hasta, cursor, limite) -> list[d
 
     cur.execute(
         f"""
-        SELECT DISTINCT {COLUMNAS_EVENTO_CON_CONTEXTO}
+        SELECT {COLUMNAS_EVENTO_CON_CONTEXTO}
         FROM alerta_eventos e
-        JOIN alertas a ON a.id = e.alerta_id
-        JOIN sensores s ON s.id = a.sensor_id
-        JOIN dispositivos d ON d.id = s.dispositivo_id
-        JOIN tipos_sensor ts ON ts.id = s.tipo_sensor_id
-        JOIN usuario_dispositivo ud ON ud.dispositivo_id = d.id
+        JOIN dispositivos d ON d.id = e.dispositivo_id
+        JOIN usuario_dispositivo ud ON ud.dispositivo_id = e.dispositivo_id
         WHERE {condiciones}
         ORDER BY e.medicion_at DESC
         LIMIT %s

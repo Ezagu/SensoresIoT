@@ -3,7 +3,7 @@ import psycopg2.extras
 from datetime import datetime, timezone, timedelta
 from db import get_connection
 from repositories import dispositivo_repo, sensor_repo, medicion_repo, alerta_repo
-from services import plan_service, alerta_service
+from services import plan_service, alerta_service, dispositivo_service
 from core.tiempo import a_utc
 
 TOLERANCIA_JITTER = timedelta(seconds=5)  # margen por drift de reloj / latencia de red
@@ -75,7 +75,11 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False,
                 # last_seen_at es "cuándo habló el equipo", no la hora del dato: un
                 # flush del buffer trae lecturas viejas y lo dejaría figurando como
                 # desconectado justo cuando acaba de reportar.
-                dispositivo_repo.actualizar_conexion(cur, dispositivo_id, ahora)
+                #
+                # Un batch vacío es un heartbeat: el equipo dice "sigo acá" sin
+                # tener nada que publicar. Mueve last_seen_at pero NO last_data_at,
+                # que es lo que separa "está vivo" de "sus sensores andan".
+                dispositivo_repo.actualizar_conexion(cur, dispositivo_id, ahora, con_datos=bool(mediciones))
 
                 ids_sensores = sensor_repo.ids_por_dispositivo(cur, dispositivo_id)
 
@@ -157,6 +161,10 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False,
         "rechazadas_invalidas": invalidas,
         "rechazadas_por_intervalo": descartadas_por_intervalo,
         "intervalo_sugerido": intervalo_sugerido,
+        # Cada cuánto tiene que HABLAR, publique o no. Va desde el servidor y no
+        # hardcodeado en el sketch: con una compilación por pedido, una constante
+        # del lado de la placa es una decisión que se arrastra años.
+        "intervalo_contacto_seg": dispositivo_service.INTERVALO_CONTACTO_SEG,
         # El equipo compara cada muestra contra esto y, si CRUZA (transición, no
         # estado), drena el buffer sin esperar el ciclo. No evalúa la alerta: la
         # máquina de estados y el mail siguen siendo del servidor.

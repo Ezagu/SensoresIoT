@@ -52,13 +52,13 @@ Dos diferencias reales que **existen pero no fueron elegidas como argumento de v
 
 **Backend andando:** mediciones con ingreso tardío, planes y suscripciones, export por streaming, alertas evaluadas inline con mail por Resend.
 
-**No implementado (no prometerlo en la UI):** cobro (Mercado Pago), multi-usuario viewer/editor, panel de admin, landing, Google OAuth, y la alerta de "el equipo dejó de reportar".
+**No implementado (no prometerlo en la UI):** cobro (Mercado Pago), panel de admin, landing y Google OAuth.
 
 **Restricciones que el diseño tiene que respetar:**
 
 - **El freemium gatea sólo dos cosas**: hasta dónde atrás se puede consultar (`retencion_dias`) y cada cuánto puede muestrear el equipo (`intervalo_minimo_seg`). El **export no es premium**. Escribir se escribe siempre completo: un plan free guarda igual que un premium y sólo ve menos, así que el día que actualiza el historial ya está entero.
 - **Un equipo tiene tres estados, no dos**: en línea / con retraso / sin reportar. Colapsarlos en "online/offline" convierte el comportamiento normal en falla.
-- **No existe alerta de "dejó de reportar".** El silencio de un equipo sólo se ve mirando el gráfico. La interfaz no puede insinuar que alguien va a avisar.
+- **El aviso de "dejó de reportar" existe y no lo configura nadie.** El equipo habla cada 5 minutos aunque no le toque publicar; a los 15 minutos de silencio se lo da por caído y sale el mail, y sale otro cuando vuelve. Es el mismo umbral que muestra la pantalla: cuando el panel dice "sin reportar", el mail ya salió. Lo único que lo apaga es silenciar el equipo, y no lo limita ningún plan. Un equipo *con retraso* no avisa nada: bufferea y se pone al día solo.
 - **Terminología del producto, en castellano rioplatense, tal cual**: dispositivo, sensor, medición, lectura, alerta, evento, plan, vinculación. Los mensajes del backend ya vienen así.
 - **Un solo idioma (es-AR) y un solo mercado (Argentina).** Sin i18n, y el medio de pago es Mercado Pago porque Stripe no toma cuentas argentinas.
 - Cada equipo trae los sensores que trae: nada de UI que asuma un kit fijo o un set conocido de tipos.

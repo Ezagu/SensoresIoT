@@ -42,6 +42,14 @@ const unsigned long MS_MUESTREO = 15000;
 // `intervaloMedicionMs`: al enchufar el equipo el cliente ve un dato enseguida.
 const unsigned long MS_PRIMERA_PUBLICACION = 5000;
 
+// Cada cuánto el equipo tiene que HABLAR con el backend, tenga o no algo que
+// publicar. Sin esto, "¿está vivo?" se tendría que adivinar de la cadencia de
+// publicación — un número que se elige por ancho de banda y filas en la base, no
+// por qué tan rápido hay que enterarse de una falla: con 30 min de publicación el
+// backend tardaba 90 min en darlo por caído. El valor real lo manda el servidor
+// en `intervalo_contacto_seg`; esto es sólo el default hasta el primer POST.
+unsigned long intervaloContactoMs = 300000;
+
 // Botón BOOT: con el equipo ya andando, mantenerlo presionado borra el WiFi guardado.
 // NO se puede chequear durante el arranque: GPIO0 es pin de bootstrap y tenerlo en LOW
 // durante el reset mete al ESP32 en modo bootloader, con lo cual el sketch ni corre.
@@ -142,6 +150,7 @@ unsigned long ultimaMuestra = 0;
 unsigned long ultimaPublicacion = 0;
 unsigned long ultimoDisparo = 0;
 unsigned long ultimoEnvio = 0;
+unsigned long ultimoContacto = 0;
 unsigned long ultimoIntentoWifi = 0;
 
 // Lecturas que el sensor no entregó o que salieron fuera del rango del
@@ -238,13 +247,20 @@ void loop() {
     return;
   }
 
-  if (ahora - ultimoEnvio >= MS_ENTRE_ENVIOS && (bufCantidad > 0 || rotacionPendiente)) {
+  // Publicar ya cuenta como hablar, así que un equipo que publica seguido no manda
+  // un solo request de más: el heartbeat sólo rellena los huecos.
+  bool tocaHeartbeat = (ahora - ultimoContacto >= intervaloContactoMs);
+
+  if (ahora - ultimoEnvio >= MS_ENTRE_ENVIOS &&
+      (bufCantidad > 0 || rotacionPendiente || tocaHeartbeat)) {
     ultimoEnvio = ahora;
 
     // Un chunk por pasada de loop: con backlog grande el botón BOOT y la reconexión
     // se siguen atendiendo mientras se drena.
     if (bufCantidad > 0) {
       flushBuffer();
+    } else if (tocaHeartbeat) {
+      enviarHeartbeat();
     }
 
     // Se rota después de enviar: si falla, el flag queda levantado y se reintenta
@@ -606,6 +622,18 @@ bool flushBuffer() {
   return true;
 }
 
+// Un POST con `mediciones` vacío: mueve last_seen_at en el backend y no escribe
+// ninguna fila. Va por el mismo endpoint que las mediciones a propósito — la
+// respuesta trae el bloque de control (intervalo, umbrales, rotación de secret),
+// así que un equipo de cadencia lenta se entera de una regla nueva o de una
+// rotación pendiente en 5 min en vez de esperar su próxima publicación.
+bool enviarHeartbeat() {
+  JsonDocument doc;
+  doc["mediciones"].to<JsonArray>();
+  Serial.println("[HEARTBEAT] Nada que publicar, avisando que sigo vivo.");
+  return enviarMedicion(doc);
+}
+
 // ── API ────────────────────────────────────────────────────────
 void agregarHeadersAuth(HTTPClient& http) {
   http.addHeader("Content-Type", "application/json");
@@ -642,6 +670,9 @@ bool enviarMedicion(JsonDocument& doc) {
     Serial.printf("[HTTP] %s (%d): %s\n", ok ? "OK" : "Error", httpCode, respuestaTexto.c_str());
 
     if (ok) {
+      // Cualquier POST aceptado cuenta como contacto, traiga datos o no.
+      ultimoContacto = millis();
+
       JsonDocument respuesta;
       DeserializationError error = deserializeJson(respuesta, respuestaTexto);
 
@@ -659,6 +690,13 @@ bool enviarMedicion(JsonDocument& doc) {
             intervaloMedicionMs = propuesto;
             Serial.printf("[CONFIG] Publicacion cada %lu ms\n", intervaloMedicionMs);
           }
+        }
+
+        // Lo decide el servidor y no una constante del sketch: con una
+        // compilación por pedido, un número del lado de la placa se arrastra años.
+        unsigned long intervaloContacto = respuesta["intervalo_contacto_seg"] | 0;
+        if (intervaloContacto > 0) {
+          intervaloContactoMs = intervaloContacto * 1000UL;
         }
 
         aplicarUmbrales(respuesta["umbrales"].as<JsonArray>());

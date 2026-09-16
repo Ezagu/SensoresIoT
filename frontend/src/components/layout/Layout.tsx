@@ -40,7 +40,7 @@ const NAV: { etiqueta?: string; items: { a: string; etiqueta: string; Icono: typ
     items: [
       { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
       { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
-      { a: '/alertas', etiqueta: 'Avisos', Icono: IconoAlerta },
+      { a: '/avisos', etiqueta: 'Avisos', Icono: IconoAlerta },
     ],
   },
   {
@@ -55,7 +55,7 @@ const NAV: { etiqueta?: string; items: { a: string; etiqueta: string; Icono: typ
 const NAV_INFERIOR = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
   { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
-  { a: '/alertas', etiqueta: 'Avisos', Icono: IconoAlerta },
+  { a: '/avisos', etiqueta: 'Avisos', Icono: IconoAlerta },
   { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
 

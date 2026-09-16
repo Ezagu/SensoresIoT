@@ -99,12 +99,7 @@ export function Alertas() {
   /* Un equipo mudo no dispara nada: sus reglas no se están evaluando. Decirlo
      acá no es redundar con el panel — es la pantalla donde alguien se pregunta
      "¿estoy cubierto?", y la respuesta honesta depende de esto. */
-  const mudos = equipos.filter(
-    (d) =>
-      d.activo &&
-      estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora) ===
-        'sin-reportar',
-  )
+  const mudos = equipos.filter((d) => d.activo && estadoDispositivo(d, ahora) === 'sin-reportar')
 
   const veredicto =
     disparadas === 0
@@ -238,7 +233,7 @@ export function Alertas() {
           ) : log.eventos.length === 0 ? (
             <Vacio
               titulo="Sin avisos todavía"
-              detalle="Acá van a aparecer los cruces de umbral de todos tus equipos, con el valor que los disparó y a qué hora."
+              detalle="Acá van a aparecer los cruces de umbral de todos tus equipos y los cortes de los que dejan de reportar, con el valor o la duración y a qué hora."
             />
           ) : (
             <>
@@ -280,9 +275,9 @@ export function Alertas() {
       </section>
 
       <p className="max-w-125 text-note-lg text-text-faint">
-        Las reglas se crean y se editan en cada equipo, al lado de las lecturas del sensor. Por
-        ahora no existe un aviso por «equipo que dejó de reportar»: ese silencio se ve en el panel y
-        en el gráfico, no llega por mail.
+        Las reglas se crean y se editan en cada equipo, al lado de las lecturas del sensor. Los
+        avisos de «dejó de reportar» no se configuran: cada equipo se vigila solo, y quien no los
+        quiera por mail puede silenciarlo desde sus ajustes.
       </p>
     </div>
   )

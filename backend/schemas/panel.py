@@ -19,8 +19,10 @@ class DispositivoResumenOut(BaseModel):
     descripcion: Optional[str] = None
     activo: bool
     last_seen_at: Optional[datetime]
+    last_data_at: Optional[datetime] = None
     first_connected_at: Optional[datetime]
     intervalo_configurado_seg: Optional[int] = None
+    intervalo_modificado_at: Optional[datetime] = None
     rol: str
     # Resuelto con el plan del DUEÑO del dispositivo, a diferencia de
     # intervalo_configurado_seg (que es sólo el valor elegido, sin el piso del plan).

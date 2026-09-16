@@ -1,10 +1,10 @@
 from collections import defaultdict
 from datetime import timedelta
 from fastapi import HTTPException
-from repositories import alerta_repo, sensor_repo
+from repositories import acceso_repo, alerta_repo, sensor_repo
 from services import dispositivo_service, plan_service, sensor_service
 from core.tiempo import a_utc
-from core.email import enviar_email_alerta
+from core.email import enviar_email_alerta, enviar_email_sin_reportar
 from db import get_cursor
 
 LIMITE_DEFAULT_EVENTOS = 50
@@ -64,6 +64,7 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
         return []
 
     notificaciones = []
+    destinatarios_por_dispositivo = {}
 
     for regla in reglas:
         lecturas = por_sensor.get(regla["sensor_id"], [])
@@ -117,13 +118,20 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
             continue
 
         filas_eventos = [
-            (regla["id"], t["tipo"], t["valor"], t["medicion_at"], ahora, t["tardio"], 0, 0)
+            (regla["dispositivo_id"], regla["id"], t["tipo"], t["valor"], t["medicion_at"],
+             ahora, t["tardio"], regla["nombre"], regla["condicion"], regla["umbral"],
+             regla["tipo_sensor_nombre"], regla["tipo_sensor_unidad"])
             for t in transiciones
         ]
         insertados = alerta_repo.insertar_eventos(cur, filas_eventos)
         ultimo_evento_id = insertados[-1]["id"]
 
-        destinatarios = alerta_repo.destinatarios_de_alerta(cur, regla["id"])
+        # Memoizado: varias reglas del mismo equipo comparten destinatarios y la
+        # query no depende de la regla.
+        dispositivo_id = regla["dispositivo_id"]
+        if dispositivo_id not in destinatarios_por_dispositivo:
+            destinatarios_por_dispositivo[dispositivo_id] = acceso_repo.destinatarios(cur, dispositivo_id)
+        destinatarios = destinatarios_por_dispositivo[dispositivo_id]
         alerta_repo.actualizar_destinatarios(cur, ultimo_evento_id, len(destinatarios))
 
         ultima = transiciones[-1]
@@ -145,16 +153,27 @@ def evaluar_batch(cur, filas: list[tuple], ahora) -> list[dict]:
 
     return notificaciones
 
+TIPOS_DE_CONECTIVIDAD = ("sin_reportar", "reconectado")
+
 def notificar_eventos(notificaciones: list[dict]) -> None:
-    # Corre en un BackgroundTask, después de responder al dispositivo: Resend
-    # es HTTP bloqueante y el ESP32 no puede esperarlo. Un destinatario que
-    # rebota no frena a los demás (try/except por destinatario, igual que
-    # auth_service con el mail de verificación).
+    # Corre fuera de la transacción que escribió los eventos: en el camino de
+    # /mediciones como BackgroundTask (Resend es HTTP bloqueante y el ESP32 no
+    # puede esperarlo) y en el barrido de vigilancia_service después del commit.
+    # Un destinatario que rebota no frena a los demás (try/except por
+    # destinatario, igual que auth_service con el mail de verificación).
+    #
+    # Despacha la plantilla por `tipo` en vez de tener una copia de este bucle por
+    # familia de aviso: es el único lugar que escribe `notificados`, y duplicarlo
+    # es la forma canónica de que dos registros terminen contando distinto.
     for notificacion in notificaciones:
+        enviar = (
+            enviar_email_sin_reportar if notificacion["tipo"] in TIPOS_DE_CONECTIVIDAD
+            else enviar_email_alerta
+        )
         enviados = 0
         for destinatario in notificacion["destinatarios"]:
             try:
-                enviar_email_alerta(destinatario["email"], notificacion)
+                enviar(destinatario["email"], notificacion)
             except Exception as e:
                 print(f"Error enviando mail de alerta a {destinatario['email']}: {e}")
                 continue

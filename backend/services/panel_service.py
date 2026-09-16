@@ -64,7 +64,7 @@ def listar_panel(usuario_id) -> dict:
             salida.append({
                 **d,
                 "intervalo_efectivo_seg": intervalo_efectivo,
-                "online": dispositivo_service.esta_online(d["last_seen_at"], intervalo_efectivo),
+                "online": dispositivo_service.esta_online(d["last_seen_at"]),
                 "alertas_disparadas": disparadas_por_dispositivo.get(d["id"], 0),
                 "sensores": sensores_out,
             })

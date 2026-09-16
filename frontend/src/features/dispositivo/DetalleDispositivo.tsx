@@ -98,10 +98,15 @@ export function DetalleDispositivo() {
   }))
   // Del plan del dueño y no del propio: son los límites de ESTE equipo.
   const { puede_alertas: puedeAlertas, max_alertas: maxAlertas } = dispositivo.limites
+  /* Lo que cambia solo sale de /estado; el intervalo, del detalle, que no pollea. */
   const situacionDispositivo = estadoDispositivo(
-    estado.datos?.last_seen_at ?? null,
-    estado.datos?.online ?? false,
-    dispositivo.intervalo_efectivo_seg,
+    {
+      last_seen_at: estado.datos?.last_seen_at ?? null,
+      last_data_at: estado.datos?.last_data_at ?? null,
+      online: estado.datos?.online ?? false,
+      intervalo_efectivo_seg: dispositivo.intervalo_efectivo_seg,
+      intervalo_modificado_at: estado.datos?.intervalo_modificado_at ?? null,
+    },
     hasta,
   )
   // Todos los sensores del dispositivo comparten plan y ventana pedida, así que

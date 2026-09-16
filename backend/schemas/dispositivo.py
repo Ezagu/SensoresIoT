@@ -20,16 +20,24 @@ class DispositivoOut(BaseModel):
   ubicacion: Optional[str] = None
   descripcion: Optional[str] = None
   activo: bool
+  # Cuándo HABLÓ el equipo (incluye heartbeats) vs cuándo mandó DATOS. Son dos
+  # preguntas distintas: "¿está vivo?" y "¿sus lecturas llegan a tiempo?".
   last_seen_at: Optional[datetime]
+  last_data_at: Optional[datetime] = None
   first_connected_at: Optional[datetime]
   # None = automático, usa el piso del plan vigente en cada momento
   intervalo_configurado_seg: Optional[int] = None
+  # Cuándo se cambió el intervalo. El equipo se entera recién en su próximo
+  # contacto, así que hasta ahí no se lo puede marcar atrasado contra el valor nuevo.
+  intervalo_modificado_at: Optional[datetime] = None
 
 class DispositivoEstadoOut(BaseModel):
   # Lo único que cambia solo mientras se mira un equipo: lo que el detalle pollea.
   last_seen_at: Optional[datetime]
+  last_data_at: Optional[datetime] = None
   online: bool
   alertas_disparadas: int
+  intervalo_modificado_at: Optional[datetime] = None
   # Segundos hasta el próximo reporte esperado; None = nunca reportó. Es de dónde
   # el frontend saca la cadencia de su poll, para pedir justo después del dato.
   siguiente_medicion: Optional[int] = None

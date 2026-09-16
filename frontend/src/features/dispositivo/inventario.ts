@@ -22,12 +22,7 @@ export function categoriaDe(
   ahora: number = Date.now(),
 ): FiltroInventario {
   if (!dispositivo.activo) return 'desactivado'
-  return estadoDispositivo(
-    dispositivo.last_seen_at,
-    dispositivo.online,
-    dispositivo.intervalo_efectivo_seg,
-    ahora,
-  )
+  return estadoDispositivo(dispositivo, ahora)
 }
 
 /* Orden fijo de exhibición: gravedad primero, la baja al final (no es una

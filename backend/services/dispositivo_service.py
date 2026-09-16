@@ -13,17 +13,40 @@ ROLES_EDICION = ("admin", "owner", "editor")
 ROLES_OWNER = ("admin", "owner")
 ROLES_ASIGNABLES = ("editor", "viewer")
 
-# Toleramos tres intervalos de silencio antes de dar por caído al equipo: uno
-# perdido es un reintento normal del firmware.
+# Cada cuánto el equipo tiene que HABLAR, publique o no. El firmware lo recibe en
+# cada respuesta de /mediciones/ (`intervalo_contacto_seg`) en vez de tenerlo
+# hardcodeado: en un producto que se compila por pedido, una constante del lado de
+# la placa es una decisión que se arrastra años.
+INTERVALO_CONTACTO_SEG = 300
+
+# Toleramos tres contactos perdidos antes de dar por caído al equipo: uno perdido
+# es un reintento normal del firmware.
 INTERVALOS_DE_GRACIA = 3
 
-def esta_online(last_seen_at, intervalo_efectivo_seg) -> bool:
-    # El intervalo tiene que ser el EFECTIVO (max con el piso del plan del dueño):
-    # el configurado es NULL cuando el equipo está en automático.
+# 15 min. Es UN número para todos los equipos, no 3 x su cadencia de publicación:
+# esa cadencia se elige por ancho de banda y filas en la base, y no tiene por qué
+# decidir qué tan rápido te enterás de una falla. Antes iba de 3 min (equipo de
+# 1 min, o sea un mail por cada reinicio de router) a 90 min (equipo de 30 min).
+#
+# Y es el MISMO umbral con el que sale el mail, así que la frase se puede escribir
+# en la pantalla sin asteriscos: cuando el panel dice "sin reportar", el mail ya
+# salió. El ruido de red lo absorbe el estado intermedio "con retraso", que mide
+# otra cosa (ver lecturas_al_dia).
+VENTANA_SIN_REPORTAR_SEG = INTERVALO_CONTACTO_SEG * INTERVALOS_DE_GRACIA
+
+def esta_online(last_seen_at, ahora=None) -> bool:
+    # ¿El equipo está vivo? Nada más. Si mandó datos o sólo dijo "acá estoy" es
+    # otra pregunta, y la contesta last_data_at.
+    #
+    # `ahora` existe para que el barrido de vigilancia_service le pase el reloj de
+    # Postgres que ya trae en la fila: last_seen_at lo escribe Python y el filtro
+    # del barrido usa now() de la base, así que un desfasaje entre los dos relojes
+    # abriría caídas falsas. Las pantallas lo llaman sin el parámetro y siguen
+    # usando el reloj del proceso — el predicado sigue siendo uno solo.
     if last_seen_at is None:
         return False
-    transcurrido = datetime.now(timezone.utc) - last_seen_at
-    return transcurrido < timedelta(seconds=intervalo_efectivo_seg * INTERVALOS_DE_GRACIA)
+    transcurrido = (ahora or datetime.now(timezone.utc)) - last_seen_at
+    return transcurrido < timedelta(seconds=VENTANA_SIN_REPORTAR_SEG)
 
 def segundos_hasta_siguiente_medicion(last_seen_at, intervalo_efectivo_seg) -> int | None:
     # Cuánto falta para el próximo reporte esperado. None = nunca reportó, no hay
@@ -110,9 +133,13 @@ def obtener_estado(dispositivo_id, usuario_id, rol) -> dict:
         intervalo = plan_service.intervalo_efectivo_seg(dispositivo["intervalo_configurado_seg"], piso)
         return {
             "last_seen_at": last_seen_at,
-            "online": esta_online(last_seen_at, intervalo),
+            "last_data_at": dispositivo["last_data_at"],
+            "online": esta_online(last_seen_at),
             "alertas_disparadas": len(alerta_repo.disparadas_por_dispositivos(cur, [dispositivo_id])),
-            "siguiente_medicion": segundos_hasta_siguiente_medicion(last_seen_at, intervalo),
+            # Sigue colgando del intervalo de PUBLICACIÓN: es cuándo llega el
+            # próximo dato, no cuándo vuelve a hablar el equipo.
+            "siguiente_medicion": segundos_hasta_siguiente_medicion(dispositivo["last_data_at"], intervalo),
+            "intervalo_modificado_at": dispositivo["intervalo_modificado_at"],
         }
 
 def actualizar_datos(dispositivo_id, usuario_id, rol, datos):
@@ -123,6 +150,8 @@ def actualizar_datos(dispositivo_id, usuario_id, rol, datos):
     with get_cursor() as cur:
         validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
         dispositivo = dispositivo_repo.actualizar(cur, dispositivo_id, campos)
+        if campos.get("activo") is False:
+            dispositivo_repo.limpiar_sin_reportar(cur, dispositivo_id)
         return obtener_detalle_dispositivo(cur, dispositivo, usuario_id, rol)
 
 def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:

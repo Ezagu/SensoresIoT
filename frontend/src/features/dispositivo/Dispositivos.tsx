@@ -143,7 +143,7 @@ export function Dispositivos() {
               <FilaEquipo
                 key={d.id}
                 dispositivo={d}
-                estado={estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora)}
+                estado={estadoDispositivo(d, ahora)}
               />
             ))}
           </ul>

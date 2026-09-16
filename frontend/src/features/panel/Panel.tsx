@@ -33,10 +33,10 @@ const OPCIONES_FILTRO: { valor: Filtro; etiqueta: string }[] = [
 ]
 
 /* Un equipo con retraso está bufferreando y se pone al día solo: no entra acá.
-   Uno mudo pasado el margen sí, y es el caso más importante — no existe alerta
-   de "dejó de reportar", así que si el panel no lo muestra no lo muestra nadie.
-   Mismo criterio para el veredicto de arriba y para el filtro: las mismas
-   palabras no pueden contar dos cosas distintas en la misma pantalla. */
+   Uno mudo sí, y para cuando aparece acá el mail de "dejó de reportar" ya salió:
+   es el mismo umbral, no dos. Mismo criterio para el veredicto de arriba y para
+   el filtro: las mismas palabras no pueden contar dos cosas distintas en la
+   misma pantalla. */
 function requiereAtencion({ dispositivo, conectividad }: Fila): boolean {
   if (!dispositivo.activo) return false
   return (
@@ -239,7 +239,7 @@ export function Panel() {
   const resumen = useMemo(() => {
     const filas: Fila[] = (dispositivos ?? []).map((d) => ({
       dispositivo: d,
-      conectividad: estadoDispositivo(d.last_seen_at, d.online, d.intervalo_efectivo_seg, ahora),
+      conectividad: estadoDispositivo(d, ahora),
     }))
 
     return {
