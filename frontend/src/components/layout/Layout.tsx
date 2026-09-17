@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSesion } from '@/features/auth/sesion'
+import type { MiPlan, SesionActual } from '@/tipos'
 import {
   ContextoRanuras,
   ContextoRastro,
@@ -14,10 +15,12 @@ import {
   IconoAjustes,
   IconoAlerta,
   IconoCerrar,
+  IconoChevronAbajo,
   IconoDispositivo,
   IconoMenu,
   IconoPanel,
   IconoPlan,
+  IconoSalir,
 } from './iconos'
 
 const ESCRITORIO = '(min-width: 1024px)'
@@ -33,23 +36,16 @@ export function iniciales(nombre?: string) {
     .join('')
 }
 
-/* El primer grupo no lleva encabezado: es la navegación primaria y no necesita
-   que la presenten. "Cuenta" sí, porque separa dos cosas distintas. */
-const NAV: { etiqueta?: string; items: { a: string; etiqueta: string; Icono: typeof IconoPanel }[] }[] = [
-  {
-    items: [
-      { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
-      { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
-      { a: '/avisos', etiqueta: 'Avisos', Icono: IconoAlerta },
-    ],
-  },
-  {
-    etiqueta: 'Cuenta',
-    items: [
-      { a: '/plan', etiqueta: 'Plan', Icono: IconoPlan },
-      { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
-    ],
-  },
+/* Sin encabezado: es la navegación primaria entera, no hay una segunda sección
+   que separar de ella. Plan vive sólo en el bloque de cuenta de abajo, no acá:
+   un ícono fijo en la nav principal empuja a vender todo el tiempo — el CTA
+   real ya sale donde corresponde, junto al límite que lo motiva (retención,
+   alertas). */
+const NAV: { a: string; etiqueta: string; Icono: typeof IconoPanel }[] = [
+  { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
+  { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
+  { a: '/avisos', etiqueta: 'Avisos', Icono: IconoAlerta },
+  { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
 
 const NAV_INFERIOR = [
@@ -89,8 +85,109 @@ function Migas({ items }: { items: Miga[] }) {
   )
 }
 
+/* Mismo trato para los tres ítems del panel, sean Link o botón: sólo cambia el
+   elemento, según si navegan o accionan. */
+const claseItemCuenta =
+  'flex items-center gap-2.5 rounded-control px-2.5 py-2 text-body text-text-muted transition-colors duration-130 hover:bg-surface-2 hover:text-text'
+
+/* Cuelga hacia arriba y no hacia abajo, a diferencia de Desplegable: el
+   disparador vive al pie de la sidebar y un panel hacia abajo se saldría de la
+   pantalla. El trigger es propio (avatar + nombre + plan) y no el de
+   Desplegable, que sólo acepta una etiqueta de texto. */
+function BloqueUsuario({
+  sesion,
+  plan,
+  logout,
+}: {
+  sesion: SesionActual | null
+  plan: MiPlan | null
+  logout: () => Promise<void>
+}) {
+  const [abierto, setAbierto] = useState(false)
+  const caja = useRef<HTMLDivElement>(null)
+  const panelId = useId()
+
+  useEffect(() => {
+    if (!abierto) return
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAbierto(false)
+    }
+    const alApuntar = (e: PointerEvent) => {
+      if (!caja.current?.contains(e.target as Node)) setAbierto(false)
+    }
+    document.addEventListener('keydown', alTeclear)
+    document.addEventListener('pointerdown', alApuntar)
+    return () => {
+      document.removeEventListener('keydown', alTeclear)
+      document.removeEventListener('pointerdown', alApuntar)
+    }
+  }, [abierto])
+
+  return (
+    <div ref={caja} className="relative">
+      <button
+        type="button"
+        aria-expanded={abierto}
+        aria-controls={panelId}
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center gap-2.5 rounded-control px-2 py-1.5 transition-colors duration-130 hover:bg-surface-2"
+      >
+        <span
+          aria-hidden="true"
+          className="flex size-7.5 shrink-0 items-center justify-center rounded-chip border border-border bg-surface-2 text-tag font-semibold text-text"
+        >
+          {iniciales(sesion?.nombre)}
+        </span>
+        <span className="flex min-w-0 flex-col items-start">
+          <strong className="truncate text-label-lg font-medium text-text">
+            {sesion?.nombre ?? 'Mi cuenta'}
+          </strong>
+          {/* El espacio duro reserva el renglón mientras carga el plan, para
+              que el bloque no crezca después de montar. */}
+          <small
+            className={`truncate text-note ${plan?.plan.id !== 'free' ? 'text-accent' : 'text-text-faint'}`}
+          >
+            {plan ? `Plan ${plan.plan.nombre}` : ' '}
+          </small>
+        </span>
+        <IconoChevronAbajo
+          className={`ml-auto size-3.5 shrink-0 text-text-muted transition-transform duration-130 ${abierto ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {abierto && (
+        <div
+          id={panelId}
+          className="absolute bottom-full left-0 z-20 mb-1 w-full min-w-52 rounded-card border border-border-control bg-elevated p-1.5 shadow-overlay"
+        >
+          <Link to="/plan" onClick={() => setAbierto(false)} className={claseItemCuenta}>
+            <IconoPlan className="size-4 shrink-0" />
+            Plan
+          </Link>
+          <Link to="/ajustes" onClick={() => setAbierto(false)} className={claseItemCuenta}>
+            <IconoAjustes className="size-4 shrink-0" />
+            Ajustes
+          </Link>
+          <div className="my-1.5 border-t border-border" />
+          <button
+            type="button"
+            onClick={() => {
+              setAbierto(false)
+              void logout()
+            }}
+            className={`w-full text-left ${claseItemCuenta}`}
+          >
+            <IconoSalir className="size-4 shrink-0" />
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function Layout({ titulo }: { titulo: string }) {
-  const { sesion, plan } = useSesion()
+  const { sesion, plan, logout } = useSesion()
   const location = useLocation()
   const trigger = useRef<HTMLButtonElement>(null)
   const cerrar = useRef<HTMLButtonElement>(null)
@@ -183,51 +280,17 @@ export function Layout({ titulo }: { titulo: string }) {
             <Logo />
           </div>
 
-          <nav aria-label="Secciones" className="flex flex-col gap-6">
-            {NAV.map((grupo, i) => (
-              <div key={grupo.etiqueta ?? i} className="flex flex-col gap-0.5">
-                {grupo.etiqueta && (
-                  <span className="px-2 pb-1.5 text-tag font-semibold tracking-micro text-text-faint uppercase">
-                    {grupo.etiqueta}
-                  </span>
-                )}
-                {grupo.items.map(({ a, etiqueta, Icono }) => (
-                  <NavLink key={a} to={a} end={a === '/'} className={claseItem}>
-                    <Icono className="size-4 shrink-0" />
-                    {etiqueta}
-                  </NavLink>
-                ))}
-              </div>
+          <nav aria-label="Secciones" className="flex flex-col gap-0.5">
+            {NAV.map(({ a, etiqueta, Icono }) => (
+              <NavLink key={a} to={a} end={a === '/'} className={claseItem}>
+                <Icono className="size-4 shrink-0" />
+                {etiqueta}
+              </NavLink>
             ))}
           </nav>
 
-          <div className="mt-auto flex flex-col gap-3 border-t border-border pt-4">
-            {/* Sin estado activo propio: lleva a /ajustes, que ya se marca en el
-                nav de arriba, y dos bloques encendidos por la misma ruta se leen
-                como dos destinos distintos. */}
-            <NavLink
-              to="/ajustes"
-              className="flex items-center gap-2.5 rounded-control px-2 py-1.5 transition-colors duration-130 hover:bg-surface-2"
-            >
-              <span
-                aria-hidden="true"
-                className="flex size-7.5 shrink-0 items-center justify-center rounded-chip border border-border bg-surface-2 text-tag font-semibold text-text"
-              >
-                {iniciales(sesion?.nombre)}
-              </span>
-              <span className="flex min-w-0 flex-col">
-                <strong className="truncate text-label-lg font-medium text-text">
-                  {sesion?.nombre ?? 'Mi cuenta'}
-                </strong>
-                {/* El espacio duro reserva el renglón mientras carga el plan,
-                    para que el bloque no crezca después de montar. */}
-                <small
-                  className={`truncate text-note ${plan?.plan.id !== 'free' ? 'text-accent' : 'text-text-faint'}`}
-                >
-                  {plan ? `Plan ${plan.plan.nombre}` : ' '}
-                </small>
-              </span>
-            </NavLink>
+          <div className="mt-auto border-t border-border pt-4">
+            <BloqueUsuario sesion={sesion} plan={plan} logout={logout} />
           </div>
         </aside>
 

@@ -195,3 +195,10 @@ export const IconoSobre = ({ className }: Props) => (
     <path d="M3 7l9 6 9-6" />
   </svg>
 )
+
+export const IconoSalir = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+    <path d="M16 17l5-5-5-5M21 12H9" />
+  </svg>
+)
