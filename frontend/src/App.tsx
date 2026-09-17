@@ -6,7 +6,6 @@ import { Login } from '@/features/auth/Login'
 import { Registro } from '@/features/auth/Registro'
 import { Verificar } from '@/features/auth/Verificar'
 import { Panel } from '@/features/panel/Panel'
-import { Dispositivos } from '@/features/dispositivo/Dispositivos'
 import { Vincular } from '@/features/dispositivo/Vincular'
 import { AjustesDispositivo } from '@/features/dispositivo/ajustes/AjustesDispositivo'
 import { Alertas } from '@/features/alertas/Alertas'
@@ -58,8 +57,7 @@ export default function App() {
             <Route element={<Layout titulo="Panel" />}>
               <Route index element={<Panel />} />
             </Route>
-            <Route element={<Layout titulo="Dispositivos" />}>
-              <Route path="/dispositivos" element={<Dispositivos />} />
+            <Route element={<Layout titulo="Dispositivo" />}>
               <Route
                 path="/dispositivos/:id"
                 element={
@@ -77,6 +75,8 @@ export default function App() {
                 }
               />
               <Route path="/dispositivos/:id/ajustes" element={<AjustesDispositivo />} />
+            </Route>
+            <Route element={<Layout titulo="Vincular equipo" />}>
               <Route path="/vincular" element={<Vincular />} />
             </Route>
             <Route element={<Layout titulo="Avisos" />}>
@@ -94,6 +94,9 @@ export default function App() {
             {/* "Alerta" es la regla y "aviso" el evento: acá sólo se miran los
                 segundos. Renombrada antes de que los mails linkeen la URL. */}
             <Route path="/alertas" element={<Navigate to="/avisos" replace />} />
+            {/* El padrón se disolvió en el panel: cada equipo ya se ve ahí,
+                agrupado por estado, sin una lista aparte que lo repita. */}
+            <Route path="/dispositivos" element={<Navigate to="/" replace />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

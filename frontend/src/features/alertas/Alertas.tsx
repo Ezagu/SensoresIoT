@@ -1,68 +1,23 @@
 import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
-import { Banner } from '@/components/ui/Banner'
-import { Boton, BotonLink } from '@/components/ui/Boton'
+import { Boton } from '@/components/ui/Boton'
 import { BotonIcono } from '@/components/ui/BotonIcono'
 import { Card } from '@/components/ui/Card'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
-import { MarcaEstado } from '@/components/ui/MarcaEstado'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
 import { IconoActualizar } from '@/components/layout/iconos'
 import { AccionesCabecera, MetaCabecera } from '@/hooks/usarCabecera'
-import { useAhora } from '@/hooks/usarAhora'
 import { useDispositivos } from '@/features/panel/usarPanel'
-import { estadoDispositivo, fecha, TIC_RELOJ_MS } from '@/utils/tiempo'
-import { nombreDeDispositivo } from '@/utils/dispositivos'
-import { etiquetarSensores } from '@/utils/sensores'
-import { medida } from '@/utils/formato'
-import type { DispositivoResumen } from '@/tipos'
+import { fecha } from '@/utils/tiempo'
 import { FilaEvento } from './FilaEvento'
 import { useEventosAlerta } from './usarEventos'
 
 /* El registro de lo que avisó, no el lugar donde se administran las reglas: una
    regla es configuración de un equipo y sólo significa algo al lado de las
-   lecturas de su sensor, así que se crea y se edita ahí. Acá se contesta la otra
-   pregunta, la que ninguna pantalla de un equipo puede contestar sola: qué pasó,
-   en cuál de mis equipos y cuándo. */
-
-/* Lo que está cruzado ahora mismo, un renglón por equipo. Es el estado vivo que
-   el registro de abajo no puede dar: ahí cada fila es algo que ya pasó. */
-function FilaDisparada({ dispositivo }: { dispositivo: DispositivoResumen }) {
-  const etiquetas = etiquetarSensores(dispositivo.sensores)
-  const cruzando = dispositivo.sensores.filter((s) => s.disparada)
-
-  return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-5">
-      <div className="flex min-w-0 flex-1 basis-full items-center gap-3 sm:basis-56">
-        <MarcaEstado estado="critico" latiendo />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-body-lg font-medium text-text">
-            {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
-          </span>
-          <span className="truncate text-body text-danger">
-            {cruzando.length > 0
-              ? cruzando
-                  .map((s) => {
-                    const etiqueta = etiquetas.get(s.id)?.etiqueta ?? 'Sensor'
-                    return s.ultimo_valor === null
-                      ? etiqueta
-                      : `${etiqueta} ${medida(s.ultimo_valor, s.unidad)}`
-                  })
-                  .join(' · ')
-              : dispositivo.alertas_disparadas === 1
-                ? '1 regla cruzada'
-                : `${dispositivo.alertas_disparadas} reglas cruzadas`}
-          </span>
-        </div>
-      </div>
-      <BotonLink variante="sutil" to={`/dispositivos/${dispositivo.id}`} className="ml-auto">
-        Ver equipo
-      </BotonLink>
-    </li>
-  )
-}
+   lecturas de su sensor, así que se crea y se edita ahí. Lo que está cruzado
+   ahora mismo ya lo dice el panel — acá sólo el historial: qué pasó, en cuál
+   de mis equipos y cuándo. */
 
 function EsqueletoFila() {
   return (
@@ -77,68 +32,42 @@ function EsqueletoFila() {
 }
 
 export function Alertas() {
-  const {
-    datos: dispositivos,
-    cargando,
-    refrescando,
-    error,
-    refrescar,
-    cadenciaSeg,
-    actualizadoAt,
-  } = useDispositivos()
+  // Sólo para la cadencia del equipo más rápido de la cartera, que gobierna el
+  // poll del registro (ver usarEventos): nada de la cartera se dibuja acá.
+  const { cadenciaSeg, refrescar: refrescarCadencia } = useDispositivos()
   const log = useEventosAlerta(cadenciaSeg)
 
-  const ahora = useAhora(
-    cadenciaSeg !== undefined ? Math.min(TIC_RELOJ_MS, cadenciaSeg * 1000) : TIC_RELOJ_MS,
-  )
-
-  const equipos = dispositivos ?? []
-  const enAlerta = equipos.filter((d) => d.alertas_disparadas > 0)
-  const disparadas = equipos.reduce((n, d) => n + d.alertas_disparadas, 0)
-
-  /* Un equipo mudo no dispara nada: sus reglas no se están evaluando. Decirlo
-     acá no es redundar con el panel — es la pantalla donde alguien se pregunta
-     "¿estoy cubierto?", y la respuesta honesta depende de esto. */
-  const mudos = equipos.filter((d) => d.activo && estadoDispositivo(d, ahora) === 'sin-reportar')
-
-  const veredicto =
-    disparadas === 0
-      ? 'Ninguna alerta disparada'
-      : disparadas === 1
-        ? '1 alerta disparada'
-        : `${disparadas} alertas disparadas`
-
   function actualizar() {
-    refrescar()
+    refrescarCadencia()
     log.reiniciar()
   }
 
   const cabecera = (
     <>
       <MetaCabecera>
-        {refrescando ? (
+        {log.cargandoMas ? (
           <span>actualizando…</span>
-        ) : actualizadoAt ? (
+        ) : log.actualizadoAt ? (
           <span className="truncate">
-            actualizado <HaceCuanto iso={actualizadoAt} />
+            actualizado <HaceCuanto iso={log.actualizadoAt} />
           </span>
         ) : null}
       </MetaCabecera>
       <AccionesCabecera>
-        <BotonIcono etiqueta="Actualizar" onClick={actualizar} disabled={refrescando}>
+        <BotonIcono etiqueta="Actualizar" onClick={actualizar} disabled={log.cargandoMas}>
           <IconoActualizar className="size-4" />
         </BotonIcono>
       </AccionesCabecera>
     </>
   )
 
-  if (cargando) {
+  if (log.cargando) {
     return (
       <div className="flex flex-col gap-6">
         {cabecera}
-        <Skeleton className="h-7 w-72" />
         <Card>
           <ul className="flex flex-col divide-y divide-border">
+            <EsqueletoFila />
             <EsqueletoFila />
             <EsqueletoFila />
           </ul>
@@ -151,76 +80,9 @@ export function Alertas() {
     <div className="flex flex-col gap-6">
       {cabecera}
 
-      <section aria-label="Resumen" className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 className="font-display text-hero font-semibold text-text">{veredicto}</h2>
-        {enAlerta.length > 1 && (
-          <span className="text-body text-text-muted">en {enAlerta.length} equipos</span>
-        )}
-      </section>
-
-      {enAlerta.length > 0 && (
-        <section
-          aria-label="Alertas disparadas"
-          className="overflow-hidden rounded-card border border-danger-border bg-danger-soft"
-        >
-          <ul className="flex flex-col divide-y divide-danger-border">
-            {enAlerta.map((d) => (
-              <FilaDisparada key={d.id} dispositivo={d} />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {mudos.length > 0 && (
-        <Banner
-          tono="atencion"
-          titulo={
-            mudos.length === 1
-              ? `${nombreDeDispositivo(mudos[0].id, mudos[0].nombre)} dejó de reportar`
-              : `${mudos.length} equipos dejaron de reportar`
-          }
-          acciones={
-            mudos.length === 1 ? (
-              <BotonLink variante="sutil" to={`/dispositivos/${mudos[0].id}`}>
-                Ver equipo
-              </BotonLink>
-            ) : undefined
-          }
-        >
-          Mientras un equipo está mudo no se evalúa ninguna de sus reglas, así que lo de abajo no
-          dice nada sobre lo que esté pasando ahí.
-          {/* Con varios no hay un "ver equipo" que sirva: cada uno es su propia
-              visita, así que la lista misma es la navegación. */}
-          {mudos.length > 1 && (
-            <ul className="mt-1.5 flex flex-col gap-0.5">
-              {mudos.map((d) => (
-                <li key={d.id}>
-                  <Link
-                    to={`/dispositivos/${d.id}`}
-                    className="font-medium text-text hover:underline"
-                  >
-                    {nombreDeDispositivo(d.id, d.nombre)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Banner>
-      )}
-
-      {/* Un fallo de poll con datos en pantalla es un aviso al costado: la última
-          foto buena sigue sirviendo. */}
-      {error && dispositivos && <TextoError>No pudimos actualizar: {error}</TextoError>}
-
       <section aria-label="Registro de avisos">
         <Card>
-          {log.cargando ? (
-            <ul className="flex flex-col divide-y divide-border">
-              <EsqueletoFila />
-              <EsqueletoFila />
-              <EsqueletoFila />
-            </ul>
-          ) : log.error && log.eventos.length === 0 ? (
+          {log.error && log.eventos.length === 0 ? (
             <Vacio
               titulo="No pudimos cargar el registro"
               detalle={log.error}

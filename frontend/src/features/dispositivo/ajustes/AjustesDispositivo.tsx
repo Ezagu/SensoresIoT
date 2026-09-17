@@ -38,7 +38,7 @@ export function AjustesDispositivo() {
   useRastro(
     dispositivo
       ? [
-          { etiqueta: 'Dispositivos', a: '/dispositivos' },
+          { etiqueta: 'Panel', a: '/' },
           {
             etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre),
             a: `/dispositivos/${dispositivo.id}`,

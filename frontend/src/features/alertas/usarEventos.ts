@@ -64,6 +64,7 @@ export function useEventosAlerta(cadenciaSeg: number | undefined) {
     /* La lista ya está en pantalla: lo único que trabaja es el botón. */
     cargandoMas: estado.refrescando,
     error: estado.error,
+    actualizadoAt: estado.actualizadoAt,
     hayMas: ultimo?.siguiente != null,
     cargarMas: () =>
       setCursores((previo) => {

@@ -16,7 +16,6 @@ import {
   IconoAlerta,
   IconoCerrar,
   IconoChevronAbajo,
-  IconoDispositivo,
   IconoMenu,
   IconoPanel,
   IconoPlan,
@@ -43,14 +42,12 @@ export function iniciales(nombre?: string) {
    alertas). */
 const NAV: { a: string; etiqueta: string; Icono: typeof IconoPanel }[] = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
-  { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
   { a: '/avisos', etiqueta: 'Avisos', Icono: IconoAlerta },
   { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
 
 const NAV_INFERIOR = [
   { a: '/', etiqueta: 'Panel', Icono: IconoPanel },
-  { a: '/dispositivos', etiqueta: 'Dispositivos', Icono: IconoDispositivo },
   { a: '/avisos', etiqueta: 'Avisos', Icono: IconoAlerta },
   { a: '/ajustes', etiqueta: 'Ajustes', Icono: IconoAjustes },
 ]
@@ -341,7 +338,7 @@ export function Layout({ titulo }: { titulo: string }) {
       <nav
         inert={fondoInerte}
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {NAV_INFERIOR.map(({ a, etiqueta, Icono }) => (
           <NavLink
