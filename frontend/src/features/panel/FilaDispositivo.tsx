@@ -33,6 +33,7 @@ export function estadoDeFila(
 const RAIL: Partial<Record<Estado, string>> = {
   critico: 'border-l-danger-mark',
   advertencia: 'border-l-warn-mark',
+  'sin-reportar': 'border-l-warn-mark',
   atencion: 'border-l-attention-mark',
 }
 

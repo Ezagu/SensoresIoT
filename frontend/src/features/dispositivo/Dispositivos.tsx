@@ -1,27 +1,29 @@
 import { useMemo, useState } from 'react'
 import { IconoMas } from '@/components/layout/iconos'
+import { Banner } from '@/components/ui/Banner'
 import { Boton, BotonLink } from '@/components/ui/Boton'
 import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
 import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
+import { nombreDeDispositivo } from '@/utils/dispositivos'
 import { useAhora } from '@/hooks/usarAhora'
 import { BarraInventario } from './inventario/BarraInventario'
-import { FilaEquipo } from './inventario/FilaEquipo'
+import { CabeceraColumnas, FilaEquipo } from './inventario/FilaEquipo'
 import {
   contarPorEstado,
   filtrarDispositivos,
   ordenarDispositivos,
+  sinCobertura,
   type FiltroInventario,
   type OrdenInventario,
 } from './inventario'
-import { useInventario } from './usarInventario'
-import type { DispositivoInventario } from '@/tipos'
+import { useInventario, type EquipoInventario } from './usarInventario'
 
 /* Referencia estable: un literal vacío por render recalcularía los tres useMemo
    de abajo en cada tic del reloj. */
-const SIN_DISPOSITIVOS: DispositivoInventario[] = []
+const SIN_DISPOSITIVOS: EquipoInventario[] = []
 
 function EsqueletoFila() {
   return (
@@ -61,6 +63,10 @@ export function Dispositivos() {
 
   const hayFiltrosActivos = texto !== '' || estado !== 'todos'
 
+  /* Sólo si el endpoint mandó el dato: con los campos sin enriquecer, "ninguno
+     tiene reglas" sería una afirmación falsa, no un vacío. */
+  const descubiertos = useMemo(() => (lista[0]?.enriquecido ? sinCobertura(lista) : []), [lista])
+
   function limpiarFiltros() {
     setTexto('')
     setEstado('todos')
@@ -85,6 +91,34 @@ export function Dispositivos() {
             </BotonLink>
           }
         />
+      )}
+
+      {/* La pregunta que el panel no puede contestar: no es qué está fallando,
+          es qué no está vigilado. Informativo y no advertencia — no hay ninguna
+          falla, falta una decisión. */}
+      {descubiertos.length > 0 && (
+        <Banner
+          tono="info"
+          titulo={
+            descubiertos.length === 1
+              ? `${nombreDeDispositivo(descubiertos[0].id, descubiertos[0].nombre)} no tiene ninguna regla de alerta`
+              : `${descubiertos.length} equipos sin ninguna regla de alerta`
+          }
+          acciones={
+            descubiertos.length === 1 ? (
+              <BotonLink variante="sutil" to={`/dispositivos/${descubiertos[0].id}`}>
+                Ver equipo
+              </BotonLink>
+            ) : orden !== 'cobertura' ? (
+              <Boton variante="sutil" onClick={() => setOrden('cobertura')}>
+                Ver cuáles
+              </Boton>
+            ) : undefined
+          }
+        >
+          Miden y guardan igual, pero no te van a avisar si un valor se va de rango. Las reglas se
+          crean en el detalle de cada equipo.
+        </Banner>
       )}
 
       {/* Un fallo de poll con datos ya en pantalla es un aviso al costado, no
@@ -139,6 +173,7 @@ export function Dispositivos() {
       ) : (
         <Card className={refrescando ? 'opacity-60' : ''}>
           <ul className="flex flex-col divide-y divide-border">
+            <CabeceraColumnas />
             {ordenados.map((d) => (
               <FilaEquipo
                 key={d.id}

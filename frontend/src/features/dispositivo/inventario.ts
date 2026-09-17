@@ -44,10 +44,12 @@ export function contarPorEstado(
   return conteo
 }
 
-export function filtrarDispositivos(
-  dispositivos: DispositivoInventario[],
+/* Genéricas sobre DispositivoInventario y no atadas a él: el hook agrega el
+   marcador `enriquecido` al objeto y filtrar u ordenar no puede perderlo. */
+export function filtrarDispositivos<T extends DispositivoInventario>(
+  dispositivos: T[],
   { texto, estado, ahora = Date.now() }: { texto: string; estado: FiltroInventario | null; ahora?: number },
-): DispositivoInventario[] {
+): T[] {
   const buscado = normalizarTexto(texto)
   return dispositivos.filter((d) => {
     if (estado && categoriaDe(d, ahora) !== estado) return false
@@ -58,7 +60,7 @@ export function filtrarDispositivos(
   })
 }
 
-export type OrdenInventario = 'nombre' | 'estado' | 'reporte-antiguo' | 'reporte-reciente'
+export type OrdenInventario = 'nombre' | 'estado' | 'cobertura' | 'reporte-antiguo' | 'reporte-reciente'
 
 /* Sólo para desempate/orden por gravedad: desactivado no es "peor" que sin
    reportar, es otra cosa, así que va al final y no al frente. */
@@ -76,15 +78,22 @@ const collator = new Intl.Collator('es-AR', { numeric: true, sensitivity: 'base'
 const porNombre = (a: DispositivoInventario, b: DispositivoInventario) =>
   collator.compare(nombreDeDispositivo(a.id, a.nombre), nombreDeDispositivo(b.id, b.nombre))
 
+/* Un equipo sin ninguna regla mide y guarda, pero no avisa de nada: es la
+   pregunta de cobertura, la única que el inventario contesta y el panel no.
+   Los desactivados quedan afuera — ahí no se está midiendo nada. */
+export function sinCobertura<T extends DispositivoInventario>(dispositivos: T[]): T[] {
+  return dispositivos.filter((d) => d.activo && d.alertas_total === 0)
+}
+
 /* Sin lectura, el equipo nunca reportó: al ordenar por reporte va como el
    extremo más viejo, nunca en el medio de fechas reales. */
 const tiempoReporte = (d: DispositivoInventario) => (d.last_seen_at ? Date.parse(d.last_seen_at) : -Infinity)
 
-export function ordenarDispositivos(
-  dispositivos: DispositivoInventario[],
+export function ordenarDispositivos<T extends DispositivoInventario>(
+  dispositivos: T[],
   orden: OrdenInventario,
   ahora: number = Date.now(),
-): DispositivoInventario[] {
+): T[] {
   const copia = [...dispositivos]
   switch (orden) {
     case 'nombre':
@@ -93,6 +102,10 @@ export function ordenarDispositivos(
       return copia.sort(
         (a, b) =>
           PESO_ESTADO[categoriaDe(a, ahora)] - PESO_ESTADO[categoriaDe(b, ahora)] || porNombre(a, b),
+      )
+    case 'cobertura':
+      return copia.sort(
+        (a, b) => Number(a.alertas_total > 0) - Number(b.alertas_total > 0) || porNombre(a, b),
       )
     case 'reporte-antiguo':
       return copia.sort((a, b) => tiempoReporte(a) - tiempoReporte(b) || porNombre(a, b))
@@ -104,6 +117,7 @@ export function ordenarDispositivos(
 export const ETIQUETA_ORDEN: Record<OrdenInventario, string> = {
   nombre: 'Nombre (A-Z)',
   estado: 'Estado',
+  cobertura: 'Sin reglas primero',
   'reporte-antiguo': 'Último reporte (más viejo)',
   'reporte-reciente': 'Último reporte (más reciente)',
 }

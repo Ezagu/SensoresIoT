@@ -19,6 +19,7 @@ import type {
   PanelResumen,
   PasswordUpdatePayload,
   PerfilUpdatePayload,
+  Plan,
   PreferenciasNotificacion,
   PreferenciasUpdatePayload,
   Sensor,
@@ -247,4 +248,11 @@ export function cambiarPassword(payload: PasswordUpdatePayload) {
    incluido: después hay que cerrar la sesión local igual. */
 export function cerrarSesionGlobal() {
   return api.post('/auth/global-logout')
+}
+
+/* ——— Planes ———
+   El catálogo es público (la landing lo consume sin login) y viene ordenado por
+   el backend. El plan vigente del usuario no sale de acá: lo trae la sesión. */
+export function listarPlanes(signal?: AbortSignal) {
+  return api.get<Plan[]>('/planes/', { signal }).then((r) => r.data)
 }

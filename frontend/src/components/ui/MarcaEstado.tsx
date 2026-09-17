@@ -27,7 +27,7 @@ const TINTA: Record<Estado, string> = {
   atencion: 'var(--color-attention-mark)',
   advertencia: 'var(--color-warn-mark)',
   critico: 'var(--color-danger-mark)',
-  'sin-reportar': 'var(--color-offline-mark)',
+  'sin-reportar': 'var(--color-warn-mark)',
   'sin-datos': 'var(--color-offline-mark)',
   inactivo: 'var(--color-offline-mark)',
 }
@@ -43,7 +43,7 @@ function Forma({ estado, color }: { estado: Estado; color: string }) {
     case 'critico':
       return <rect x="1.5" y="1.5" width="9" height="9" rx="1" fill={color} />
     case 'sin-reportar':
-      return <circle cx="6" cy="6" r="4" fill="none" stroke={color} strokeWidth="2" />
+      return <circle cx="6" cy="6" r="4" fill="none" stroke={color} strokeWidth="2.5" />
     case 'sin-datos':
       return <rect x="1" y="5" width="10" height="2" rx="1" fill={color} />
     case 'inactivo':

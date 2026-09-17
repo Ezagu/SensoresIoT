@@ -9,9 +9,15 @@ import type { DispositivoConRol, DispositivoInventario } from '@/tipos'
    sensores. Se borra entero cuando el backend esté enriquecido. */
 type InventarioCrudo = DispositivoConRol & Partial<DispositivoInventario>
 
-function completar(crudo: InventarioCrudo): DispositivoInventario {
+/* `enriquecido` distingue "no tiene reglas" de "el campo no vino". Sin eso la
+   pantalla afirmaría "sin reglas" sobre todos los equipos, que es mentira, no
+   un vacío. Desaparece junto con el resto de este shim. */
+export type EquipoInventario = DispositivoInventario & { enriquecido: boolean }
+
+function completar(crudo: InventarioCrudo): EquipoInventario {
   return {
     ...crudo,
+    enriquecido: crudo.sensores !== undefined,
     owner_nombre: crudo.owner_nombre ?? null,
     sensores: crudo.sensores ?? [],
     alertas_total: crudo.alertas_total ?? 0,
@@ -28,7 +34,7 @@ export function useInventario() {
   const [cadenciaSeg, setCadenciaSeg] = useState<number>()
 
   const cargar = useCallback(
-    async (signal: AbortSignal): Promise<DispositivoInventario[]> => {
+    async (signal: AbortSignal): Promise<EquipoInventario[]> => {
       if (!usuarioId) return []
       const crudos = await listarDispositivos(usuarioId, signal)
       return crudos.map(completar)

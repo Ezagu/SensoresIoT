@@ -215,6 +215,18 @@
   --shadow-modal: 0 2px 6px rgba(0, 0, 0, 0.55), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
 }
 
+/* Anima alto:auto con el truco de grid-template-rows (0fr/1fr): a diferencia de
+   max-height no necesita un tope arbitrario ni corta contenido que crece. */
+@utility colapso {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms ease;
+
+  &[data-abierto='true'] {
+    grid-template-rows: 1fr;
+  }
+}
+
 @layer base {
   html,
   body,
