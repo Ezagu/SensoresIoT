@@ -3,30 +3,12 @@ import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { Lectura } from '@/components/ui/Lectura'
 import { PillConteo } from '@/components/ui/Pill'
 import { PastillaEstado } from '@/components/ui/PastillaEstado'
-import { ETIQUETA, type Estado } from '@/components/ui/MarcaEstado'
+import { type Estado } from '@/components/ui/MarcaEstado'
 import { IconoChevron, IconoUbicacion } from '@/components/layout/iconos'
-import { ETIQUETA_ESTADO, lecturaDesactualizada, type EstadoDispositivo } from '@/utils/tiempo'
-import { nombreDeDispositivo } from '@/utils/dispositivos'
+import { lecturaDesactualizada, type EstadoDispositivo } from '@/utils/tiempo'
+import { estadoDeFila, nombreDeDispositivo } from '@/utils/dispositivos'
 import { etiquetarSensores } from '@/utils/sensores'
 import type { DispositivoResumen, SensorResumen } from '@/tipos'
-
-/* Una regla sonando gana sobre la conectividad: un equipo en línea que está
-   cruzando un umbral no se anuncia como "En línea". El detalle de cuán fresco es
-   el dato lo sigue diciendo el "hace X" del renglón de abajo. */
-export function estadoDeFila(
-  dispositivo: DispositivoResumen,
-  conectividad: EstadoDispositivo,
-): { estado: Estado; etiqueta: string } {
-  if (!dispositivo.activo) return { estado: 'inactivo', etiqueta: ETIQUETA.inactivo }
-  if (dispositivo.alertas_disparadas > 0) return { estado: 'critico', etiqueta: 'Alerta disparada' }
-  const forma: Record<EstadoDispositivo, Estado> = {
-    nunca: 'sin-datos',
-    'en-linea': 'normal',
-    'con-retraso': 'atencion',
-    'sin-reportar': 'sin-reportar',
-  }
-  return { estado: forma[conectividad], etiqueta: ETIQUETA_ESTADO[conectividad] }
-}
 
 /* El rail sólo se pinta cuando la fila pide algo. En estado normal no lleva
    color: la calma es la ausencia de marcas. */

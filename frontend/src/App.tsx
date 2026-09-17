@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { ProveedorSesion, useSesion } from '@/features/auth/sesion'
+import { ProveedorDispositivos } from '@/hooks/usarDispositivos'
 import { Layout } from '@/components/layout/Layout'
 import { Login } from '@/features/auth/Login'
 import { Registro } from '@/features/auth/Registro'
@@ -33,7 +34,13 @@ function Guardia() {
   if (estado === 'fuera') {
     return <Navigate to="/login" replace state={{ desde: location.pathname }} />
   }
-  return <Outlet />
+  // Acá y no en cada pantalla: un solo poll para toda la sesión (ver
+  // hooks/usarDispositivos), montado una vez que hay sesión y nunca antes.
+  return (
+    <ProveedorDispositivos>
+      <Outlet />
+    </ProveedorDispositivos>
+  )
 }
 
 function SoloAnonimo() {

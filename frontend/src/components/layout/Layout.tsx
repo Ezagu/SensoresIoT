@@ -1,21 +1,29 @@
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useSesion } from '@/features/auth/sesion'
-import type { MiPlan, SesionActual } from '@/tipos'
+import { useDispositivos } from '@/hooks/usarDispositivos'
+import type { DispositivoResumen, MiPlan, SesionActual } from '@/tipos'
 import {
   ContextoRanuras,
   ContextoRastro,
   MARCA,
   type Miga,
 } from '@/hooks/usarCabecera'
+import { useAhora } from '@/hooks/usarAhora'
 import { useMediaQuery } from '@/hooks/usarMedios'
 import { BotonIcono } from '@/components/ui/BotonIcono'
+import { MarcaEstado } from '@/components/ui/MarcaEstado'
+import { PillConteo } from '@/components/ui/Pill'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { estadoDeFila, nombreDeDispositivo, ORDEN_GRAVEDAD } from '@/utils/dispositivos'
+import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
 import { Logo } from './Logo'
 import {
   IconoAjustes,
   IconoAlerta,
   IconoCerrar,
   IconoChevronAbajo,
+  IconoMas,
   IconoMenu,
   IconoPanel,
   IconoPlan,
@@ -78,6 +86,66 @@ function Migas({ items }: { items: Miga[] }) {
           )}
         </Fragment>
       ))}
+    </nav>
+  )
+}
+
+function FilaRoster({ dispositivo, ahora }: { dispositivo: DispositivoResumen; ahora: number }) {
+  const { estado } = estadoDeFila(dispositivo, estadoDispositivo(dispositivo, ahora))
+  return (
+    <NavLink to={`/dispositivos/${dispositivo.id}`} className={claseItem}>
+      <MarcaEstado estado={estado} />
+      <span className="min-w-0 flex-1 truncate">{nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}</span>
+      {dispositivo.alertas_disparadas > 0 && <PillConteo>{dispositivo.alertas_disparadas}</PillConteo>}
+    </NavLink>
+  )
+}
+
+/* El padrón vive acá y no en una pantalla aparte: con la cartera chica es más
+   rápido saltar de un equipo a otro desde donde ya estás parado que volver al
+   panel a buscarlo. Mismo orden de gravedad que las secciones del panel — así
+   la sidebar y el contenido nunca discuten sobre qué equipo importa más. */
+function RosterEquipos() {
+  const { datos: dispositivos, cargando } = useDispositivos()
+  // 30 s alcanza: acá sólo decide qué punto pintar, no hay ningún "hace X" que
+  // necesite la cadencia fina del equipo más rápido.
+  const ahora = useAhora(TIC_RELOJ_MS)
+
+  const ordenados = useMemo(() => {
+    if (!dispositivos) return []
+    return [...dispositivos].sort((a, b) => {
+      const pa = ORDEN_GRAVEDAD.indexOf(estadoDeFila(a, estadoDispositivo(a, ahora)).estado)
+      const pb = ORDEN_GRAVEDAD.indexOf(estadoDeFila(b, estadoDispositivo(b, ahora)).estado)
+      return pa - pb
+    })
+  }, [dispositivos, ahora])
+
+  return (
+    <nav aria-label="Equipos" className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-2 px-2 pb-1">
+        <span className="text-tag font-semibold tracking-micro text-text-faint uppercase">Equipos</span>
+        <Link
+          to="/vincular"
+          aria-label="Vincular equipo"
+          className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-control text-text-faint transition-colors duration-130 hover:bg-surface-2 hover:text-text"
+        >
+          <IconoMas className="size-3.5" />
+        </Link>
+      </div>
+
+      {cargando ? (
+        <div className="flex flex-col gap-2 px-2 py-1">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      ) : ordenados.length === 0 ? (
+        <Link to="/vincular" className={claseItem({ isActive: false })}>
+          <IconoMas className="size-4 shrink-0" />
+          Vincular equipo
+        </Link>
+      ) : (
+        ordenados.map((d) => <FilaRoster key={d.id} dispositivo={d} ahora={ahora} />)
+      )}
     </nav>
   )
 }
@@ -285,6 +353,8 @@ export function Layout({ titulo }: { titulo: string }) {
               </NavLink>
             ))}
           </nav>
+
+          <RosterEquipos />
 
           <div className="mt-auto border-t border-border pt-4">
             <BloqueUsuario sesion={sesion} plan={plan} logout={logout} />

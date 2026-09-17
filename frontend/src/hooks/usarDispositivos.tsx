@@ -1,11 +1,11 @@
-import { useCallback, useState } from 'react'
+import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
 import { useSesion } from '@/features/auth/sesion'
 import { obtenerPanel } from '@/services/consultas'
-import { useCarga } from '@/hooks/usarCarga'
+import { useCarga } from './usarCarga'
 
 /* Todos los equipos con sus sensores y última lectura, en un solo request. La
    cadencia sale del resultado: el intervalo mínimo de la cartera. */
-export function useDispositivos() {
+function useCargaDispositivos() {
   const { sesion } = useSesion()
   const usuarioId = sesion?.usuario_id
   const [cadenciaSeg, setCadenciaSeg] = useState<number>()
@@ -31,4 +31,22 @@ export function useDispositivos() {
   if (menor !== undefined && menor !== cadenciaSeg) setCadenciaSeg(menor)
 
   return { ...estado, cadenciaSeg }
+}
+
+type ContextoValor = ReturnType<typeof useCargaDispositivos>
+const Ctx = createContext<ContextoValor | null>(null)
+
+/* Un solo poll para toda la sesión, montado en Guardia (ver App.tsx) y no en
+   cada pantalla: el panel, el roster de la sidebar y el registro de avisos
+   miran la misma cartera, y pedirla una vez por pantalla la triplicaba en cada
+   navegación en vez de compartir el mismo ciclo. */
+export function ProveedorDispositivos({ children }: { children: ReactNode }) {
+  const valor = useCargaDispositivos()
+  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>
+}
+
+export function useDispositivos() {
+  const ctx = useContext(Ctx)
+  if (!ctx) throw new Error('useDispositivos tiene que usarse dentro de ProveedorDispositivos')
+  return ctx
 }

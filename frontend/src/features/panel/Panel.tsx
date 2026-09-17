@@ -8,13 +8,13 @@ import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
 import { IconoActualizar, IconoMas } from '@/components/layout/iconos'
 import { type Estado } from '@/components/ui/MarcaEstado'
-import { useDispositivos } from './usarPanel'
+import { useDispositivos } from '@/hooks/usarDispositivos'
 import { AccionesCabecera, MetaCabecera } from '@/hooks/usarCabecera'
 import { useAhora } from '@/hooks/usarAhora'
 import { estadoDispositivo, TIC_RELOJ_MS, type EstadoDispositivo } from '@/utils/tiempo'
-import { nombreDeDispositivo } from '@/utils/dispositivos'
+import { estadoDeFila, nombreDeDispositivo, ORDEN_GRAVEDAD } from '@/utils/dispositivos'
 import { etiquetarSensores } from '@/utils/sensores'
-import { estadoDeFila, FilaDispositivo } from './FilaDispositivo'
+import { FilaDispositivo } from './FilaDispositivo'
 import { SeccionEstado } from './SeccionEstado'
 import type { DispositivoResumen } from '@/tipos'
 
@@ -38,11 +38,6 @@ function sensorEnAlerta(dispositivo: DispositivoResumen) {
   if (!sensor) return null
   return { sensor, etiqueta: etiquetarSensores(dispositivo.sensores).get(sensor.id)!.etiqueta }
 }
-
-/* Orden de gravedad y no de estadoDeFila alfabético: "sin-reportar" (el único
-   estado que manda un mail sin gatear por plan) va segundo, antes que "nunca"
-   y muy antes que "con retraso" (que el propio producto no trata como falla). */
-const ORDEN_SECCIONES: Estado[] = ['critico', 'sin-reportar', 'sin-datos', 'atencion', 'normal', 'inactivo']
 
 const ETIQUETA_SECCION: Partial<Record<Estado, string>> = {
   critico: 'Crítico',
@@ -156,7 +151,7 @@ export function Panel() {
       if (lista) lista.push(fila)
       else porEstado.set(estado, [fila])
     }
-    return ORDEN_SECCIONES.map((estado) => ({ estado, filas: porEstado.get(estado) ?? [] })).filter(
+    return ORDEN_GRAVEDAD.map((estado) => ({ estado, filas: porEstado.get(estado) ?? [] })).filter(
       (g) => g.filas.length > 0,
     )
   }, [resumen.filas])
