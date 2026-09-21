@@ -159,6 +159,11 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
         "duplicadas": len(duplicadas) + (len(filas) - insertadas),
         "rechazadas_invalidas": invalidas,
         "rechazadas_por_intervalo": descartadas_por_intervalo,
+        # El equipo a batería no tiene reloj: guarda la EDAD de cada lectura y la
+        # convierte a fecha con este ancla. Va por acá y no por SNTP para no
+        # depender del UDP 123 ni del pool de terceros, cuyos términos prohíben
+        # usarlo como default en un producto que se distribuye.
+        "server_epoch": int(ahora.timestamp()),
         "intervalo_sugerido_seg": intervalo_sugerido,
         # Cada cuánto tiene que HABLAR, publique o no. Va desde el servidor y no
         # hardcodeado en el sketch: con una compilación por pedido, una constante

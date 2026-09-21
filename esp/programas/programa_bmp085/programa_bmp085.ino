@@ -690,7 +690,7 @@ bool enviarMedicion(JsonDocument& doc) {
       if (error) {
         Serial.printf("[ERROR] No se pudo leer JSON: %s\n", error.c_str());
       } else {
-        unsigned long intervaloSugerido = respuesta["intervalo_sugerido"] | 0;
+        unsigned long intervaloSugerido = respuesta["intervalo_sugerido_seg"] | 0;
         if (intervaloSugerido > 0) {
           // Nunca por debajo del muestreo: publicar más seguido que lo que se
           // mide sólo repetiría la misma mediana.

@@ -24,6 +24,7 @@ class MedicionCreateResponse(BaseModel):
     aceptadas: int
     duplicadas: int
     rechazadas_por_intervalo: list[str]
+    server_epoch: int
     intervalo_sugerido_seg: int
     intervalo_contacto_seg: int
     umbrales: list[Umbral]
