@@ -1,28 +1,57 @@
-// Fuente: Main.dc.html — correrGuardia() (~línea 1815) y el tramo "guardia"
-// de renderVals() (~línea 2110). `client:visible` equivalente: arranca con
-// IntersectionObserver threshold 0.3, igual que el original, y se
-// desconecta tras el primer disparo — "Ver otra vez" no reabre el observer.
-type FaseGuardia = 'calma' | 'sube' | 'alerta'
+// La animación es el scroll: no hay timers ni "Ver otra vez". El avance sale
+// de cuánto se recorrió .watch-pista, y de ahí salen el ancho del clip que
+// revela el trazo, la posición de la cabeza y el valor que se lee.
+import { DIBUJADO_INICIAL, UMBRAL, VISTA, valorEn, yDe } from '../datos/guardia'
+
+// Los dos extremos del recorrido son aire: el trazo arranca cuando la sección
+// ya está encuadrada y la alerta se queda un rato antes de que se vaya.
+const ENTRADA = 0.1
+const SALIDA = 0.85
+const RADIO = 5
 
 const seccion = document.getElementById('guardia')
+const pista = document.getElementById('watch-pista')
+const svg = document.querySelector<SVGSVGElement>('.watch-svg')
+const clip = document.getElementById('watch-clip')
+const cabeza = document.getElementById('watch-cabeza')
+const guia = document.getElementById('watch-guia')
 const titulo = document.getElementById('watch-titulo')
 const valor = document.getElementById('watch-valor')
 const nota = document.getElementById('watch-nota')
 const pillNormal = document.getElementById('pastilla-normal')
 const pillCritical = document.getElementById('pastilla-critical')
-const btnReplay = document.getElementById('btn-replay')
 
-if (seccion && titulo && valor && nota && pillNormal && pillCritical && btnReplay) {
+if (seccion && pista && svg && clip && cabeza && guia && titulo && valor && nota && pillNormal && pillCritical) {
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
-  let timers: number[] = []
+  const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  const recortar = (n: number) => Math.min(1, Math.max(0, n))
 
-  function aplicar(fase: FaseGuardia) {
-    const enAlerta = fase === 'alerta'
+  // El viewBox se estira sin conservar proporción, así que la cabeza es una
+  // elipse con los radios corregidos por la escala real de cada eje.
+  function redondearCabeza() {
+    const caja = svg!.getBoundingClientRect()
+    if (!caja.width || !caja.height) return
+    cabeza!.setAttribute('rx', String((RADIO * VISTA.ancho) / caja.width))
+    cabeza!.setAttribute('ry', String((RADIO * VISTA.alto) / caja.height))
+  }
+
+  function pintar(recorrido: number) {
+    const avance = DIBUJADO_INICIAL + recorrido * (1 - DIBUJADO_INICIAL)
+    const v = valorEn(avance)
+    const x = avance * VISTA.ancho
+    const y = yDe(v)
+    const enAlerta = v >= UMBRAL
+
+    clip!.setAttribute('width', String(x))
+    cabeza!.setAttribute('cx', String(x))
+    cabeza!.setAttribute('cy', String(y))
+    guia!.setAttribute('x1', String(x))
+    guia!.setAttribute('x2', String(x))
+    guia!.setAttribute('y1', String(y))
+
     seccion!.classList.toggle('is-alerta', enAlerta)
-    seccion!.classList.toggle('is-sube', fase === 'sube')
-
     titulo!.textContent = enAlerta ? 'Cuando pasa algo, te enterás.' : 'Casi siempre, no pasa nada.'
-    valor!.textContent = enAlerta ? '8,9' : fase === 'sube' ? '7,1' : '4,8'
+    valor!.textContent = fmt.format(v)
     nota!.textContent = enAlerta
       ? 'Cruzó el umbral que definiste y salió el aviso. No tuviste que estar mirando.'
       : 'El equipo mide cada 15 a 20 segundos. Mientras el valor esté donde tiene que estar, acá no pasa nada.'
@@ -30,39 +59,34 @@ if (seccion && titulo && valor && nota && pillNormal && pillCritical && btnRepla
     pillCritical!.hidden = !enAlerta
   }
 
-  function correr() {
-    timers.forEach(clearTimeout)
-    timers = []
-    aplicar('calma')
-    if (quieto) {
-      aplicar('alerta')
-      return
-    }
-    timers.push(window.setTimeout(() => aplicar('sube'), 700))
-    timers.push(window.setTimeout(() => aplicar('alerta'), 2400))
+  function avanceActual(): number {
+    const caja = pista!.getBoundingClientRect()
+    const recorrido = caja.height - window.innerHeight
+    if (recorrido <= 0) return 1
+    return recortar((recortar(-caja.top / recorrido) - ENTRADA) / (SALIDA - ENTRADA))
   }
 
-  btnReplay.addEventListener('click', () => {
-    if (!quieto) correr()
-  })
-
   if (quieto) {
-    aplicar('alerta')
-  } else if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(
-      (entradas) => {
-        entradas.forEach((e) => {
-          if (e.isIntersecting) {
-            correr()
-            io.disconnect()
-          }
-        })
-      },
-      { threshold: 0.3 },
-    )
-    io.observe(seccion)
+    redondearCabeza()
+    pintar(1)
   } else {
-    correr()
+    let pedido = false
+    const actualizar = () => {
+      if (pedido) return
+      pedido = true
+      requestAnimationFrame(() => {
+        pedido = false
+        pintar(avanceActual())
+      })
+    }
+
+    redondearCabeza()
+    pintar(avanceActual())
+    addEventListener('scroll', actualizar, { passive: true })
+    addEventListener('resize', () => {
+      redondearCabeza()
+      actualizar()
+    })
   }
 }
 

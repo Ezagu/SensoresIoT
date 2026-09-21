@@ -22,7 +22,10 @@
    de la landing es más cálido y más oscuro que el de la app (#F3F0E9 contra
    #FBFAF7). No "corregir" para que coincidan con frontend/src/index.css. */
 .lp {
-  width: 100%; overflow-x: hidden;
+  /* clip y no hidden: hidden hace de .lp un scroll container y deja sin efecto
+     todo position:sticky de adentro (la barra, la guardia, el resumen del
+     configurador, el lado del FAQ). Recorta igual y no crea scrollport. */
+  width: 100%; overflow-x: clip;
   --gut: clamp(20px, 5vw, 64px);
   /* Velocidades de la demo del hero. Eran data-props ajustables en el
      editor de diseño; acá quedan fijas en sus valores por defecto
