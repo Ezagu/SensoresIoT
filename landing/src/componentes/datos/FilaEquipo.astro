@@ -1,0 +1,60 @@
+---
+// Redibujo de DeviceRow.jsx. Estático: las 3 filas del registro no
+// interactúan, así que se recorta lo que sólo tenía sentido interactivo
+// (onClick, selected).
+import type { Estado } from './MarcaEstado.astro'
+import PastillaEstado from './PastillaEstado.astro'
+
+interface Lectura {
+  etiqueta: string
+  valor: number
+  unidad: string
+  decimales?: number
+  desactualizada?: boolean
+  tono?: 'critical'
+}
+
+interface Props {
+  nombre: string
+  ubicacion: string
+  estado: Estado
+  etiquetaEstado: string
+  ultimaVez: string
+  lecturas: Lectura[]
+  alertas?: number
+}
+
+const { nombre, ubicacion, estado, etiquetaEstado, ultimaVez, lecturas, alertas = 0 } = Astro.props
+const rail = estado === 'critical' || estado === 'attention' ? `bt-row--${estado}` : ''
+const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const fmtEntero = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+---
+
+<div class={`bt-row ${rail}`}>
+  <PastillaEstado estado={estado} etiqueta={etiquetaEstado} />
+  <span class="bt-row__main">
+    <span class="bt-row__name">
+      {nombre}
+      {alertas > 0 && <span class="bt-badge bt-badge--critical bt-badge--count">{alertas}</span>}
+    </span>
+    <span class="bt-row__meta">
+      <span>{ubicacion}</span>
+      <span class="bt-row__sep">·</span>
+      <span>{ultimaVez}</span>
+    </span>
+  </span>
+  <span class="bt-row__readings">
+    {lecturas.map((r) => (
+      <span class="bt-row__cell">
+        <span class="bt-row__cell-label">{r.etiqueta}</span>
+        <span class={`bt-reading ${r.desactualizada ? 'bt-reading--stale' : r.tono ? `bt-reading--${r.tono}` : ''}`}>
+          <span class="bt-reading__val">{(r.decimales === 0 ? fmtEntero : fmt).format(r.valor)}</span>
+          <span class="bt-reading__unit">{r.unidad}</span>
+        </span>
+      </span>
+    ))}
+  </span>
+  <span class="bt-row__chev" aria-hidden="true">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+  </span>
+</div>

@@ -1,0 +1,7 @@
+.display { margin: 0; font-weight: 600; font-size: clamp(38px, 6.4vw, 86px); line-height: 1.0; letter-spacing: -0.032em; }
+.display .soft { color: var(--lp-faint); }
+.say { margin: 0; font-weight: 600; font-size: clamp(27px, 3.9vw, 50px); line-height: 1.08; letter-spacing: -0.028em; max-width: 19ch; }
+.note { font-size: clamp(15px, 1.35vw, 18px); line-height: 1.6; color: var(--lp-dim); max-width: 46ch; }
+.micro { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); }
+.read { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.015em; }
+.money { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-weight: 600; }

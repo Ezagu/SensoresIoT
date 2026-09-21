@@ -1,0 +1,29 @@
+---
+// Fuente: Main.dc.html:1474-1497. La FAQ pasa de <div class="faq-item"> +
+// onClick a <details name="preguntas"> nativo (ver estilos/preguntas.css):
+// acordeón exclusivo sin una línea de JS.
+import { PREGUNTAS } from '../../datos/preguntas'
+---
+
+<div class="band-alt">
+  <section id="preguntas" class="soft-sec stage">
+    <div class="faq-wrap">
+      <div class="faq-lado">
+        <h2 class="say">Antes de<br>que preguntes.</h2>
+        <p class="pie">Si falta algo, <a href="#contacto">escribinos</a> y lo vemos con tu caso.</p>
+      </div>
+
+      <div class="faq-lista">
+        {PREGUNTAS.map((q) => (
+          <details class="faq-item" name="preguntas">
+            <summary class="faq-q">
+              <span>{q.p}</span>
+              <span class="faq-signo" aria-hidden="true"></span>
+            </summary>
+            <div class="faq-a"><div><p>{q.r}</p></div></div>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</div>

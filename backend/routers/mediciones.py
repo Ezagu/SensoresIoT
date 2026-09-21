@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, BackgroundTasks
 from services import medicion_service, alerta_service
-from schemas.medicion import MedicionCreate
+from schemas.medicion import MedicionCreate, MedicionCreateResponse
 from core.deps import get_dispositivo_autenticado
 
 router = APIRouter()
 
-@router.post("/")
+@router.post("/", response_model=MedicionCreateResponse)
 def create_medicion(
     payload: MedicionCreate,
     background_tasks: BackgroundTasks,

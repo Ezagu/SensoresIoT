@@ -1,0 +1,95 @@
+/* ═══ identidad ═══
+   Las 4 variables que este archivo toma del design system Bitácora
+   (frontend/src/index.css usa Tailwind v4 y no las expone igual; el
+   paquete .claude/skills/bitacora-design/ está gitignoreado). Copiadas
+   literales a propósito: son 4 líneas, más barato que compartirlas. */
+:root {
+  --ease-out: cubic-bezier(0.22, 0.61, 0.2, 1);
+  --font-sans: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-reading: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* ═══ los dos modos ═══
+   data-theme vive en <html> (no en .lp como en el mockup original): así el
+   stamp pre-paint de Base.astro puede escribirlo antes del primer frame y
+   el <body> no queda sin fondo temático durante el scroll de rebote.
+
+   Los acentos y las marcas de estado SON la rampa del design system
+   (verificado hex a hex: --lp-accent oscuro = petrol-400, --lp-ok = green-400,
+   --lp-amber = amber-400, --lp-warn-mark = red-400). Los neutros (--lp-bg,
+   --lp-text, --lp-dim...) son propios de esta página a propósito — el papel
+   de la landing es más cálido y más oscuro que el de la app (#F3F0E9 contra
+   #FBFAF7). No "corregir" para que coincidan con frontend/src/index.css. */
+.lp {
+  width: 100%; overflow-x: hidden;
+  --gut: clamp(20px, 5vw, 64px);
+  /* Velocidades de la demo del hero. Eran data-props ajustables en el
+     editor de diseño; acá quedan fijas en sus valores por defecto
+     (datos/config.ts:VELOCIDAD_MS). Los var(--lp-*, fallback) de hero.css
+     traen su propio fallback distinto (4600/4000/520) por si esta regla
+     no cargó — no confundir esos números con el valor real. */
+  --lp-ent: 3000ms; --lp-sal: 2300ms; --lp-trans: 1500ms;
+  background: var(--lp-bg); color: var(--lp-text);
+  transition: background-color 420ms var(--ease-out), color 420ms var(--ease-out);
+}
+html[data-theme="dark"] .lp {
+  --lp-bg: #0E1618;
+  --lp-alt: #121B1D;
+  --lp-surface: #16201F;
+  --lp-raise: #1B2628;
+  --lp-plate: #131C1E;
+  --lp-line: rgba(232,238,236,0.13);
+  --lp-line-soft: rgba(232,238,236,0.07);
+  --lp-text: #E8EEEC;
+  --lp-dim: #9BA8A9;
+  --lp-faint: #6E7B7D;
+  --lp-accent: #4BA6B4;
+  --lp-accent-2: #86C5CE;
+  --lp-accent-ink: #04181D;
+  --lp-accent-wash: rgba(75,166,180,0.14);
+  --lp-accent-line: rgba(75,166,180,0.42);
+  --lp-warn: #F09189;
+  --lp-warn-mark: #E89A92;
+  --lp-warn-wash: rgba(232,154,146,0.10);
+  --lp-warn-line: rgba(232,154,146,0.34);
+  --lp-amber: #DCAD52;
+  --lp-amber-line: rgba(220,173,82,0.38);
+  --lp-amber-wash: rgba(220,173,82,0.09);
+  --lp-ok: #6FB491;
+  --lp-ok-wash: #0e2620;
+  --lp-ok-line: #1c3f33;
+  --lp-shadow: 0 2px 4px rgba(0,0,0,.4), 0 18px 44px -18px rgba(0,0,0,.65);
+}
+html[data-theme="light"] .lp {
+  --lp-bg: #F3F0E9;
+  --lp-alt: #ECE8DF;
+  --lp-surface: #FBFAF6;
+  --lp-raise: #FFFFFF;
+  --lp-plate: #F0ECE3;
+  --lp-line: rgba(20,32,31,0.14);
+  --lp-line-soft: rgba(20,32,31,0.07);
+  --lp-text: #14201F;
+  --lp-dim: #4C5A5C;
+  --lp-faint: #7A8688;
+  --lp-accent: #0A5C6B;
+  --lp-accent-2: #146272;
+  --lp-accent-ink: #FFFFFF;
+  --lp-accent-wash: rgba(10,92,107,0.08);
+  --lp-accent-line: rgba(10,92,107,0.30);
+  --lp-warn: #8F2C24;
+  --lp-warn-mark: #9E332B;
+  --lp-warn-wash: rgba(158,51,43,0.07);
+  --lp-warn-line: rgba(158,51,43,0.26);
+  --lp-amber: #B5780C;
+  --lp-amber-line: rgba(181,120,12,0.34);
+  --lp-amber-wash: rgba(181,120,12,0.07);
+  --lp-ok: #268056;
+  --lp-ok-wash: #edf6f1;
+  --lp-ok-line: #d8ebe0;
+  --lp-shadow: 0 1px 2px rgba(20,32,31,.06), 0 16px 40px -18px rgba(20,32,31,.22);
+}
+
+.band { background: var(--lp-bg); transition: background-color 420ms var(--ease-out); }
+.band-alt { background: var(--lp-alt); border-top: 1px solid var(--lp-line-soft); border-bottom: 1px solid var(--lp-line-soft); transition: background-color 420ms var(--ease-out); }
+.stage { max-width: 1240px; margin: 0 auto; padding-left: var(--gut); padding-right: var(--gut); }

@@ -1,0 +1,49 @@
+---
+// Fuente: Main.dc.html:1498-1539.
+// TODO(landing): el form queda inerte a propósito (decisión del usuario:
+// "sólo el diseño, no tocar backend"). Conectar a un futuro POST /contacto
+// del backend cuando el producto entre en etapa de venta — ver
+// scripts/contacto.ts, que hoy sólo alterna al estado "enviado" sin mandar
+// nada a ningún lado.
+---
+
+<section id="contacto" class="band soft-sec stage">
+  <h2 class="say">Dos maneras<br>de seguir.</h2>
+
+  <div class="vias">
+    <div class="via">
+      <h3>Ya sé qué necesito.</h3>
+      <p>Armá la configuración, mandala y te confirmamos disponibilidad, precio final y plazo de entrega.</p>
+      <div class="acciones">
+        <a href="#equipo" class="cta cta-solid">Armar mi equipo</a>
+      </div>
+    </div>
+
+    <div class="via suave">
+      <h3>No sé qué configuración me sirve.</h3>
+      <p>Contanos qué tenés que monitorear y dónde. Te decimos qué sensores, qué alimentación y qué conectividad conviene.</p>
+
+      <form id="form-contacto" style="display: flex; flex-direction: column; gap: 14px;">
+        <div class="campo">
+          <label for="c-email">Email</label>
+          <input id="c-email" type="email" required placeholder="vos@empresa.com">
+        </div>
+        <div class="campo">
+          <label for="c-que">Qué necesitás monitorear</label>
+          <textarea id="c-que" placeholder="Una cámara de 40 m³ sin wi-fi cerca, dos invernaderos, un depósito…"></textarea>
+        </div>
+        <div class="acciones">
+          <button type="submit" class="cta cta-line">Contarnos el caso</button>
+        </div>
+      </form>
+      <div id="form-gracias" class="gracias" hidden>
+        <svg class="tilde" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"></path></svg>
+        <span>Listo. Te escribimos para definir el equipo.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import '../../scripts/contacto'
+</script>

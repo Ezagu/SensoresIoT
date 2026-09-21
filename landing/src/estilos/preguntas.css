@@ -1,0 +1,37 @@
+/* Port de Main.dc.html:479-499. Un cambio respecto del mockup: la FAQ pasa
+   de <div class="faq-item">+onClick a <details name="preguntas"> nativo
+   (acordeón exclusivo sin JS, funciona sin JavaScript, aria-expanded lo
+   gestiona el navegador). .faq-item.on -> .faq-item[open]; .faq-a gana un
+   <div> interno para el truco grid-template-rows 0fr->1fr (el mismo que
+   frontend/src/index.css usa en @utility colapso), que además hace
+   innecesario el max-height:440px de mobile en respuesta.css: el grid
+   mide el contenido real en vez de un tope fijo. */
+.faq-wrap { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr); gap: clamp(24px, 5vw, 72px); align-items: start; }
+@media (max-width: 900px) { .faq-wrap { grid-template-columns: 1fr; gap: 24px; } }
+.faq-lado { position: sticky; top: 92px; }
+@media (max-width: 900px) { .faq-lado { position: static; } }
+.faq-lado .pie { margin-top: 18px; font-size: 13px; color: var(--lp-faint); max-width: 28ch; line-height: 1.6; }
+.faq-lado .pie a { color: var(--lp-accent); border-bottom: 1px solid var(--lp-accent-line); }
+.faq-lista { border-top: 1px solid var(--lp-line-soft); }
+.faq-item { border-bottom: 1px solid var(--lp-line-soft); }
+.faq-q {
+  width: 100%; display: flex; align-items: center; gap: 20px; padding: clamp(16px, 2vw, 22px) 0;
+  background: none; border: 0; text-align: left; color: var(--lp-text); font-family: var(--font-sans);
+  font-size: clamp(16px, 1.5vw, 19px); font-weight: 500; letter-spacing: -0.012em;
+  transition: color 160ms var(--ease-out);
+  list-style: none; cursor: pointer;
+}
+.faq-q::-webkit-details-marker { display: none; }
+.faq-q::marker { content: ""; }
+.faq-q:hover { color: var(--lp-accent); }
+.faq-q:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+.faq-item[open] .faq-q { color: var(--lp-accent); }
+.faq-signo { margin-left: auto; flex: none; width: 14px; height: 14px; position: relative; }
+.faq-signo::before, .faq-signo::after { content: ""; position: absolute; background: currentColor; transition: transform 300ms var(--ease-out), opacity 300ms var(--ease-out); }
+.faq-signo::before { left: 0; top: 6px; width: 14px; height: 1.5px; }
+.faq-signo::after { left: 6px; top: 0; width: 1.5px; height: 14px; }
+.faq-item[open] .faq-signo::after { transform: scaleY(0); opacity: 0; }
+.faq-a { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 420ms var(--ease-out), opacity 320ms var(--ease-out); }
+.faq-item[open] .faq-a { grid-template-rows: 1fr; opacity: 1; }
+.faq-a > div { overflow: hidden; }
+.faq-a p { font-size: 14px; line-height: 1.65; color: var(--lp-dim); max-width: 62ch; padding-bottom: clamp(18px, 2vw, 24px); }

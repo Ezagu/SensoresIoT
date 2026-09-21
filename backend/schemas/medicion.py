@@ -8,9 +8,26 @@ class Medicion(BaseModel):
     value: float
     time: Optional[datetime] = None
 
+class Umbral(BaseModel):
+    sensor_id: str
+    condicion: str
+    umbral: float
+    histeresis: float
+    muestras: int
+
 class MedicionCreate(BaseModel):
     time: Optional[datetime] = None
     mediciones: list[Medicion]
+
+class MedicionCreateResponse(BaseModel):
+    status: str
+    aceptadas: int
+    duplicadas: int
+    rechazadas_por_intervalo: list[str]
+    intervalo_sugerido_seg: int
+    intervalo_contacto_seg: int
+    umbrales: list[Umbral]
+    rotar_secret: bool
 
 class MedicionOut(BaseModel):
     value: float

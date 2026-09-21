@@ -1,0 +1,49 @@
+---
+import '../estilos/index.css'
+
+interface Props {
+  title?: string
+  description?: string
+}
+
+const {
+  title = 'Bitácora — guardia ambiental',
+  description = 'Un equipo armado con los sensores que necesitás, midiendo donde te importa. Mientras todo esté en rango, no vas a saber que está ahí.',
+} = Astro.props
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="UTF-8" />
+    <script is:inline>
+      /* Estampa el tema antes del primer paint. Mismo contrato que
+         frontend/src/hooks/usarTema.ts: clave 'bitacora-tema', valores
+         'sistema'|'claro'|'oscuro', atributo data-theme en <html>. */
+      try {
+        var t = localStorage.getItem('bitacora-tema')
+        var claro =
+          t === 'claro' ||
+          (t !== 'oscuro' && matchMedia('(prefers-color-scheme: light)').matches)
+        document.documentElement.dataset.theme = claro ? 'light' : 'dark'
+      } catch (e) {}
+    </script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0E1618" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F3F0E9" media="(prefers-color-scheme: light)" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>

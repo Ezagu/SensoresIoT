@@ -48,8 +48,7 @@ def _clasificar(existentes: list, timestamp) -> str | None:
 
     return None
 
-def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False,
-                   intervalo_configurado_seg=None, first_connected_at=None):
+def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, intervalo_configurado_seg=None, first_connected_at=None):
     ahora = datetime.now(timezone.utc)
     timestamp_batch = time or ahora
 
@@ -160,7 +159,7 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False,
         "duplicadas": len(duplicadas) + (len(filas) - insertadas),
         "rechazadas_invalidas": invalidas,
         "rechazadas_por_intervalo": descartadas_por_intervalo,
-        "intervalo_sugerido": intervalo_sugerido,
+        "intervalo_sugerido_seg": intervalo_sugerido,
         # Cada cuánto tiene que HABLAR, publique o no. Va desde el servidor y no
         # hardcodeado en el sketch: con una compilación por pedido, una constante
         # del lado de la placa es una decisión que se arrastra años.

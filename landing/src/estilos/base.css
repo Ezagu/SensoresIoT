@@ -1,0 +1,13 @@
+/* El atributo hidden nativo pierde contra cualquier display que una clase
+   ya declare (misma especificidad, pero el reset del user-agent va primero
+   en la cascada) — sin esto, alternar PastillaEstado/mide/informe con
+   `el.hidden = true/false` no oculta nada. No está en el mockup porque
+   ahí el sc-if directamente no ponía el nodo en el DOM. */
+[hidden] { display: none !important; }
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sans); }
+p { margin: 0; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+section { scroll-margin-top: 72px; }

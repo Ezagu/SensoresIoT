@@ -1,0 +1,137 @@
+---
+// Fuente: Main.dc.html:1325-1443. Los 3 x-import DeviceRow, el TimeSeries
+// y los 2 AlertEvent son datos fijos: se resuelven en build con los
+// redibujos de componentes/datos/. Sólo el bloque del informe (vacío/
+// generando/listo) es interactivo — scripts/informe.ts.
+import FilaEquipo from '../datos/FilaEquipo.astro'
+import SerieTemporal from '../datos/SerieTemporal.astro'
+import EventoAlerta from '../datos/EventoAlerta.astro'
+import { EVENTOS } from '../../datos/eventos'
+
+const serie = [4.4, 4.3, 4.5, 4.2, 4.1, 4.3, 4.6, 5.1, 4.9, 4.7, 4.5, null, 4.6, 5.4, 6.2, 7.1, 8.4, 9.2, 8.1, 6.4, 5.2, 4.6]
+const etiquetas: Record<number, string> = { 0: '12:00', 7: '14:00', 14: '16:00', 21: '18:30' }
+const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
+---
+
+<div class="band-alt">
+  <section class="soft-sec stage">
+    <h2 class="say">Todo lo que mide,<br>queda registrado.</h2>
+    <div class="narra">
+      <span>Monitorea</span><span class="flecha">→</span>
+      <span>Registra</span><span class="flecha">→</span>
+      <span>Detecta</span><span class="flecha">→</span>
+      <span>Notifica</span><span class="flecha">→</span>
+      <span id="paso-documenta">Documenta</span>
+    </div>
+
+    <div class="frag-grid">
+      <div class="frag">
+        <div class="cap">Estado</div>
+        <div class="frag-box" style="padding: 0;">
+          <FilaEquipo
+            nombre="Cámara 1" ubicacion="Depósito norte" estado="normal" etiquetaEstado="Normal" ultimaVez="hace 37 s"
+            lecturas={[{ etiqueta: 'Temp', valor: 4.2, unidad: '°C' }, { etiqueta: 'HR', valor: 87, unidad: '%', decimales: 0 }]}
+          />
+          <FilaEquipo
+            nombre="Invernadero A" ubicacion="Lote 3" estado="attention" etiquetaEstado="Con retraso" ultimaVez="hace 43 min"
+            lecturas={[{ etiqueta: 'Temp', valor: 23.8, unidad: '°C', desactualizada: true }]}
+          />
+          <FilaEquipo
+            nombre="Cámara 2" ubicacion="Depósito sur" estado="critical" etiquetaEstado="Fuera de rango" ultimaVez="hace 1 min" alertas={1}
+            lecturas={[{ etiqueta: 'Temp', valor: 9.4, unidad: '°C', tono: 'critical' }, { etiqueta: 'HR', valor: 84, unidad: '%', decimales: 0 }]}
+          />
+        </div>
+      </div>
+      <div class="frag">
+        <span class="hilo" aria-hidden="true"></span>
+        <div class="cap">GRAFICOS</div>
+        <div class="frag-box">
+          <SerieTemporal datos={datosSerie} unidad="°C" umbral={8} etiquetaUmbral="8,0 °C" ancho={320} alto={150} />
+        </div>
+      </div>
+      <div class="frag">
+        <span class="hilo" aria-hidden="true"></span>
+        <div class="cap">Aviso</div>
+        <div class="frag-box">
+          <EventoAlerta tipo="disparada" dispositivo="Cámara 1" sensor="Temperatura" valor={9.2} unidad="°C" condicion="mayor" umbral={8} cuando="hoy 18:29" />
+          <EventoAlerta tipo="normalizada" dispositivo="Cámara 1" sensor="Temperatura" valor={7.4} unidad="°C" condicion="mayor" umbral={8} cuando="hoy 18:52" />
+          <div class="chan"><span>Email</span><span>WhatsApp</span><span>Telegram</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reg-grid">
+      <div class="log">
+        <span class="hilo" aria-hidden="true"></span>
+        <div class="log-h"><span>Hora</span><span>Lectura</span><span>Estado</span></div>
+        {EVENTOS.map((ev) => (
+          <div class={`log-row ${ev.tipo}`.trim()}>
+            <span class="hora">{ev.h}</span>
+            <span class="val">{ev.v}</span>
+            <span class="est">{ev.e}</span>
+          </div>
+        ))}
+        <div class="log-pie">
+          <span class="mas">Cámara 1 · 12 al 18 de sept</span>
+          <span class="der">
+            <span class="sello">Premium</span>
+            <button type="button" id="btn-informe" class="cta cta-line cta-sm">Generar informe</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="informe">
+        <span class="hilo" aria-hidden="true"></span>
+        <div id="informe-vacio" class="placa">El historial de este período, convertido en un informe.</div>
+        <div id="informe-generando" class="placa" style="opacity: 0.5;" hidden>Armando el informe…</div>
+        <div id="informe-progreso" class="progreso" hidden><i></i></div>
+
+        <div id="informe-hoja" class="hoja" hidden>
+          <div class="h-top">
+            <span class="h-tick"></span>
+            <span class="h-marca">BITÁCORA</span>
+            <span class="h-tipo">Informe de monitoreo</span>
+          </div>
+
+          <div class="h-tit">Cámara 1 · Depósito norte</div>
+          <div class="h-meta">
+            <div>Período<b>12 — 18 sept 2026</b></div>
+            <div>Sensor<b>Temperatura</b></div>
+            <div>Rango definido<b>2,0 — 8,0 °C</b></div>
+            <div>Lecturas<b>1.728</b></div>
+          </div>
+
+          <div class="h-cap">Resumen del período</div>
+          <div class="h-nums">
+            <div><b>5,1</b><span>PROM. °C</span></div>
+            <div><b>3,8</b><span>MÍN. °C</span></div>
+            <div><b>9,2</b><span>MÁX. °C</span></div>
+            <div><b>2</b><span>EVENTOS</span></div>
+          </div>
+
+          <div class="h-graf">
+            <svg viewBox="0 0 240 54" fill="none" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="0" y1="16" x2="240" y2="16" stroke="#C7544A" stroke-width="0.8" stroke-dasharray="3 4"></line>
+              <polyline points="0,38 16,36 32,39 48,35 64,37 80,33 96,36 112,20 128,10 144,22 160,34 176,37 192,33 208,36 224,34 240,37" fill="none" stroke="#0A5C6B" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+            </svg>
+          </div>
+
+          <div class="h-cap">Eventos fuera de rango</div>
+          <div class="h-tabla">
+            <div class="fila mal"><span>14 sept · 14:42</span><span>9,2 °C</span><span>26 min</span></div>
+            <div class="fila mal"><span>16 sept · 03:18</span><span>8,4 °C</span><span>9 min</span></div>
+            <div class="fila"><span>Avisos enviados</span><span>2</span><span>email · WhatsApp</span></div>
+          </div>
+
+          <div class="h-pie"><span>Generado el 18 sept 2026, 19:40</span><span>1 / 2</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="fine">Chequea cada 15 a 20 segundos para no perderse un cruce de umbral. El historial completo queda guardado y se exporta en CSV; el informe en PDF es parte de Premium.</p>
+  </section>
+</div>
+
+<script>
+  import '../../scripts/informe'
+</script>

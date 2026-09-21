@@ -1,0 +1,17 @@
+/* Orden explícito: tokens antes que nada, respuesta.css al final porque
+   sus @media pisan reglas de las secciones. Ver Main.dc.html:14-729. */
+@import './tokens.css';
+@import './base.css';
+@import './tipografia.css';
+@import './botones.css';
+@import './nav.css';
+@import './hero.css';
+@import './guardia.css';
+@import './configurador.css';
+@import './ambientes.css';
+@import './registro.css';
+@import './planes.css';
+@import './preguntas.css';
+@import './contacto.css';
+@import './datos.css';
+@import './respuesta.css';

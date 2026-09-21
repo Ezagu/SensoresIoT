@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "instrument sans",
+        "createdAt": "2026-09-19T19:20:12.987Z",
+        "reason": "Tipografía de marca ya establecida en frontend/src/index.css y en el design system Bitácora (tokens.json); el port tiene que mantener la misma identidad, no es una elección nueva"
+      }
+    ]
+  }
+}

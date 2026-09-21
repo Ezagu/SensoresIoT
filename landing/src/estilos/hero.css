@@ -1,0 +1,149 @@
+/* Port de Main.dc.html:121-263. Un cambio: .rise/.rise.in (activado por la
+   clave heroIn que setState-eaba a los 120ms) pasa a un @keyframes con
+   animation-delay: la clave desaparece y el disparo ya no depende de JS.
+   El bloque prefers-reduced-motion de respuesta.css apaga esta animación
+   con animation:none, que deja el elemento en su estado final (visible,
+   sin transform) — el resultado es el mismo que quieto=true en el mockup. */
+    .hero { padding: clamp(40px, 7vw, 86px) 0 clamp(36px, 5vw, 64px); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); gap: clamp(20px, 4vw, 52px); align-items: center; }
+    @media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; gap: 28px; } }
+    .hero-copy { display: flex; flex-direction: column; gap: 26px; }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-foot { margin-top: clamp(24px, 4vw, 48px); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; border-top: 1px solid var(--lp-line-soft); padding-top: 18px; }
+    .hero-foot .live { display: flex; align-items: baseline; gap: 8px; }
+    .hero-foot .live .v { font-size: 26px; color: var(--lp-text); }
+    .hero-foot .live .u { font-size: 13px; color: var(--lp-faint); }
+    .hero-foot .sep { width: 1px; height: 20px; background: var(--lp-line); }
+    @media (max-width: 620px) { .hero-foot .sep { display: none; } }
+
+    /* ── el equipo dibujado ── */
+    .device { width: 100%; height: auto; display: block; color: var(--lp-text); }
+    @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    .rise { animation: riseIn 700ms var(--ease-out) 120ms both; }
+    .body-fill { fill: var(--lp-raise); transition: fill 420ms var(--ease-out); }
+    .plate-fill { fill: var(--lp-plate); transition: fill 420ms var(--ease-out); }
+    .ln { stroke: currentColor; fill: none; }
+    .ln-08 { opacity: 0.75; } .ln-45 { opacity: 0.42; } .ln-22 { opacity: 0.2; }
+    .led-halo { animation: breathe 2600ms ease-in-out infinite; }
+    @keyframes breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.08; } }
+
+    /* ── hero: la demostración en vivo ── */
+    .antena .wifi-wave { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; opacity: 0.1; transition: stroke 300ms var(--ease-out); }
+    .hero-dev.tx .wifi-wave { animation: onda calc(var(--lp-sal, 4000ms) * 0.7) ease-out infinite; }
+    .hero-dev.tx .ondas path:nth-child(2) { animation-delay: 320ms; }
+    .hero-dev.tx .ondas path:nth-child(3) { animation-delay: 640ms; }
+    .hero-dev.tx-rapido .wifi-wave { animation-duration: calc(var(--lp-sal, 4000ms) * 0.45); }
+    .hero-dev.f-alerta .wifi-wave { stroke: var(--lp-warn-mark); }
+    @keyframes onda { 0% { opacity: 0.06; } 28% { opacity: 0.7; } 100% { opacity: 0.06; } }
+
+    /* la medición viaja neutra: recién toma color cuando el equipo la procesó */
+    .hero-dev .dot-in { opacity: 0; fill: var(--lp-faint); }
+    .hero-dev .dot-out { opacity: 0; fill: var(--lp-ok); animation: none; transition: fill var(--lp-trans, 520ms) var(--ease-out); }
+    .hero-dev.f-descarga .dot-out { fill: var(--lp-amber); }
+    .hero-dev.f-alerta .dot-out { fill: var(--lp-warn-mark); }
+    .hero-dev .d-temp { animation: mideTemp var(--lp-ent, 4600ms) linear infinite; }
+    .hero-dev .d-hum { animation: mideHum var(--lp-ent, 4600ms) linear infinite; }
+    .hero-dev .d-co2 { animation: mideCo2 var(--lp-ent, 4600ms) linear infinite; }
+    .hero-dev .r2 { animation-delay: calc(var(--lp-ent, 4600ms) / 3); }
+    .hero-dev .r3 { animation-delay: calc(var(--lp-ent, 4600ms) / 3 * 2); }
+    .hero-dev.tx .dot-out { animation: transmite var(--lp-sal, 4000ms) linear infinite; }
+    .hero-dev.tx .dot-out.o2 { animation-delay: calc(var(--lp-sal, 4000ms) / 2); }
+    .hero-dev.tx-rapido .dot-out { animation-duration: calc(var(--lp-sal, 4000ms) * 0.6); }
+    .hero-dev.tx-rapido .dot-out.o2 { animation-delay: calc(var(--lp-sal, 4000ms) * 0.3); }
+    .hero-dev.sin-anim .dot, .hero-dev.sin-anim .wifi-wave { animation: none !important; }
+    .hero-dev.sin-anim .wifi-wave { opacity: 0.35; }
+
+    @keyframes mideTemp {
+      0%   { transform: translate(452px, 238px); opacity: 0; }
+      14%  { opacity: 1; }
+      46%  { transform: translate(404px, 238px); opacity: 1; }
+      88%  { opacity: 0.9; }
+      100% { transform: translate(304px, 288px); opacity: 0; }
+    }
+    @keyframes mideHum {
+      0%   { transform: translate(452px, 308px); opacity: 0; }
+      14%  { opacity: 1; }
+      46%  { transform: translate(404px, 308px); opacity: 1; }
+      88%  { opacity: 0.9; }
+      100% { transform: translate(304px, 292px); opacity: 0; }
+    }
+    @keyframes mideCo2 {
+      0%   { transform: translate(300px, 408px); opacity: 0; }
+      14%  { opacity: 1; }
+      52%  { transform: translate(300px, 348px); opacity: 1; }
+      88%  { opacity: 0.9; }
+      100% { transform: translate(302px, 296px); opacity: 0; }
+    }
+    @keyframes transmite {
+      0%   { transform: translate(310px, 282px); opacity: 0; }
+      12%  { opacity: 1; }
+      48%  { transform: translate(392px, 204px); opacity: 1; }
+      78%  { transform: translate(446px, 128px); opacity: 1; }
+      100% { transform: translate(470px, 94px); opacity: 0; }
+    }
+
+    .hero-dev .buf { fill: var(--lp-amber); opacity: 0; transition: opacity calc(var(--lp-trans, 520ms) * 0.9) var(--ease-out); }
+    .hero-dev .buf.on { opacity: 0.95; }
+    .hero-dev .led { transition: fill calc(var(--lp-trans, 520ms) * 1.2) var(--ease-out); }
+    .hero-dev .nucleo-flash { opacity: 0; }
+    .hero-dev.f-alerta .nucleo-flash { animation: flash 2000ms ease-out 2; }
+    @keyframes flash { 0% { opacity: 0; } 20% { opacity: 0.5; } 100% { opacity: 0; } }
+
+    .estado-card { margin: 20px auto 0; max-width: 360px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--lp-line); background: var(--lp-surface); border-radius: 12px; padding: 13px 15px; transition: border-color var(--lp-trans, 520ms) var(--ease-out), background-color var(--lp-trans, 520ms) var(--ease-out); }
+    .estado-card .e-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-ok); flex: none; transition: background-color var(--lp-trans, 520ms) var(--ease-out); }
+    .estado-card.is-espera { border-color: var(--lp-amber-line); background: var(--lp-amber-wash); }
+    .estado-card.is-espera .e-dot { background: var(--lp-amber); }
+    .estado-card.is-alerta { border-color: var(--lp-warn-line); background: var(--lp-warn-wash); }
+    .estado-card.is-alerta .e-dot { background: var(--lp-warn-mark); }
+    .estado-card .e-t { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+    .estado-card.is-alerta .e-t { color: var(--lp-warn); }
+    .estado-card .e-s { font-size: 12px; color: var(--lp-dim); margin-top: 3px; }
+    .e-avisa { margin-left: auto; flex: none; display: inline-flex; color: var(--lp-warn); animation: avisaEntra var(--lp-trans, 520ms) var(--ease-out); }
+    .e-avisa svg { width: 22px; height: 22px; }
+    .e-avisa .campana { animation: campana 2600ms ease-in-out infinite; transform-origin: 12px 5px; }
+    .e-avisa .onda { opacity: 0; animation: avisaOnda 2600ms ease-out infinite; }
+    .e-avisa .onda.o2 { animation-delay: 220ms; }
+    @keyframes avisaEntra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    @keyframes campana { 0%, 62%, 100% { transform: rotate(0deg); } 68% { transform: rotate(7deg); } 74% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } 86% { transform: rotate(0deg); } }
+    @keyframes avisaOnda { 0%, 58% { opacity: 0; } 70% { opacity: 0.85; } 100% { opacity: 0; } }
+    .sw-a { animation: cardA var(--lp-trans, 520ms) var(--ease-out); }
+    .sw-b { animation: cardB var(--lp-trans, 520ms) var(--ease-out); }
+    @keyframes cardA { from { opacity: 0.25; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+    @keyframes cardB { from { opacity: 0.25; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+    .mod { opacity: 0; transition: opacity 260ms var(--ease-out), transform 320ms var(--ease-out); }
+    .mod.on { opacity: 1; }
+    .p-solar { transform: translate(0, -20px); }    .p-solar.on { transform: translate(0, 0); }
+    .p-bat   { transform: translate(-26px, 0); }    .p-bat.on { transform: translate(0, 0); }
+    .p-lora  { transform: translate(14px, 16px); }  .p-lora.on { transform: translate(0, 0); }
+    .p-cel   { transform: translate(18px, 0); }     .p-cel.on { transform: translate(0, 0); }
+    .p-temp  { transform: translate(22px, -8px); }  .p-temp.on { transform: translate(0, 0); }
+    .p-hum   { transform: translate(22px, 10px); }  .p-hum.on { transform: translate(0, 0); }
+    .p-co2   { transform: translate(0, 24px); }     .p-co2.on { transform: translate(0, 0); }
+    .p-suelo { transform: translate(-16px, 20px); } .p-suelo.on { transform: translate(0, 0); }
+    .p-uv    { transform: translate(0, -16px); }    .p-uv.on { transform: translate(0, 0); }
+    .p-pres  { transform: translate(-18px, 0); }    .p-pres.on { transform: translate(0, 0); }
+
+    .exploded .p-solar.on { transform: translate(0, -52px); }
+    .exploded .p-bat.on { transform: translate(-56px, 0); }
+    .exploded .p-lora.on { transform: translate(40px, -32px); }
+    .exploded .p-cel.on { transform: translate(50px, 14px); }
+    .exploded .p-temp.on { transform: translate(64px, -20px); }
+    .exploded .p-hum.on { transform: translate(64px, 26px); }
+    .exploded .p-co2.on { transform: translate(0, 54px); }
+    .exploded .p-suelo.on { transform: translate(-42px, 44px); }
+    .exploded .p-uv.on { transform: translate(0, -44px); }
+    .exploded .p-pres.on { transform: translate(-54px, 0); }
+    .tag { opacity: 0; transition: opacity 220ms var(--ease-out); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; fill: currentColor; }
+    .exploded .mod.on .tag { opacity: 0.55; }
+    .tag-fijo { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.45; }
+    .rot-amb { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.45; }
+
+    /* el equipo principal se corre cuando entra el gateway */
+    .unit-main { transform: translate(110px, 0); transition: transform 380ms var(--ease-out); }
+    .has-gw .unit-main { transform: translate(0, 0); }
+    .unit-gw { opacity: 0; transform: translate(26px, 0); transition: opacity 300ms var(--ease-out), transform 380ms var(--ease-out); }
+    .unit-gw.on { opacity: 1; transform: translate(0, 0); }
+    .enlace { opacity: 0; transition: opacity 300ms var(--ease-out) 120ms; }
+    .unit-gw.on .enlace { opacity: 0.5; }
+

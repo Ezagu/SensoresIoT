@@ -1,0 +1,20 @@
+---
+// Redibujo de StatusPill.jsx. Usada en Guardia.astro con dos variantes
+// (normal/critical) en el DOM, alternadas por CSS/JS según la fase.
+import MarcaEstado, { type Estado } from './MarcaEstado.astro'
+
+interface Props {
+  estado: Estado
+  etiqueta: string
+  pill?: boolean
+  id?: string
+  hidden?: boolean
+}
+
+const { estado, etiqueta, pill = false, id, hidden = false } = Astro.props
+---
+
+<span id={id} class={`bt-status ${pill ? 'bt-status--pill' : ''} bt-status--${estado}`} hidden={hidden}>
+  <MarcaEstado estado={estado} />
+  <span class="bt-status__label">{etiqueta}</span>
+</span>

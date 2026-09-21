@@ -1,0 +1,38 @@
+---
+// Redibujo de StatusMark.jsx (.claude/skills/bitacora-design/components/
+// monitoring/StatusMark.jsx): un glifo por estado, legible sin color
+// (impresión, escala de grises). Paleta remapeada a los tokens --lp-* de
+// la landing (el original usa var(--critical-mark) etc. del design system).
+export type Estado = 'normal' | 'attention' | 'critical'
+
+interface Props {
+  estado: Estado
+  size?: number
+  class?: string
+}
+
+const { estado, size = 10, class: clase = '' } = Astro.props
+
+const COLOR: Record<Estado, string> = {
+  normal: 'var(--lp-ok)',
+  attention: 'var(--lp-amber)',
+  critical: 'var(--lp-warn-mark)',
+}
+const color = COLOR[estado]
+---
+
+{estado === 'normal' && (
+  <svg width={size} height={size} viewBox="0 0 12 12" class={`bt-mark ${clase}`} aria-hidden="true">
+    <circle cx="6" cy="6" r="4.5" fill={color} />
+  </svg>
+)}
+{estado === 'attention' && (
+  <svg width={size} height={size} viewBox="0 0 12 12" class={`bt-mark ${clase}`} aria-hidden="true">
+    <path d="M6 1 11 6 6 11 1 6Z" fill={color} />
+  </svg>
+)}
+{estado === 'critical' && (
+  <svg width={size} height={size} viewBox="0 0 12 12" class={`bt-mark ${clase}`} aria-hidden="true">
+    <rect x="1.5" y="1.5" width="9" height="9" rx="1" fill={color} />
+  </svg>
+)}

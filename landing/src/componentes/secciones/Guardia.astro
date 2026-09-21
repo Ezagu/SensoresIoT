@@ -1,0 +1,46 @@
+---
+// Fuente: Main.dc.html:898-932. correrGuardia() se dispara una vez, al
+// entrar la sección en viewport (IO threshold 0.3), y "Ver otra vez" la
+// vuelve a correr. StatusPill se resuelve con las dos variantes en el DOM
+// (normal/critical) alternadas por hidden, igual que el toggle de tema.
+import PastillaEstado from '../datos/PastillaEstado.astro'
+---
+
+<section id="guardia" class="band watch stage">
+  <div class="watch-head">
+    <h2 id="watch-titulo" class="say">Casi siempre, no pasa nada.</h2>
+    <button type="button" id="btn-replay" class="replay">Ver otra vez</button>
+  </div>
+
+  <div>
+    <svg class="watch-svg" viewBox="0 0 1200 240" preserveAspectRatio="none" fill="none" aria-hidden="true">
+      <line x1="0" y1="86" x2="1200" y2="86" class="limit"></line>
+      <polyline class="trace trace-calm" points="0,168 60,171 120,166 180,173 240,167 300,170 360,165 420,172 480,168 540,166 600,171 660,167 720,169 780,165 840,170 900,168 960,172 1020,166 1080,170 1140,167 1200,169"></polyline>
+      <polyline class="trace trace-alert" points="0,168 120,166 240,167 360,165 480,168 600,171 700,166 780,150 840,124 900,96 960,74 1020,62 1080,58 1140,62 1200,59"></polyline>
+    </svg>
+    <div class="limit-row"><span class="micro" style="color: var(--lp-warn);">umbral 8,0 °C</span></div>
+  </div>
+
+  <div class="watch-cols">
+    <div>
+      <div class="watch-read read">
+        <span id="watch-valor" class="big">4,8</span><span class="unit">°C</span>
+      </div>
+      <div style="margin-top: 12px;">
+        <PastillaEstado id="pastilla-normal" estado="normal" etiqueta="Normal" pill />
+        <PastillaEstado id="pastilla-critical" estado="critical" etiqueta="Fuera de rango" pill hidden />
+      </div>
+    </div>
+    <div style="flex: 1; min-width: 260px;">
+      <p id="watch-nota" class="note">El equipo mide cada 15 a 20 segundos. Mientras el valor esté donde tiene que estar, acá no pasa nada.</p>
+      <div class="alerta-card">
+        <div class="t">Alerta enviada · Cámara 1</div>
+        <div class="c"><span>Email</span><span>WhatsApp</span><span>Telegram</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import '../../scripts/guardia'
+</script>

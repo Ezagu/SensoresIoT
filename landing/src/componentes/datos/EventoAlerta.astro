@@ -1,0 +1,32 @@
+---
+// Redibujo de AlertEvent.jsx.
+import MarcaEstado from './MarcaEstado.astro'
+
+interface Props {
+  tipo: 'disparada' | 'normalizada'
+  dispositivo: string
+  sensor: string
+  valor: number
+  unidad: string
+  condicion: 'mayor' | 'menor'
+  umbral: number
+  cuando: string
+}
+
+const { tipo, dispositivo, sensor, valor, unidad, condicion, umbral, cuando } = Astro.props
+const estado = tipo === 'disparada' ? 'critical' : 'normal'
+const fmt = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
+const signo = condicion === 'mayor' ? '>' : '<'
+---
+
+<div class="bt-event">
+  <MarcaEstado estado={estado} size={11} />
+  <div class="bt-event__what">
+    <span class="bt-event__title">{sensor} {signo} {fmt.format(umbral)} {unidad}</span>
+    <span class="bt-event__where">{dispositivo} · {sensor}{tipo === 'normalizada' && ' · normalizada'}</span>
+  </div>
+  <span class="bt-event__cmp">
+    <b>{fmt.format(valor)} {unidad}</b> {signo} {fmt.format(umbral)} {unidad}
+  </span>
+  <span class="bt-event__when">{cuando}</span>
+</div>

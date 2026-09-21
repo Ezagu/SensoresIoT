@@ -1,0 +1,23 @@
+/* Port verbatim de Main.dc.html:265-286 (mockup Canvas), sin cambios. */
+    .watch { padding: clamp(50px, 8vw, 110px) 0 clamp(54px, 8vw, 104px); }
+    .watch-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; flex-wrap: wrap; margin-bottom: clamp(22px, 3vw, 38px); }
+    .watch-svg { width: 100%; height: auto; display: block; }
+    .trace { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .trace-calm { stroke: var(--lp-accent); opacity: 0.85; transition: opacity 400ms var(--ease-out); }
+    .trace-alert { stroke: var(--lp-warn-mark); stroke-dasharray: 1500; stroke-dashoffset: 1500; opacity: 0; transition: stroke-dashoffset 1600ms cubic-bezier(.3,.7,.3,1), opacity 260ms var(--ease-out); }
+    .is-sube .trace-alert, .is-alerta .trace-alert { stroke-dashoffset: 0; opacity: 1; }
+    .is-sube .trace-calm, .is-alerta .trace-calm { opacity: 0.22; }
+    .limit { stroke: var(--lp-warn-mark); stroke-width: 1; stroke-dasharray: 5 7; opacity: 0.45; }
+    .limit-row { display: flex; justify-content: flex-end; margin-top: 6px; }
+    .watch-read { display: flex; align-items: baseline; gap: 12px; }
+    .watch-read .big { font-size: clamp(42px, 6.6vw, 82px); line-height: 1; color: var(--lp-text); transition: color 320ms var(--ease-out); }
+    .is-alerta .watch-read .big { color: var(--lp-warn); }
+    .watch-read .unit { font-size: 19px; color: var(--lp-faint); }
+    .watch-cols { display: flex; gap: clamp(24px, 4vw, 56px); flex-wrap: wrap; margin-top: 30px; align-items: flex-start; }
+    .alerta-card { margin-top: 22px; max-width: 420px; border: 1px solid var(--lp-warn-line); background: var(--lp-warn-wash); border-radius: 10px; padding: 15px 17px; opacity: 0; transform: translateY(10px); transition: opacity 280ms var(--ease-out), transform 280ms var(--ease-out); }
+    .is-alerta .alerta-card { opacity: 1; transform: none; }
+    .alerta-card .t { font-size: 14px; font-weight: 600; color: var(--lp-warn); }
+    .alerta-card .c { margin-top: 8px; display: flex; gap: 14px; font-size: 12px; color: var(--lp-dim); flex-wrap: wrap; }
+    .replay { background: none; border: 0; padding: 0 0 2px; font-size: 12px; color: var(--lp-faint); border-bottom: 1px solid var(--lp-line); }
+    .replay:hover { color: var(--lp-text); }
+

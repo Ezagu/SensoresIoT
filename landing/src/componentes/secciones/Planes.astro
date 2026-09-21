@@ -1,0 +1,20 @@
+---
+// Fuente: Main.dc.html:1444-1473. Estática, sin JS.
+import { PLANES } from '../../datos/planes'
+---
+
+<section id="planes" class="band soft-sec stage">
+  <h2 class="say">Empezás gratis.<br>Escalás cuando haga falta.</h2>
+  <div class="plans">
+    {PLANES.map((plan) => (
+      <div class={`plan ${plan.destacado ? 'pro' : ''}`.trim()}>
+        <div class="pn">{plan.nombre}</div>
+        <div class="pp">{plan.precio} {plan.precioNota && <small>{plan.precioNota}</small>}</div>
+        <ul>
+          {plan.items.map((item) => <li>{item}</li>)}
+        </ul>
+      </div>
+    ))}
+  </div>
+  <p class="fine">Planes, límites y funcionalidades pueden cambiar.</p>
+</section>
