@@ -4,7 +4,6 @@
 export type Props = {
   id?: string
   activo?: boolean
-  conEtiqueta?: boolean
   x?: number
   y?: number
 }

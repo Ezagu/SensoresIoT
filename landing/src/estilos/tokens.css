@@ -42,6 +42,12 @@ html[data-theme="dark"] .lp {
   --lp-surface: #16201F;
   --lp-raise: #1B2628;
   --lp-plate: #131C1E;
+  --lp-celda: #1B2628;
+  --lp-panel: #16201F;
+  --lp-ln-fuerte: 0.75;
+  --lp-ln-media: 0.42;
+  --lp-ln-suave: 0.2;
+  --lp-ranura: 0.09;
   --lp-line: rgba(232,238,236,0.13);
   --lp-line-soft: rgba(232,238,236,0.07);
   --lp-text: #E8EEEC;
@@ -70,7 +76,18 @@ html[data-theme="light"] .lp {
   --lp-surface: #FBFAF6;
   --lp-raise: #FFFFFF;
   --lp-plate: #F0ECE3;
-  --lp-line: rgba(20,32,31,0.14);
+  /* En papel el equipo se lava: el gabinete blanco queda a un paso del panel
+     que lo contiene, así que la celda se hunde en vez de levantar y el trazo
+     —que es todo lo que dibuja el equipo— pesa más que en el modo oscuro. */
+  --lp-celda: #EFEBE2;
+  /* el panel del configurador va entre la banda y el equipo, no arriba de los
+     dos: con --lp-surface el gabinete blanco quedaba a un paso de su fondo */
+  --lp-panel: #F3F0E9;
+  --lp-ln-fuerte: 0.9;
+  --lp-ln-media: 0.62;
+  --lp-ln-suave: 0.34;
+  --lp-ranura: 0.16;
+  --lp-line: rgba(20,32,31,0.18);
   --lp-line-soft: rgba(20,32,31,0.07);
   --lp-text: #14201F;
   --lp-dim: #4C5A5C;
@@ -78,7 +95,7 @@ html[data-theme="light"] .lp {
   --lp-accent: #0A5C6B;
   --lp-accent-2: #146272;
   --lp-accent-ink: #FFFFFF;
-  --lp-accent-wash: rgba(10,92,107,0.08);
+  --lp-accent-wash: rgba(10,92,107,0.10);
   --lp-accent-line: rgba(10,92,107,0.30);
   --lp-warn: #8F2C24;
   --lp-warn-mark: #9E332B;
@@ -86,7 +103,7 @@ html[data-theme="light"] .lp {
   --lp-warn-line: rgba(158,51,43,0.26);
   --lp-amber: #96560A;
   --lp-amber-line: rgba(150,86,10,0.34);
-  --lp-amber-wash: rgba(150,86,10,0.07);
+  --lp-amber-wash: rgba(150,86,10,0.10);
   --lp-ok: #21734C;
   --lp-ok-wash: #edf6f1;
   --lp-ok-line: #d8ebe0;

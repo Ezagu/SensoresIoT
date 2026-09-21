@@ -1,8 +1,8 @@
 ---
 // Fuente: Main.dc.html:933-1157. La lógica de selección, precio y marco()
-// vive en scripts/configurador.ts + scripts/marco.ts. Temperatura y
-// Humedad muestran "GRATIS" fijo en el markup original (no interpolan
-// precio): se mantiene así, nunca cambian de precio.
+// vive en scripts/configurador.ts + scripts/marco.ts; los textos que dependen
+// de lo elegido salen de datos/equipo.ts, que es lo que permite servir el
+// primer estado ya armado en vez de esperar al JS.
 // El dibujo del equipo sale de componentes/equipo/, compartido con el hero.
 // Los id mod-* son los que toca configurador.ts para prender cada módulo.
 import Icono from '../equipo/Icono.astro'
@@ -17,25 +17,30 @@ import Temperatura from '../equipo/modulos/Temperatura.astro'
 import Humedad from '../equipo/modulos/Humedad.astro'
 import Co2 from '../equipo/modulos/Co2.astro'
 import Suelo from '../equipo/modulos/Suelo.astro'
+import { BASE_USD, PRECIOS } from '../../datos/precios'
+import { avisoDe, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../../datos/equipo'
+import { dinero } from '../../utiles/formato'
+
+const sel = seleccionInicial()
+const aviso = avisoDe(sel)
 ---
 
 <div class="band-alt">
   <section id="equipo" class="build stage">
     <div class="build-head">
       <h2 class="say">Armá el equipo<br>que necesitás.</h2>
-      <p style="font-size: 13px; color: var(--lp-faint); max-width: 30ch; line-height: 1.6;">Cada módulo con su precio. El equipo y el total se arman acá mismo.</p>
     </div>
 
     <div class="build-grid">
       <div id="rail-sensores" class="rail rail-sensores">
-        <div class="rail-h"><span>Sensores</span><span>USD</span></div>
+        <div class="rail-h"><span>Sensores</span></div>
         <div class="chips">
-          <button type="button" id="chip-temp" class="chip" aria-pressed="false" data-modulo="temp">
+          <button type="button" id="chip-temp" class:list={['chip', { on: sel.temp }]} aria-pressed={sel.temp} data-modulo="temp">
             <Icono tipo="temp" clase="ic" />
             <span class="txt"><span class="nm">Temperatura</span><span class="un">°C</span></span>
             <span class="pr">GRATIS</span>
           </button>
-          <button type="button" id="chip-hum" class="chip" aria-pressed="false" data-modulo="hum">
+          <button type="button" id="chip-hum" class:list={['chip', { on: sel.hum }]} aria-pressed={sel.hum} data-modulo="hum">
             <Icono tipo="hum" clase="ic" />
             <span class="txt"><span class="nm">Humedad</span><span class="un">% HR</span></span>
             <span class="pr">GRATIS</span>
@@ -43,22 +48,22 @@ import Suelo from '../equipo/modulos/Suelo.astro'
           <button type="button" id="chip-co2" class="chip" aria-pressed="false" data-modulo="co2">
             <Icono tipo="co2" clase="ic" />
             <span class="txt"><span class="nm">CO₂</span><span class="un">ppm</span></span>
-            <span id="pr-co2" class="pr">+ US$ 45</span>
+            <span class="pr">{dinero(PRECIOS.co2)}</span>
           </button>
           <button type="button" id="chip-suelo" class="chip" aria-pressed="false" data-modulo="suelo">
             <Icono tipo="suelo" clase="ic" />
             <span class="txt"><span class="nm">Humedad de suelo</span><span class="un">% vol</span></span>
-            <span id="pr-suelo" class="pr">+ US$ 18</span>
+            <span class="pr">{dinero(PRECIOS.suelo)}</span>
           </button>
           <button type="button" id="chip-uv" class="chip" aria-pressed="false" data-modulo="uv">
             <Icono tipo="uv" clase="ic" />
             <span class="txt"><span class="nm">Radiación UV</span><span class="un">índice</span></span>
-            <span id="pr-uv" class="pr">+ US$ 14</span>
+            <span class="pr">{dinero(PRECIOS.uv)}</span>
           </button>
           <button type="button" id="chip-pres" class="chip" aria-pressed="false" data-modulo="pres">
             <Icono tipo="pres" clase="ic" />
             <span class="txt"><span class="nm">Presión</span><span class="un">hPa</span></span>
-            <span id="pr-pres" class="pr">+ US$ 12</span>
+            <span class="pr">{dinero(PRECIOS.pres)}</span>
           </button>
         </div>
       </div>
@@ -66,21 +71,20 @@ import Suelo from '../equipo/modulos/Suelo.astro'
       <div class="build-stage">
         <div class="stage-frame">
           <div class="stage-top">
-            <span id="equipo-id" class="id">B—01 · equipo base</span>
-            <button type="button" id="btn-explode" class="ex" aria-pressed="false">Vista explotada</button>
+            <span id="equipo-id" class="id">{rotuloDe(sel)}</span>
           </div>
 
           <svg id="equipo-svg" class="device" viewBox="0 0 780 600" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tu equipo con los módulos elegidos">
             <g id="equipo-outer">
               <g class="unit-main">
-                <Solar id="mod-solar" conEtiqueta />
-                <Lora id="mod-lora" conEtiqueta />
-                <Bateria id="mod-bat" conEtiqueta />
+                <Solar id="mod-solar" />
+                <Lora id="mod-lora" />
+                <Bateria id="mod-bat" />
                 <Presion id="mod-pres" />
                 <Uv id="mod-uv" />
                 <Cuerpo />
-                <Temperatura id="mod-temp" />
-                <Humedad id="mod-hum" />
+                <Temperatura id="mod-temp" activo={sel.temp} />
+                <Humedad id="mod-hum" activo={sel.hum} />
                 <Co2 id="mod-co2" />
                 <Suelo id="mod-suelo" />
               </g>
@@ -89,15 +93,7 @@ import Suelo from '../equipo/modulos/Suelo.astro'
           </svg>
         </div>
 
-        <div id="mide" class="mide">
-          <span id="m-temp" class="m" hidden><span class="v">23,4</span><span class="k">°C</span></span>
-          <span id="m-hum" class="m" hidden><span class="v">61</span><span class="k">% HR</span></span>
-          <span id="m-co2" class="m" hidden><span class="v">512</span><span class="k">ppm</span></span>
-          <span id="m-suelo" class="m" hidden><span class="v">38</span><span class="k">% suelo</span></span>
-          <span id="m-uv" class="m" hidden><span class="v">7,2</span><span class="k">UV</span></span>
-          <span id="m-pres" class="m" hidden><span class="v">1.013</span><span class="k">hPa</span></span>
-          <span id="m-vacio" class="vacio">Sumá un sensor para que el equipo empiece a medir algo.</span>
-        </div>
+        <p id="aviso-enlace" class="aviso" role="status" hidden={!aviso}>{aviso}</p>
       </div>
 
       <div class="segm" role="group" aria-label="Qué módulos ver">
@@ -110,40 +106,39 @@ import Suelo from '../equipo/modulos/Suelo.astro'
       </div>
 
       <div id="rail-energia" class="rail rail-energia oculto">
-        <div class="rail-h"><span>Energía y enlace</span><span>USD</span></div>
+        <div class="rail-h"><span>Energía y enlace</span></div>
         <div class="chips">
           <button type="button" id="chip-bat" class="chip" aria-pressed="false" data-modulo="bat">
             <Icono tipo="bat" clase="ic" />
             <span class="txt"><span class="nm">Batería</span><span class="un">autonomía</span></span>
-            <span id="pr-bat" class="pr">+ US$ 10</span>
+            <span class="pr">{dinero(PRECIOS.bat)}</span>
           </button>
           <button type="button" id="chip-solar" class="chip" aria-pressed="false" data-modulo="solar">
             <Icono tipo="solar" clase="ic" />
             <span class="txt"><span class="nm">Panel solar</span><span class="un">sin red eléctrica</span></span>
-            <span id="pr-solar" class="pr">+ US$ 25</span>
+            <span class="pr">{dinero(PRECIOS.solar)}</span>
           </button>
           <button type="button" id="chip-lora" class="chip" aria-pressed="false" data-modulo="lora">
             <Icono tipo="lora" clase="ic" />
-            <span class="txt"><span class="nm">LoRa</span><span class="un">radio + gateway</span></span>
-            <span id="pr-lora" class="pr">+ US$ 100</span>
+            <span class="txt"><span class="nm">LoRa</span><span class="un">radio de largo alcance</span></span>
+            <span class="pr">{dinero(PRECIOS.lora)}</span>
           </button>
-          <button type="button" id="chip-gw" class="chip" style="cursor: default; opacity: 0.45;" disabled aria-disabled="true">
+          <button type="button" id="chip-gw" class="chip" aria-pressed="false" data-modulo="gw">
             <Icono tipo="gw" clase="ic" />
-            <span class="txt"><span class="nm">Gateway LoRa</span><span id="gw-estado" class="un">sólo con LoRa</span></span>
-            <span class="pr">US$ 65</span>
+            <span class="txt"><span class="nm">Gateway LoRa</span><span class="un">puente a internet</span></span>
+            <span class="pr">{dinero(PRECIOS.gw)}</span>
           </button>
         </div>
-        <p style="margin-top: 14px; font-size: 12px; line-height: 1.7; color: var(--lp-faint);">Wi-Fi y equipo base vienen en todos los equipos: US$ 79. Al elegir LoRa entra también el gateway, que es un segundo equipo.</p>
+        <p style="margin-top: 14px; font-size: 12px; line-height: 1.7; color: var(--lp-faint);">Wi-Fi y equipo base vienen en todos los equipos: {dinero(BASE_USD)}. Al elegir LoRa entra también el gateway, que es un segundo equipo: sacalo si ya tenés uno instalado.</p>
       </div>
     </div>
 
     <div id="sumbar" class="sumbar">
       <span class="lbl">Tu equipo</span>
-      <span id="resumen-texto" class="list">Equipo base, todavía sin módulos</span>
+      <span id="resumen-texto" class="list">{resumenDe(sel)}</span>
       <span class="price">
         <span id="delta" class="delta"></span>
-        <span id="total" class="n">US$ 79</span>
-        <span class="r">estimado · a confirmar</span>
+        <span id="total" class="n">{dinero(totalDe(sel))}</span>
       </span>
       <a href="#cierre" class="cta cta-solid">Pedir este equipo</a>
     </div>
@@ -151,8 +146,8 @@ import Suelo from '../equipo/modulos/Suelo.astro'
     <p class="flow">
       <span><b>Lo armamos</b> con tu configuración</span><span>→</span>
       <span><b>te llega</b> listo</span><span>→</span>
-      <span><b>lo conectás</b> al Wi-Fi desde el navegador</span><span>→</span>
-      <span><b>empieza a medir</b></span>
+      <span><b>lo enchufás o lo prendés</b> y empieza a medir</span><span>→</span>
+      <span><b>lo conectás al Wi-Fi</b> y ves las mediciones</span>
     </p>
   </section>
 </div>

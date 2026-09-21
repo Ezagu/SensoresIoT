@@ -1,9 +1,9 @@
 ---
 import type { Props } from './props'
 import Icono from '../Icono.astro'
-import { RANURA, ranuraDe, EXPLOSION } from '../ranuras'
+import { RANURA, ranuraDe, SEPARACION } from '../ranuras'
 const [rx, ry] = ranuraDe('co2')
-const [ex, ey] = EXPLOSION.co2
+const [ex, ey] = SEPARACION.co2
 const { id, activo = false, x = rx, y = ry } = Astro.props
 ---
 

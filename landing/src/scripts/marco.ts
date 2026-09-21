@@ -1,25 +1,22 @@
-// Port de Main.dc.html marco() (~línea 1823). Abajo de 1120px el equipo pasa a
-// ocupar todo el ancho, así que ahí conviene encuadrarlo según lo que tiene
-// puesto; arriba de eso queda el encuadre fijo del desktop.
+// Port de Main.dc.html marco() (~línea 1823). El encuadre sale de lo que el
+// equipo tiene puesto: el recuadro ocupa lo necesario y el dibujo queda
+// centrado en cualquier ancho.
 //
 // Las cajas de los módulos se miden con getBBox() en vez de estar tabuladas:
 // la tabla a mano se desincronizaba en silencio cada vez que alguien movía una
 // pieza, y el síntoma aparecía sólo en mobile. La única caja literal que queda
 // es la del equipo base (el gabinete y su cable), que no es un módulo.
 import type { ClaveModulo } from '../datos/precios'
-// Misma tabla que alimenta el CSS por custom property; getBBox() no ve el
-// transform del CSS, así que la explosión hay que sumarla acá a mano.
-import { EXPLOSION as EXPL } from '../componentes/equipo/ranuras'
+import type { Seleccion } from '../datos/equipo'
+import { quieto } from './medios'
 
-type Seleccion = Record<ClaveModulo, boolean>
 type Caja = [number, number, number, number]
 
 const BASE: Caja = [192, 174, 448, 494]
 const GATEWAY: Caja = [556, 158, 776, 476]
 
 
-/** La etiqueta sólo cuenta cuando se ve; si no, infla la caja más que la pieza. */
-function medir(clave: ClaveModulo, conEtiquetas: boolean): Caja | null {
+function medir(clave: ClaveModulo): Caja | null {
   const g = document.getElementById(`mod-${clave}`)
   if (!g) return null
 
@@ -32,7 +29,6 @@ function medir(clave: ClaveModulo, conEtiquetas: boolean): Caja | null {
     const t = grupo.getAttribute('transform')
     const [, tx = '0', ty = '0'] = /translate\(\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/.exec(t ?? '') ?? []
     grupo.querySelectorAll<SVGGraphicsElement>(':scope > *').forEach((el) => {
-      if (!conEtiquetas && el.classList.contains('tag')) return
       const b = el.getBBox()
       if (!b.width && !b.height) return
       x0 = Math.min(x0, b.x + +tx)
@@ -45,44 +41,45 @@ function medir(clave: ClaveModulo, conEtiquetas: boolean): Caja | null {
   return [x0, y0, x1, y1]
 }
 
-export function marco(sel: Seleccion, explode: boolean, encuadrar: boolean): string {
-  if (!encuadrar) return '0 0 780 600'
-
-  const dx = sel.lora ? 0 : 110
+export function marco(sel: Seleccion): string {
+  const dx = sel.gw ? 0 : 110
   let x0 = 1e5
   let y0 = 1e5
   let x1 = -1e5
   let y1 = -1e5
 
-  const sumar = (c: Caja, o: [number, number] | null, corr: boolean) => {
+  const sumar = (c: Caja, corr: boolean) => {
     const d = corr ? dx : 0
-    const ox = o ? o[0] : 0
-    const oy = o ? o[1] : 0
-    x0 = Math.min(x0, c[0] + ox + d)
-    y0 = Math.min(y0, c[1] + oy)
-    x1 = Math.max(x1, c[2] + ox + d)
-    y1 = Math.max(y1, c[3] + oy)
+    x0 = Math.min(x0, c[0] + d)
+    y0 = Math.min(y0, c[1])
+    x1 = Math.max(x1, c[2] + d)
+    y1 = Math.max(y1, c[3])
   }
 
-  sumar(BASE, null, true)
-  Object.keys(EXPL).forEach((k) => {
+  sumar(BASE, true)
+  Object.keys(sel).forEach((k) => {
     const clave = k as ClaveModulo
     if (!sel[clave]) return
-    const caja = medir(clave, explode)
-    if (caja) sumar(caja, explode ? EXPL[k] : null, true)
+    const caja = medir(clave)
+    if (caja) sumar(caja, true)
   })
-  if (sel.lora) sumar(GATEWAY, null, false)
+  if (sel.gw) sumar(GATEWAY, false)
 
-  const q = 40
-  x0 = Math.floor((x0 - 20) / q) * q
-  y0 = Math.floor((y0 - 20) / q) * q
-  x1 = Math.ceil((x1 + 20) / q) * q
-  y1 = Math.ceil((y1 + 20) / q) * q
+  // El aire alrededor del equipo y el paso al que se redondea: cuanto más
+  // grueso el paso, más salta el encuadre al prender un módulo.
+  const AIRE = 12
+  const q = 20
+  x0 = Math.floor((x0 - AIRE) / q) * q
+  y0 = Math.floor((y0 - AIRE) / q) * q
+  x1 = Math.ceil((x1 + AIRE) / q) * q
+  y1 = Math.ceil((y1 + AIRE) / q) * q
   let w = x1 - x0
   let h = y1 - y0
   const r = w / h
-  const MIN = 0.92
-  const MAX = 1.45
+  // La banda de proporciones que puede tomar el recuadro: fuera de ella se
+  // rellena con aire, así que va lo más ancha que el bloque tolere.
+  const MIN = 0.8
+  const MAX = 1.6
   if (r < MIN) {
     const nw = h * MIN
     x0 -= (nw - w) / 2
@@ -93,4 +90,27 @@ export function marco(sel: Seleccion, explode: boolean, encuadrar: boolean): str
     h = nh
   }
   return [Math.round(x0), Math.round(y0), Math.round(w), Math.round(h)].join(' ')
+}
+
+const MS_ENCUADRE = 420
+let cuadro: number | null = null
+
+/** El viewBox no es animable por CSS, así que se interpola a mano: sumar un
+ *  módulo que sobresale del gabinete tiene que ser un zoom, no un salto. */
+export function encuadrar(svg: Element, sel: Seleccion, animar = true) {
+  if (cuadro) cancelAnimationFrame(cuadro)
+  const destino = marco(sel).split(' ').map(Number)
+  const desde = (svg.getAttribute('viewBox') ?? '').split(' ').map(Number)
+  if (!animar || quieto || desde.length !== 4 || desde.some(Number.isNaN)) {
+    svg.setAttribute('viewBox', destino.join(' '))
+    return
+  }
+  const inicio = performance.now()
+  const paso = (ahora: number) => {
+    const t = Math.min(1, (ahora - inicio) / MS_ENCUADRE)
+    const e = 1 - (1 - t) ** 3
+    svg.setAttribute('viewBox', desde.map((v, i) => Math.round(v + (destino[i] - v) * e)).join(' '))
+    if (t < 1) cuadro = requestAnimationFrame(paso)
+  }
+  cuadro = requestAnimationFrame(paso)
 }
