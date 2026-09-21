@@ -9,7 +9,7 @@ const { id, activo = false, x = rx, y = ry } = Astro.props
 
 <g id={id} class:list={['mod', 'p-co2', { on: activo }]} style={`--ex:${ex}px;--ey:${ey}px`}>
   <g data-pos transform={`translate(${x} ${y})`}>
-    <rect width={RANURA} height={RANURA} rx="12" class="body-fill ln ln-45" stroke-width="1.2"></rect>
+    <rect width={RANURA} height={RANURA} rx="12" class="celda ln ln-45" stroke-width="1.2"></rect>
     <Icono tipo="co2" x={15} y={15} lado={28} clase="ico-mod" />
   </g>
 </g>

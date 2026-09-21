@@ -4,87 +4,90 @@
    El bloque prefers-reduced-motion de respuesta.css apaga esta animación
    con animation:none, que deja el elemento en su estado final (visible,
    sin transform) — el resultado es el mismo que quieto=true en el mockup. */
-    .hero { padding: clamp(40px, 7vw, 86px) 0 clamp(36px, 5vw, 64px); }
+    /* La barra es sticky y ocupa lugar en el flujo, así que el alto de pantalla
+       se reparte entre las dos: 100dvh acá dejaría el hero 60px abajo del pliegue. */
+    .hero { min-height: calc(100dvh - 60px); display: flex; flex-direction: column; justify-content: center; padding: clamp(40px, 7vw, 86px) 0 clamp(36px, 5vw, 64px); }
     .hero-grid { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); gap: clamp(20px, 4vw, 52px); align-items: center; }
     @media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; gap: 28px; } }
     .hero-copy { display: flex; flex-direction: column; gap: 26px; }
     .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    .hero-foot { margin-top: clamp(24px, 4vw, 48px); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; border-top: 1px solid var(--lp-line-soft); padding-top: 18px; }
-    .hero-foot .live { display: flex; align-items: baseline; gap: 8px; }
-    .hero-foot .live .v { font-size: 26px; color: var(--lp-text); }
-    .hero-foot .live .u { font-size: 13px; color: var(--lp-faint); }
-    .hero-foot .sep { width: 1px; height: 20px; background: var(--lp-line); }
-    @media (max-width: 620px) { .hero-foot .sep { display: none; } }
 
     /* ── la entrada del equipo ── */
     @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
     .rise { animation: riseIn 700ms var(--ease-out) 120ms both; }
 
     /* ── hero: la demostración en vivo ── */
-    .antena .wifi-wave { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; opacity: 0.1; transition: stroke 300ms var(--ease-out); }
-    .hero-dev.tx .wifi-wave { animation: onda calc(var(--lp-sal, 4000ms) * 0.7) ease-out infinite; }
+    /* el equipo y la tarjeta comparten ancho: comparten el centro */
+    .hero-dev-wrap { width: 100%; max-width: 500px; margin-inline: auto; }
+    .hero-dev .onda-radio { opacity: 0.16; transition: stroke 300ms var(--ease-out); }
+    .hero-dev.tx .onda-radio { animation: onda calc(var(--lp-sal, 4000ms) * 0.7) ease-out infinite; }
     .hero-dev.tx .ondas path:nth-child(2) { animation-delay: 320ms; }
     .hero-dev.tx .ondas path:nth-child(3) { animation-delay: 640ms; }
-    .hero-dev.tx-rapido .wifi-wave { animation-duration: calc(var(--lp-sal, 4000ms) * 0.45); }
-    .hero-dev.f-alerta .wifi-wave { stroke: var(--lp-warn-mark); }
-    @keyframes onda { 0% { opacity: 0.06; } 28% { opacity: 0.7; } 100% { opacity: 0.06; } }
+    .hero-dev.tx-rapido .onda-radio { animation-duration: calc(var(--lp-sal, 4000ms) * 0.45); }
+    .hero-dev.f-alerta .onda-radio { stroke: var(--lp-warn-mark); }
+    @keyframes onda { 0% { opacity: 0.1; } 28% { opacity: 0.75; } 100% { opacity: 0.1; } }
 
-    /* la medición viaja neutra: recién toma color cuando el equipo la procesó */
+    /* medir es rutina: la medición que entra se ve, no se hace notar */
     .hero-dev .dot-in { opacity: 0; fill: var(--lp-faint); }
-    .hero-dev .dot-out { opacity: 0; fill: var(--lp-ok); animation: none; transition: fill var(--lp-trans, 520ms) var(--ease-out); }
-    .hero-dev.f-descarga .dot-out { fill: var(--lp-amber); }
-    .hero-dev.f-alerta .dot-out { fill: var(--lp-warn-mark); }
+    /* El color y la duración los fija hero.ts al emitir cada punto, no una clase
+       de fase: un envío que ya salió termina su viaje como salió, aunque el
+       equipo cambie de estado mientras tanto. */
+    .hero-dev .dot-out { fill: var(--lp-ok); animation: transmite var(--lp-sal, 4000ms) linear both; }
     .hero-dev .d-temp { animation: mideTemp var(--lp-ent, 4600ms) linear infinite; }
     .hero-dev .d-hum { animation: mideHum var(--lp-ent, 4600ms) linear infinite; }
     .hero-dev .d-co2 { animation: mideCo2 var(--lp-ent, 4600ms) linear infinite; }
     .hero-dev .r2 { animation-delay: calc(var(--lp-ent, 4600ms) / 3); }
     .hero-dev .r3 { animation-delay: calc(var(--lp-ent, 4600ms) / 3 * 2); }
-    .hero-dev.tx .dot-out { animation: transmite var(--lp-sal, 4000ms) linear infinite; }
-    .hero-dev.tx .dot-out.o2 { animation-delay: calc(var(--lp-sal, 4000ms) / 2); }
-    .hero-dev.tx-rapido .dot-out { animation-duration: calc(var(--lp-sal, 4000ms) * 0.6); }
-    .hero-dev.tx-rapido .dot-out.o2 { animation-delay: calc(var(--lp-sal, 4000ms) * 0.3); }
-    .hero-dev.sin-anim .dot, .hero-dev.sin-anim .wifi-wave { animation: none !important; }
-    .hero-dev.sin-anim .wifi-wave { opacity: 0.35; }
+    .hero-dev.sin-anim .dot, .hero-dev.sin-anim .onda-radio { animation: none !important; }
+    .hero-dev.sin-anim .onda-radio { opacity: 0.35; }
 
     /* Cada sensor es una celda de la grilla; el punto baja a la placa y de ahí
        sale por la antena. Los centros salen de equipo/ranuras.ts (celda + 29). */
     @keyframes mideTemp {
       0%   { transform: translate(251px, 300px); opacity: 0; }
-      14%  { opacity: 1; }
-      46%  { transform: translate(251px, 350px); opacity: 1; }
-      88%  { opacity: 0.9; }
+      14%  { opacity: 0.42; }
+      46%  { transform: translate(251px, 350px); opacity: 0.42; }
+      88%  { opacity: 0.34; }
       100% { transform: translate(295px, 384px); opacity: 0; }
     }
     @keyframes mideHum {
       0%   { transform: translate(320px, 300px); opacity: 0; }
-      14%  { opacity: 1; }
-      46%  { transform: translate(320px, 350px); opacity: 1; }
-      88%  { opacity: 0.9; }
+      14%  { opacity: 0.42; }
+      46%  { transform: translate(320px, 350px); opacity: 0.42; }
+      88%  { opacity: 0.34; }
       100% { transform: translate(320px, 384px); opacity: 0; }
     }
     @keyframes mideCo2 {
       0%   { transform: translate(389px, 300px); opacity: 0; }
-      14%  { opacity: 1; }
-      52%  { transform: translate(389px, 350px); opacity: 1; }
-      88%  { opacity: 0.9; }
+      14%  { opacity: 0.42; }
+      52%  { transform: translate(389px, 350px); opacity: 0.42; }
+      88%  { opacity: 0.34; }
       100% { transform: translate(345px, 384px); opacity: 0; }
     }
+    /* de la placa al mástil, y por dentro del mástil hasta donde nacen las
+       ondas (equipo/modulos/Lora.astro, x=450 y=160 en el hero) */
     @keyframes transmite {
-      0%   { transform: translate(408px, 384px); opacity: 0; }
+      0%   { transform: translate(410px, 388px); opacity: 0; }
       12%  { opacity: 1; }
-      45%  { transform: translate(432px, 310px); opacity: 1; }
-      75%  { transform: translate(448px, 238px); opacity: 1; }
-      100% { transform: translate(456px, 180px); opacity: 0; }
+      30%  { transform: translate(462px, 378px); opacity: 1; }
+      62%  { transform: translate(468px, 294px); opacity: 1; }
+      86%  { transform: translate(468px, 214px); opacity: 0.9; }
+      100% { transform: translate(470px, 186px); opacity: 0; }
     }
 
+    .hero-dev .buf-hueco { fill: currentColor; opacity: 0.22; }
     .hero-dev .buf { fill: var(--lp-amber); opacity: 0; transition: opacity calc(var(--lp-trans, 520ms) * 0.9) var(--ease-out); }
-    .hero-dev .buf.on { opacity: 0.95; }
+    .hero-dev .buf.on { opacity: 1; }
     .hero-dev .led { transition: fill calc(var(--lp-trans, 520ms) * 1.2) var(--ease-out); }
-    .hero-dev .nucleo-flash { opacity: 0; }
-    .hero-dev.f-alerta .nucleo-flash { animation: flash 2000ms ease-out 2; }
-    @keyframes flash { 0% { opacity: 0; } 20% { opacity: 0.5; } 100% { opacity: 0; } }
+    .hero-dev .nucleo-alerta { opacity: 0; }
+    /* Respiración, no destello: la misma curva que el halo del LED (equipo.css)
+       pero más rápida y sin llegar a apagarse — mientras el equipo detecta, la
+       placa nunca vuelve del todo a normal. Los 2200ms no coinciden con los
+       2600ms del halo a propósito: sincronizados se leen como un mecanismo. */
+    .hero-dev.det-alerta .nucleo-alerta { animation: respiraAlerta 2200ms ease-in-out infinite; }
+    @keyframes respiraAlerta { 0%, 100% { opacity: 0.14; } 50% { opacity: 0.62; } }
 
-    .estado-card { margin: 20px auto 0; max-width: 360px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--lp-line); background: var(--lp-surface); border-radius: 12px; padding: 13px 15px; transition: border-color var(--lp-trans, 520ms) var(--ease-out), background-color var(--lp-trans, 520ms) var(--ease-out); }
+    .estado-card { margin: 0 auto 18px; max-width: 340px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--lp-line); background: var(--lp-surface); border-radius: 12px; padding: 13px 15px; transition: border-color var(--lp-trans, 520ms) var(--ease-out), background-color var(--lp-trans, 520ms) var(--ease-out); }
     .estado-card .e-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-ok); flex: none; transition: background-color var(--lp-trans, 520ms) var(--ease-out); }
     .estado-card.is-espera { border-color: var(--lp-amber-line); background: var(--lp-amber-wash); }
     .estado-card.is-espera .e-dot { background: var(--lp-amber); }
@@ -101,6 +104,8 @@
     @keyframes avisaEntra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
     @keyframes campana { 0%, 62%, 100% { transform: rotate(0deg); } 68% { transform: rotate(7deg); } 74% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } 86% { transform: rotate(0deg); } }
     @keyframes avisaOnda { 0%, 58% { opacity: 0; } 70% { opacity: 0.85; } 100% { opacity: 0; } }
+    /* cardA/cardB son el mismo movimiento: alternar la clase es lo que
+       vuelve a disparar la animación en cada cambio de fase */
     .sw-a { animation: cardA var(--lp-trans, 520ms) var(--ease-out); }
     .sw-b { animation: cardB var(--lp-trans, 520ms) var(--ease-out); }
     @keyframes cardA { from { opacity: 0.25; transform: translateY(5px); } to { opacity: 1; transform: none; } }

@@ -1,6 +1,5 @@
 /* Port verbatim de Main.dc.html:423-477 (mockup Canvas), sin cambios. */
     .narra { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); }
-    .narra .flecha { opacity: 0.5; }
     .narra .ahora { color: var(--lp-accent); }
 
     .reg-grid { margin-top: clamp(20px, 3vw, 34px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(16px, 2.6vw, 34px); align-items: stretch; }

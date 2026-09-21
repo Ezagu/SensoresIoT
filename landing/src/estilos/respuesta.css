@@ -61,11 +61,10 @@
       .hero { padding-top: clamp(28px, 6vw, 44px); }
       .hero-grid { gap: 22px; }
       .hero-copy { gap: 20px; }
-      .hero-dev-wrap { margin-left: calc(-1 * var(--gut)); margin-right: calc(-1 * var(--gut)); }
+      /* el tope de ancho del escritorio no puede pelearse con el sangrado */
+      .hero-dev-wrap { width: auto; max-width: none; margin-left: calc(-1 * var(--gut)); margin-right: calc(-1 * var(--gut)); }
       .estado-card { margin-left: var(--gut); margin-right: var(--gut); max-width: none; }
       .hero-dev .r3 { display: none; }
-      .hero-foot { gap: 10px 14px; padding-top: 16px; }
-      .hero-foot .live .v { font-size: 22px; }
 
       /* la guardia: el trazo se estira en alto para que siga leyéndose */
       .watch-svg { height: 150px; }
@@ -180,8 +179,9 @@
       .rise, .mod, .trace-alert, .alerta-card, .esc, .pieza, .mide .m, .watch-read .big, .unit-main, .unit-gw, .delta, .sw-a, .sw-b, .fd-a, .fd-b, .punto { transition: none !important; animation: none !important; }
       .amb-wave { animation: none !important; opacity: 0.35; }
       .led-halo { animation: none; opacity: 0.2; }
-      .hero-dev .dot, .hero-dev .wifi-wave { animation: none !important; }
-      .hero-dev .wifi-wave { opacity: 0.35; }
+      .hero-dev .dot, .hero-dev .onda-radio { animation: none !important; }
+      .hero-dev.det-alerta .nucleo-alerta { animation: none !important; opacity: 0.45; }
+      .hero-dev .onda-radio { opacity: 0.35; }
       .menu-panel, .sumbar, .menu-btn .bar { transition: none !important; }
       .e-avisa, .e-avisa .campana, .e-avisa .onda, .progreso i, .hoja { animation: none !important; transition: none !important; }
     }

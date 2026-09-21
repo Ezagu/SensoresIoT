@@ -10,7 +10,7 @@ export const CICLO_HERO_MS = {
   retardoAviso: 2000,
 } as const
 
-export const COLA_MAX = 4
+export const COLA_MAX = 7
 
 export const VELOCIDAD_MS = {
   entrada: 3000,

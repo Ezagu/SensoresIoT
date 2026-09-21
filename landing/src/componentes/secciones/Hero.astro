@@ -10,11 +10,18 @@
 // El equipo sale de componentes/equipo/, compartido con el configurador; lo
 // que queda acá es sólo la maquinaria de la demo (destello, cola y flujo).
 import Cuerpo from '../equipo/Cuerpo.astro'
-import Antena from '../equipo/modulos/Antena.astro'
-import Bateria from '../equipo/modulos/Bateria.astro'
+import Lora from '../equipo/modulos/Lora.astro'
 import Temperatura from '../equipo/modulos/Temperatura.astro'
 import Humedad from '../equipo/modulos/Humedad.astro'
 import Co2 from '../equipo/modulos/Co2.astro'
+import { PLACA } from '../equipo/ranuras'
+import { COLA_MAX } from '../../datos/config'
+
+// La cola ocupa la placa entera y se llena de izquierda a derecha: el primer
+// lugar es el primero que se ve. PLACA sale de equipo/ranuras.ts.
+const MARGEN = 17
+const paso = (PLACA.w - MARGEN * 2) / (COLA_MAX - 1)
+const cola = Array.from({ length: COLA_MAX }, (_, i) => PLACA.x + MARGEN + paso * i)
 ---
 
 <section id="top" class="band hero stage">
@@ -29,40 +36,7 @@ import Co2 from '../equipo/modulos/Co2.astro'
     </div>
 
     <div class="hero-dev-wrap">
-      <svg id="hero-svg" class="device hero-dev f-normal rise" viewBox="92 126 412 396" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Las mediciones viajan de los sensores al equipo y salen por la antena wi-fi">
-        <Antena />
-        <Bateria activo />
-        <Cuerpo haloId="hero-led-halo" ledId="hero-led-dot" />
-
-        <!-- la placa destella cuando el equipo procesa una alerta -->
-        <rect class="nucleo-flash" x="216" y="372" width="208" height="34" rx="10" fill="none" stroke="var(--lp-warn-mark)" stroke-width="1.3"></rect>
-
-        <!-- cola de transmisión, sobre la placa -->
-        <g class="buffer">
-          <circle id="buf-1" class="buf" cx="350" cy="389" r="3.4"></circle>
-          <circle id="buf-2" class="buf" cx="364" cy="389" r="3.4"></circle>
-          <circle id="buf-3" class="buf" cx="378" cy="389" r="3.4"></circle>
-          <circle id="buf-4" class="buf" cx="392" cy="389" r="3.4"></circle>
-        </g>
-
-        <Temperatura activo />
-        <Humedad activo />
-        <Co2 activo />
-
-        <!-- mediciones viajando -->
-        <g class="flujo" aria-hidden="true">
-          <circle class="dot dot-in d-temp" r="3.6"></circle>
-          <circle class="dot dot-in d-temp r2" r="3.6"></circle>
-          <circle class="dot dot-in d-temp r3" r="3.6"></circle>
-          <circle class="dot dot-in d-hum" r="3.6"></circle>
-          <circle class="dot dot-in d-hum r2" r="3.6"></circle>
-          <circle class="dot dot-in d-hum r3" r="3.6"></circle>
-          <circle class="dot dot-in d-co2" r="3.6"></circle>
-          <circle class="dot dot-in d-co2 r2" r="3.6"></circle>
-          <circle class="dot dot-out" r="3.6"></circle>
-          <circle class="dot dot-out o2" r="3.6"></circle>
-        </g>
-      </svg><div id="estado-card" class="estado-card is-normal sw-a">
+      <div id="estado-card" class="estado-card is-normal sw-a">
         <span class="e-dot"></span>
         <div>
           <div id="estado-titulo" class="e-t">En línea</div>
@@ -79,17 +53,44 @@ import Co2 from '../equipo/modulos/Co2.astro'
           </svg>
         </span>
       </div>
+
+      <svg id="hero-svg" class="device hero-dev f-normal rise" viewBox="128 150 384 358" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Las mediciones viajan de los sensores al equipo y salen por la antena LoRa">
+        <Lora activo />
+        <Cuerpo haloId="hero-led-halo" ledId="hero-led-dot" />
+
+        <!-- la placa respira en rojo mientras el equipo detecta una alerta -->
+        <rect class="nucleo-alerta" x="216" y="372" width="208" height="34" rx="10" fill="none" stroke="var(--lp-warn-mark)" stroke-width="1.3"></rect>
+
+        <!-- cola de transmisión, sobre la placa -->
+        <!-- los lugares vacíos se ven siempre: la placa nunca queda en blanco -->
+        <g class="buffer">
+          {cola.map((cx) => <circle class="buf-hueco" cx={cx} cy="389" r="2"></circle>)}
+          {cola.map((cx, i) => (
+            <circle id={`buf-${i + 1}`} class="buf" cx={cx} cy="389" r="3.2"></circle>
+          ))}
+        </g>
+
+        <Temperatura activo />
+        <Humedad activo />
+        <Co2 activo />
+
+        <!-- las que entran son un loop de CSS; las que salen las emite
+             scripts/hero.ts, una por envío -->
+        <g class="flujo" aria-hidden="true">
+          <circle class="dot dot-in d-temp" r="3"></circle>
+          <circle class="dot dot-in d-temp r2" r="3"></circle>
+          <circle class="dot dot-in d-temp r3" r="3"></circle>
+          <circle class="dot dot-in d-hum" r="3"></circle>
+          <circle class="dot dot-in d-hum r2" r="3"></circle>
+          <circle class="dot dot-in d-hum r3" r="3"></circle>
+          <circle class="dot dot-in d-co2" r="3"></circle>
+          <circle class="dot dot-in d-co2 r2" r="3"></circle>
+        </g>
+      </svg>
+
     </div>
   </div>
 
-  <div class="hero-foot">
-    <span class="micro">Cámara 1 · Depósito norte</span>
-    <span class="live read"><span id="hero-temp" class="v">0,0</span><span class="u">°C</span></span>
-    <span class="sep"></span>
-    <span class="micro">rango 2,0 — 8,0 °C</span>
-    <span class="sep"></span>
-    <span id="hero-desde" class="micro">última lectura hace 4 s</span>
-  </div>
 </section>
 
 <script>

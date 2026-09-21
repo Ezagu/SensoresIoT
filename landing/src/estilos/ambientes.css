@@ -7,8 +7,8 @@
     .esc { opacity: 0; transform: scale(1.025); transform-origin: 600px 250px; transition: opacity 900ms var(--ease-out), transform 1200ms var(--ease-out); }
     .esc.on { opacity: 0.62; transform: none; }
     /* el ambiente queda por detrás del equipo: líneas más tenues */
-    .esc .ln-22 { opacity: 0.14; }
-    .esc .ln-45 { opacity: 0.3; }
+    .esc .ln-22 { stroke-opacity: 0.14; }
+    .esc .ln-45 { stroke-opacity: 0.3; }
     .carrusel .scene-svg > line.ln { opacity: 0.12; }
     .pieza { opacity: 0; transition: opacity 620ms var(--ease-out), transform 720ms var(--ease-out); }
     .pieza.on { opacity: 1; }
@@ -61,4 +61,4 @@
     .punto { width: 22px; height: 3px; border-radius: 2px; border: 0; padding: 0; background: var(--lp-line); transition: background-color 420ms var(--ease-out), width 420ms var(--ease-out); }
     .punto.on { background: var(--lp-accent); width: 34px; }
     .punto:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
-    .rot-amb { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.45; }
+    .rot-amb { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.62; }

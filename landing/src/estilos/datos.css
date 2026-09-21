@@ -33,7 +33,9 @@
 .bt-reading { display: inline-flex; align-items: baseline; gap: 4px; font-family: var(--font-reading); font-variant-numeric: tabular-nums; letter-spacing: -0.015em; color: var(--lp-text); }
 .bt-reading__val { font-size: 14px; font-weight: 600; line-height: 1.1; }
 .bt-reading__unit { font-size: 11px; color: var(--lp-faint); }
-.bt-reading--stale { opacity: 0.55; }
+/* la lectura vieja baja de tinta a --lp-faint; con opacity el atenuado se
+   multiplicaba sobre la unidad, que ya era faint, y perdía contraste AA */
+.bt-reading--stale { color: var(--lp-faint); }
 .bt-reading--critical .bt-reading__val { color: var(--lp-warn); }
 
 .bt-event { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--lp-line-soft); font-size: 13px; }
