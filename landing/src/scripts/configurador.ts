@@ -2,18 +2,21 @@
 // el tramo "configurador" de renderVals() (~línea 2121). `client:load`
 // equivalente: los chips están sobre el fold en mobile, un IO ahí dejaría
 // un tap sin respuesta.
-import { BASE_USD, GATEWAY_USD, NOMBRES, PRECIOS, SENSORES, ENERGIA, precioDe, type ClaveModulo } from '../datos/precios'
+import { BASE_USD, GATEWAY_USD, NOMBRES, PRECIOS, SENSORES, ENERGIA, precioDe, type ClaveModulo, type ClaveSensor } from '../datos/precios'
 import { dinero } from '../utiles/formato'
 import { marco } from './marco'
+import { ranura } from '../componentes/equipo/ranuras'
 import { observarMedia } from './medios'
 
 const TODOS: ClaveModulo[] = [...SENSORES, ...ENERGIA]
-const CON_PRECIO_VISIBLE: ClaveModulo[] = ['co2', 'suelo', 'uv', 'pres', 'bat', 'solar', 'lora', 'cel']
+const CON_PRECIO_VISIBLE: ClaveModulo[] = ['co2', 'suelo', 'uv', 'pres', 'bat', 'solar', 'lora']
 
 const sel: Record<ClaveModulo, boolean> = {
   temp: false, hum: false, co2: false, suelo: false, uv: false, pres: false,
-  bat: false, solar: false, lora: false, cel: false,
+  bat: false, solar: false, lora: false,
 }
+/** Orden de elección: es lo que decide en qué ranura cae cada sensor. */
+let orden: ClaveSensor[] = []
 let explode = false
 let riel: 'sensores' | 'energia' = 'sensores'
 let delta = 0
@@ -26,7 +29,19 @@ function signo(k: ClaveModulo): string {
   return (sel[k] ? '− ' : '+ ') + dinero(PRECIOS[k])
 }
 
+function acomodarRanuras() {
+  orden
+    .filter((k) => sel[k])
+    .forEach((k, i) => {
+      const [x, y] = ranura(i)
+      document
+        .querySelector(`#mod-${k} [data-pos]`)
+        ?.setAttribute('transform', `translate(${x} ${y})`)
+    })
+}
+
 function aplicar() {
+  acomodarRanuras()
   TODOS.forEach((k) => {
     const btn = document.getElementById(`chip-${k}`)
     if (btn) {
@@ -38,6 +53,7 @@ function aplicar() {
       if (pr) pr.textContent = signo(k)
     }
     document.getElementById(`mod-${k}`)?.classList.toggle('on', sel[k])
+
   })
 
   document.getElementById('unit-gw')?.classList.toggle('on', sel.lora)
@@ -136,6 +152,10 @@ function aplicar() {
 function alternar(clave: ClaveModulo) {
   const encendido = !sel[clave]
   sel[clave] = encendido
+  if (SENSORES.includes(clave as ClaveSensor)) {
+    const s = clave as ClaveSensor
+    orden = encendido ? [...orden.filter((k) => k !== s), s] : orden.filter((k) => k !== s)
+  }
   const monto = precioDe(clave)
   // temp/hum son gratis (GRATIS fijo en el chip): no vale la pena mostrar
   // un delta "+ US$ 0", así que sólo se anima cuando de verdad cambia el

@@ -7,7 +7,7 @@ export const BASE_USD = 79
 export const GATEWAY_USD = 65
 
 export type ClaveSensor = 'temp' | 'hum' | 'co2' | 'suelo' | 'uv' | 'pres'
-export type ClaveEnergia = 'bat' | 'solar' | 'lora' | 'cel'
+export type ClaveEnergia = 'bat' | 'solar' | 'lora'
 export type ClaveModulo = ClaveSensor | ClaveEnergia
 
 export const PRECIOS: Record<ClaveModulo, number> = {
@@ -20,7 +20,6 @@ export const PRECIOS: Record<ClaveModulo, number> = {
   bat: 10,
   solar: 25,
   lora: 35,
-  cel: 30,
 }
 
 export const NOMBRES: Record<ClaveModulo, string> = {
@@ -33,11 +32,10 @@ export const NOMBRES: Record<ClaveModulo, string> = {
   bat: 'batería',
   solar: 'panel solar',
   lora: 'LoRa',
-  cel: 'celular',
 }
 
 export const SENSORES: ClaveSensor[] = ['temp', 'hum', 'co2', 'suelo', 'uv', 'pres']
-export const ENERGIA: ClaveEnergia[] = ['bat', 'solar', 'lora', 'cel']
+export const ENERGIA: ClaveEnergia[] = ['bat', 'solar', 'lora']
 
 /** El precio de tocar un módulo, gateway incluido cuando corresponde (LoRa). */
 export function precioDe(clave: ClaveModulo): number {

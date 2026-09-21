@@ -1,0 +1,17 @@
+---
+import type { Props } from './props'
+import { EXPLOSION } from '../ranuras'
+const [ex, ey] = EXPLOSION.bat
+const { id, activo = false, conEtiqueta = false, x = 122, y = 280 } = Astro.props
+---
+
+<g id={id} class:list={['mod', 'p-bat', { on: activo }]} style={`--ex:${ex}px;--ey:${ey}px`}>
+  <g data-pos transform={`translate(${x} ${y})`}>
+    <rect x="19" width="24" height="8" rx="3" class="plate-fill ln ln-45" stroke-width="1.2"></rect>
+    <rect y="8" width="62" height="108" rx="11" class="plate-fill ln ln-45" stroke-width="1.3"></rect>
+    <rect x="12" y="22" width="38" height="20" rx="4" class="ln ln-22" stroke-width="1.2"></rect>
+    <rect x="12" y="48" width="38" height="20" rx="4" class="ln ln-22" stroke-width="1.2"></rect>
+    <rect x="12" y="74" width="38" height="20" rx="4" class="ln ln-22" stroke-width="1.2"></rect>
+    {conEtiqueta && <text x="0" y="134" class="tag">BATERÍA</text>}
+  </g>
+</g>

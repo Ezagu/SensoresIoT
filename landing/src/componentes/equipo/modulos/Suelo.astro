@@ -1,0 +1,24 @@
+---
+// La única excepción a "los sensores van adentro": la púa se clava en la
+// tierra, así que la celda va en su ranura y la púa cuelga abajo del
+// gabinete, sobre el lado derecho (el cable de alimentación sale por el
+// izquierdo). Son dos grupos posicionados aparte porque la celda se mueve con
+// el orden de selección y la salida del cable no.
+import type { Props } from './props'
+import Icono from '../Icono.astro'
+import { RANURA, ranuraDe, EXPLOSION } from '../ranuras'
+const [rx, ry] = ranuraDe('suelo')
+const [ex, ey] = EXPLOSION.suelo
+const { id, activo = false, x = rx, y = ry } = Astro.props
+---
+
+<g id={id} class:list={['mod', 'p-suelo', { on: activo }]} style={`--ex:${ex}px;--ey:${ey}px`}>
+  <g data-pos transform={`translate(${x} ${y})`}>
+    <rect width={RANURA} height={RANURA} rx="12" class="body-fill ln ln-45" stroke-width="1.2"></rect>
+    <Icono tipo="suelo" x={15} y={15} lado={28} clase="ico-mod" />
+  </g>
+  <g data-pos transform="translate(400 430)">
+    <path d="M0 0c0 22 14 26 20 44" class="ln ln-22" stroke-width="1.2"></path>
+    <path d="M9 44h22l-11 34z" class="body-fill ln ln-45" stroke-width="1.3"></path>
+  </g>
+</g>

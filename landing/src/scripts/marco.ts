@@ -1,35 +1,48 @@
-// Port verbatim de Main.dc.html marco() (~línea 1823). Abajo de 1120px el
-// equipo pasa a ocupar todo el ancho, así que ahí conviene encuadrarlo según
-// lo que tiene puesto; arriba de eso queda el encuadre fijo del desktop.
+// Port de Main.dc.html marco() (~línea 1823). Abajo de 1120px el equipo pasa a
+// ocupar todo el ancho, así que ahí conviene encuadrarlo según lo que tiene
+// puesto; arriba de eso queda el encuadre fijo del desktop.
+//
+// Las cajas de los módulos se miden con getBBox() en vez de estar tabuladas:
+// la tabla a mano se desincronizaba en silencio cada vez que alguien movía una
+// pieza, y el síntoma aparecía sólo en mobile. La única caja literal que queda
+// es la del equipo base (el gabinete y su cable), que no es un módulo.
 import type { ClaveModulo } from '../datos/precios'
+// Misma tabla que alimenta el CSS por custom property; getBBox() no ve el
+// transform del CSS, así que la explosión hay que sumarla acá a mano.
+import { EXPLOSION as EXPL } from '../componentes/equipo/ranuras'
 
 type Seleccion = Record<ClaveModulo, boolean>
+type Caja = [number, number, number, number]
 
-const CAJAS: Record<string, [number, number, number, number]> = {
-  base: [130, 150, 490, 514],
-  solar: [150, 26, 470, 144],
-  lora: [432, 104, 500, 172],
-  cel: [458, 300, 544, 380],
-  bat: [74, 238, 184, 394],
-  pres: [112, 316, 190, 346],
-  uv: [286, 146, 370, 174],
-  temp: [428, 190, 488, 268],
-  hum: [428, 278, 496, 358],
-  co2: [236, 400, 384, 478],
-  suelo: [116, 458, 282, 542],
-}
+const BASE: Caja = [192, 174, 448, 494]
+const GATEWAY: Caja = [556, 158, 776, 476]
 
-const EXPL: Record<string, [number, number]> = {
-  solar: [0, -52],
-  bat: [-56, 0],
-  lora: [40, -32],
-  cel: [50, 14],
-  temp: [64, -20],
-  hum: [64, 26],
-  co2: [0, 54],
-  suelo: [-42, 44],
-  uv: [0, -44],
-  pres: [-54, 0],
+
+/** La etiqueta sólo cuenta cuando se ve; si no, infla la caja más que la pieza. */
+function medir(clave: ClaveModulo, conEtiquetas: boolean): Caja | null {
+  const g = document.getElementById(`mod-${clave}`)
+  if (!g) return null
+
+  let x0 = Infinity
+  let y0 = Infinity
+  let x1 = -Infinity
+  let y1 = -Infinity
+
+  g.querySelectorAll<SVGGraphicsElement>('[data-pos]').forEach((grupo) => {
+    const t = grupo.getAttribute('transform')
+    const [, tx = '0', ty = '0'] = /translate\(\s*(-?[\d.]+)[\s,]+(-?[\d.]+)/.exec(t ?? '') ?? []
+    grupo.querySelectorAll<SVGGraphicsElement>(':scope > *').forEach((el) => {
+      if (!conEtiquetas && el.classList.contains('tag')) return
+      const b = el.getBBox()
+      if (!b.width && !b.height) return
+      x0 = Math.min(x0, b.x + +tx)
+      y0 = Math.min(y0, b.y + +ty)
+      x1 = Math.max(x1, b.x + b.width + +tx)
+      y1 = Math.max(y1, b.y + b.height + +ty)
+    })
+  })
+  if (!Number.isFinite(x0)) return null
+  return [x0, y0, x1, y1]
 }
 
 export function marco(sel: Seleccion, explode: boolean, encuadrar: boolean): string {
@@ -41,7 +54,7 @@ export function marco(sel: Seleccion, explode: boolean, encuadrar: boolean): str
   let x1 = -1e5
   let y1 = -1e5
 
-  const sumar = (c: [number, number, number, number], o: [number, number] | null, corr: boolean) => {
+  const sumar = (c: Caja, o: [number, number] | null, corr: boolean) => {
     const d = corr ? dx : 0
     const ox = o ? o[0] : 0
     const oy = o ? o[1] : 0
@@ -51,11 +64,14 @@ export function marco(sel: Seleccion, explode: boolean, encuadrar: boolean): str
     y1 = Math.max(y1, c[3] + oy)
   }
 
-  sumar(CAJAS.base, null, true)
+  sumar(BASE, null, true)
   Object.keys(EXPL).forEach((k) => {
-    if (sel[k as ClaveModulo]) sumar(CAJAS[k], explode ? EXPL[k] : null, true)
+    const clave = k as ClaveModulo
+    if (!sel[clave]) return
+    const caja = medir(clave, explode)
+    if (caja) sumar(caja, explode ? EXPL[k] : null, true)
   })
-  if (sel.lora) sumar([520, 128, 762, 492], null, false)
+  if (sel.lora) sumar(GATEWAY, null, false)
 
   const q = 40
   x0 = Math.floor((x0 - 20) / q) * q

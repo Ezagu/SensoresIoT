@@ -20,7 +20,7 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo && slideDatos) {
   let carTimer: number | null = null
   let arrastreX: number | null = null
 
-  const PIEZAS = ['temp', 'hum', 'co2', 'suelo', 'uv', 'bat', 'solar', 'lora', 'cel', 'gw'] as const
+  const PIEZAS = ['temp', 'hum', 'co2', 'suelo', 'uv', 'bat', 'solar', 'lora', 'gw'] as const
 
   function aplicar() {
     const amb = AMBIENTES[slide]

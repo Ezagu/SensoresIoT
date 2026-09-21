@@ -1,0 +1,15 @@
+---
+import type { Props } from './props'
+import Icono from '../Icono.astro'
+import { RANURA, ranuraDe, EXPLOSION } from '../ranuras'
+const [rx, ry] = ranuraDe('uv')
+const [ex, ey] = EXPLOSION.uv
+const { id, activo = false, x = rx, y = ry } = Astro.props
+---
+
+<g id={id} class:list={['mod', 'p-uv', { on: activo }]} style={`--ex:${ex}px;--ey:${ey}px`}>
+  <g data-pos transform={`translate(${x} ${y})`}>
+    <rect width={RANURA} height={RANURA} rx="12" class="body-fill ln ln-45" stroke-width="1.2"></rect>
+    <Icono tipo="uv" x={15} y={15} lado={28} clase="ico-mod" />
+  </g>
+</g>

@@ -20,7 +20,6 @@
     .pz-bat { transform: translate(-16px, 0); } .pz-bat.on { transform: none; transition-delay: 80ms; }
     .pz-solar { transform: translate(0, -18px); } .pz-solar.on { transform: none; transition-delay: 190ms; }
     .pz-lora { transform: translate(0, 14px); } .pz-lora.on { transform: none; transition-delay: 250ms; }
-    .pz-cel { transform: translate(12px, 0); } .pz-cel.on { transform: none; transition-delay: 180ms; }
     .pz-gw { transform: translate(34px, 0); } .pz-gw.on { transform: none; transition-delay: 320ms; }
     .pz-gw .enlace-amb { opacity: 0; transition: opacity 600ms var(--ease-out) 560ms; }
     .pz-gw.on .enlace-amb { opacity: 0.45; }
@@ -62,4 +61,4 @@
     .punto { width: 22px; height: 3px; border-radius: 2px; border: 0; padding: 0; background: var(--lp-line); transition: background-color 420ms var(--ease-out), width 420ms var(--ease-out); }
     .punto.on { background: var(--lp-accent); width: 34px; }
     .punto:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
-
+    .rot-amb { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.45; }

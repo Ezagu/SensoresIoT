@@ -1,0 +1,35 @@
+/* El vocabulario del equipo dibujado: lo comparten el hero, el configurador y
+   —las clases de trazo y relleno— el carrusel de ambientes. Vivía en hero.css,
+   que es la sección que se escribió primero. Ver componentes/equipo/. */
+    .device { width: 100%; height: auto; display: block; color: var(--lp-text); }
+    .body-fill { fill: var(--lp-raise); transition: fill 420ms var(--ease-out); }
+    .plate-fill { fill: var(--lp-plate); transition: fill 420ms var(--ease-out); }
+    .ln { stroke: currentColor; fill: none; }
+    .ln-08 { opacity: 0.75; } .ln-45 { opacity: 0.42; } .ln-22 { opacity: 0.2; }
+    .led-halo { animation: breathe 2600ms ease-in-out infinite; }
+    @keyframes breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.08; } }
+
+    /* ── los módulos entran y salen; la vista explotada los separa ── */
+    /* --ex/--ey los pone cada componente desde EXPLOSION (equipo/ranuras.ts),
+       que es también la tabla que lee marco.ts: una sola fuente para los tres. */
+    .mod { opacity: 0; transform: translate(calc(var(--ex, 0px) * 0.25), calc(var(--ey, 0px) * 0.25)); transition: opacity 260ms var(--ease-out), transform 320ms var(--ease-out); }
+    .mod.on { opacity: 1; transform: translate(0, 0); }
+    .exploded .mod.on { transform: translate(var(--ex, 0px), var(--ey, 0px)); }
+    /* el atributo transform mapea a la propiedad CSS, así que reacomodar
+       una ranura se anima sola en vez de teletransportar la celda */
+    .mod [data-pos] { transition: transform 320ms var(--ease-out); }
+
+    /* las ranuras libres: se ven, pero no compiten con las ocupadas */
+    .ranura { fill: none; stroke: currentColor; opacity: 0.09; stroke-dasharray: 4 4; transition: opacity 260ms var(--ease-out); }
+    .exploded .ranura { opacity: 0.2; }
+    .ico-mod { color: var(--lp-accent); opacity: 0.55; }
+
+    .tag { opacity: 0; transition: opacity 220ms var(--ease-out); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; fill: currentColor; }
+    .exploded .mod.on .tag { opacity: 0.55; }
+    .tag-fijo { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.45; }
+
+    /* el equipo principal se corre cuando entra el gateway */
+    .unit-main { transform: translate(110px, 0); transition: transform 380ms var(--ease-out); }
+    .has-gw .unit-main { transform: translate(0, 0); }
+    .unit-gw { opacity: 0; transform: translate(26px, 0); transition: opacity 300ms var(--ease-out), transform 380ms var(--ease-out); }
+    .unit-gw.on { opacity: 1; transform: translate(0, 0); }

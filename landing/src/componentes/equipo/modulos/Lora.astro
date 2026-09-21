@@ -1,0 +1,17 @@
+---
+import type { Props } from './props'
+import { EXPLOSION } from '../ranuras'
+const [ex, ey] = EXPLOSION.lora
+const { id, activo = false, conEtiqueta = false, x = 450, y = 160 } = Astro.props
+---
+
+<g id={id} class:list={['mod', 'p-lora', { on: activo }]} style={`--ex:${ex}px;--ey:${ey}px`}>
+  <g data-pos transform={`translate(${x} ${y})`}>
+    <rect x="12" y="20" width="12" height="196" rx="6" class="body-fill ln ln-45" stroke-width="1.3"></rect>
+    <rect y="210" width="26" height="16" rx="4" class="plate-fill ln ln-45" stroke-width="1.2"></rect>
+    <path d="M30 16a13 13 0 0 1 0 18" class="ln ln-22" stroke-width="1.1"></path>
+    <path d="M36 10a19 19 0 0 1 0 30" class="ln ln-22" stroke-width="1.1"></path>
+    <path d="M42 3a26 26 0 0 1 0 44" class="ln ln-22" stroke-width="1.1"></path>
+    {conEtiqueta && <text x="0" y="244" class="tag">RADIO LORA</text>}
+  </g>
+</g>

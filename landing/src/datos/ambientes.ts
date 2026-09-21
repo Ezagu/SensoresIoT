@@ -58,10 +58,10 @@ export const AMBIENTES: Ambiente[] = [
   },
   {
     nombre: 'Depósito',
-    config: 'Temperatura · Humedad · Celular',
-    alt: 'El equipo configurado para un depósito, con conectividad celular',
+    config: 'Temperatura · Humedad · Batería',
+    alt: 'El equipo configurado para un depósito, con batería para los cortes de luz',
     vista: '450 92 310 300',
-    mods: { temp: 1, hum: 1, cel: 1 },
+    mods: { temp: 1, hum: 1, bat: 1 },
     datos: [
       { v: '21,4', u: '°C', p: '0,11 14,12 28,10 42,12 56,9 70,11 84,10' },
       { v: '48', u: '% HR', p: '0,12 14,10 28,11 42,9 56,11 70,10 84,12' },

@@ -93,7 +93,6 @@
          se van porque los repite la tira de lecturas y acá se pisaban con CELULAR */
       .tag, .tag-fijo { font-size: 16px; letter-spacing: 0.02em; }
       .rot-amb { font-size: 15px; }
-      .p-temp .tag, .p-hum .tag { display: none; }
 
       /* el orden de la mano: equipo, qué estoy eligiendo, los módulos */
       .build-stage { order: 1; }
