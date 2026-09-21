@@ -34,7 +34,7 @@
       .cta-sm { height: 40px; }
       .campo input, .campo textarea { padding: 13px 13px; font-size: 15px; }
       .modo { width: 42px; height: 42px; }
-      .log-pie .cta-sm { height: 44px; }
+      .inf-copy .cta-sm { height: 44px; }
     }
 
     /* ── controles del carrusel: pensados para el dedo.
@@ -118,21 +118,23 @@
       .car-nav { bottom: 8px; }
       .puntos { bottom: 2px; }
 
-      /* ── registro e informe: cinco momentos de una misma historia,
-            cosidos por un hilo, no cinco cards iguales ── */
-      .frag-grid, .reg-grid { gap: 30px; }
-      .frag, .log, .informe { position: relative; }
+      /* ── registro e informe: momentos de una misma historia, cosidos
+            por un hilo, no cards iguales apiladas ── */
+      .reg-grid { gap: 30px; }
+      .log, .informe { position: relative; }
       .hilo { display: block; position: absolute; left: 50%; top: -24px; width: 1px; height: 19px; background: var(--lp-line); }
       .hilo::after { content: ""; position: absolute; left: -2px; bottom: -3px; width: 5px; height: 5px; border-radius: 50%; background: var(--lp-line); }
-      .frag .cap { margin-bottom: 8px; color: var(--lp-dim); }
-      .log { padding: 12px 14px 8px; }
-      .log-row { padding: 10px 0; }
-      .log-h, .log-row { grid-template-columns: 52px 1fr auto; gap: 8px; }
+      .cap { margin-bottom: 10px; color: var(--lp-dim); }
+      .tab-graf, .tab-avisos { padding-inline: 14px; }
+      .log, .informe { padding: 14px; }
+      .log-row.fuera { margin-inline: -14px; padding-inline: 14px; }
+      .log-h, .log-row { grid-template-columns: 48px repeat(3, minmax(0, 1fr)); gap: 8px; }
       .log-pie { padding-top: 14px; gap: 10px; }
-      .log-pie .der { margin-left: 0; width: 100%; justify-content: space-between; }
-      .informe { min-height: 0; padding: 4px 0 8px; }
-      .placa { max-width: 244px; font-size: 12.5px; }
-      .hoja { max-width: 320px; }
+      .log-csv { margin-left: 0; }
+      /* el aviso pasa a dos renglones: la comparación no entra al lado de la hora */
+      .tab-avisos .bt-event { grid-template-columns: 20px minmax(0, 1fr) auto; gap: 5px 14px; }
+      .tab-avisos .bt-event__cmp { grid-column: 2; grid-row: 2; }
+      .tab-avisos .bt-event__when { grid-column: 3; grid-row: 1; align-self: start; }
 
       /* ── preguntas y contacto ── */
       .faq-q { gap: 14px; padding: 17px 0; }
@@ -144,7 +146,15 @@
     @media (max-width: 430px) {
       .hero-actions .cta, .close .actions .cta, .via .acciones .cta { width: 100%; }
       .hero-actions, .close .actions { gap: 10px; }
-      .log-row .est { font-size: 11.5px; gap: 6px; }
+      .log-row { font-size: 13px; }
+      .log-h, .log-row { grid-template-columns: 44px repeat(3, minmax(0, 1fr)); gap: 6px; }
+      /* la fila del equipo entra entera: se aprieta y se va el chevron */
+      .tab-lista .bt-row { gap: 8px; padding-inline: 10px; }
+      .tab-lista .bt-row__readings { gap: 12px; }
+      .tab-lista .bt-row__cell-label { font-size: 10px; }
+      .tab-lista .bt-status__label { font-size: 12px; }
+      .tab-lista .bt-row__chev { display: none; }
+      .tab-equipos .cap, .tab-pie { padding-inline: 10px; }
       .narra { gap: 7px; }
       .sumbar .price .n { font-size: 21px; }
     }

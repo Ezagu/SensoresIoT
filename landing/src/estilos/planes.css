@@ -1,12 +1,5 @@
-/* Port verbatim de Main.dc.html:400-420 (mockup Canvas), sin cambios. */
+/* Base: Main.dc.html:400-420 (mockup Canvas). */
     .soft-sec { padding: clamp(50px, 7vw, 100px) 0; }
-    .frag-grid { margin-top: clamp(24px, 3.5vw, 42px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(14px, 2.2vw, 26px); align-items: stretch; }
-    .frag { display: flex; flex-direction: column; }
-    .frag .frag-box { flex: 1; }
-    @media (max-width: 940px) { .frag-grid { grid-template-columns: 1fr; } }
-    .frag .cap { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); margin-bottom: 10px; }
-    .frag-box { border: 1px solid var(--lp-line-soft); background: var(--lp-surface); border-radius: 12px; padding: 14px; overflow-x: auto; transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
-    .chan { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 12px; color: var(--lp-faint); }
     .fine { margin-top: clamp(20px, 3vw, 32px); font-size: 13px; color: var(--lp-faint); max-width: 70ch; }
 
     .plans { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(14px, 2.4vw, 26px); margin-top: clamp(24px, 3.5vw, 38px); }

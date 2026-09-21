@@ -1,20 +1,23 @@
 ---
-// Redibujo de AlertEvent.jsx.
+// Redibujo de AlertEvent.jsx. Dos formas de aviso, como alerta_eventos:
+// el cruce de umbral trae valor y regla, el corte de conectividad trae
+// cuánto duró el silencio.
 import MarcaEstado from './MarcaEstado.astro'
 
 interface Props {
-  tipo: 'disparada' | 'normalizada'
+  tipo: 'disparada' | 'normalizada' | 'silencio'
   dispositivo: string
-  sensor: string
-  valor: number
-  unidad: string
-  condicion: 'mayor' | 'menor'
-  umbral: number
+  sensor?: string
+  valor?: number
+  unidad?: string
+  condicion?: 'mayor' | 'menor'
+  umbral?: number
+  silencio?: string
   cuando: string
 }
 
-const { tipo, dispositivo, sensor, valor, unidad, condicion, umbral, cuando } = Astro.props
-const estado = tipo === 'disparada' ? 'critical' : 'normal'
+const { tipo, dispositivo, sensor, valor, unidad = '', condicion = 'mayor', umbral, silencio, cuando } = Astro.props
+const estado = tipo === 'normalizada' ? 'normal' : 'critical'
 const fmt = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
 const signo = condicion === 'mayor' ? '>' : '<'
 ---
@@ -22,11 +25,19 @@ const signo = condicion === 'mayor' ? '>' : '<'
 <div class="bt-event">
   <MarcaEstado estado={estado} size={11} />
   <div class="bt-event__what">
-    <span class="bt-event__title">{sensor} {signo} {fmt.format(umbral)} {unidad}</span>
-    <span class="bt-event__where">{dispositivo} · {sensor}{tipo === 'normalizada' && ' · normalizada'}</span>
+    <span class="bt-event__title">
+      {tipo === 'silencio' ? 'Dejó de reportar' : `${sensor} ${signo} ${fmt.format(umbral as number)} ${unidad}`}
+    </span>
+    <span class="bt-event__where">
+      {dispositivo}{tipo === 'silencio' ? '' : ` · ${sensor}`}{tipo === 'normalizada' && ' · normalizada'}
+    </span>
   </div>
   <span class="bt-event__cmp">
-    <b>{fmt.format(valor)} {unidad}</b> {signo} {fmt.format(umbral)} {unidad}
+    {tipo === 'silencio' ? (
+      <>{silencio} sin datos</>
+    ) : (
+      <><b>{fmt.format(valor as number)} {unidad}</b> {signo} {fmt.format(umbral as number)} {unidad}</>
+    )}
   </span>
   <span class="bt-event__when">{cuando}</span>
 </div>

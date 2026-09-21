@@ -1,34 +1,66 @@
-/* Port verbatim de Main.dc.html:423-477 (mockup Canvas), sin cambios. */
-    .narra { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); }
+/* Dos piezas: el tablero (una sola placa, que es la pantalla de la app) y
+   abajo el historial con lo que sale de él. */
+    .reg-head { display: flex; align-items: flex-end; justify-content: space-between; gap: clamp(18px, 4vw, 64px); flex-wrap: wrap; }
+    .reg-head__lado { display: flex; flex-direction: column; gap: 16px; max-width: 48ch; }
+    .narra { display: flex; gap: 10px; flex-wrap: wrap; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); }
     .narra .ahora { color: var(--lp-accent); }
+    .cap { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); margin-bottom: 12px; }
 
-    .reg-grid { margin-top: clamp(20px, 3vw, 34px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(16px, 2.6vw, 34px); align-items: stretch; }
-    @media (max-width: 940px) { .reg-grid { grid-template-columns: 1fr; } }
-    .log { display: flex; flex-direction: column; border: 1px solid var(--lp-line-soft); background: var(--lp-surface); border-radius: 12px; padding: 14px 16px 10px; transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
-    .log-h, .log-row { display: grid; grid-template-columns: 62px 1fr auto; gap: 12px; align-items: center; }
-    .log-h { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lp-faint); padding-bottom: 8px; border-bottom: 1px solid var(--lp-line-soft); }
-    .log-row { padding: 9px 0; border-bottom: 1px solid var(--lp-line-soft); font-size: 13px; }
-    .log-row:last-child { border-bottom: 0; }
+    /* ── el tablero ── */
+    .tablero { margin-top: clamp(26px, 3.6vw, 44px); display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); border: 1px solid var(--lp-line-soft); border-radius: 18px; background: var(--lp-surface); overflow: hidden; transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
+    .tab-equipos { display: flex; flex-direction: column; padding-top: 18px; border-right: 1px solid var(--lp-line-soft); }
+    .tab-equipos .cap { padding-inline: 16px; }
+    /* válvula para los teléfonos más angostos: la fila del equipo tiene un
+       ancho mínimo rígido (pastilla + lecturas) y la placa recorta */
+    .tab-lista { overflow-x: auto; }
+    .tab-lista .bt-row:last-child { border-bottom: 0; }
+    .tab-pie { margin-top: auto; padding: 14px 16px; border-top: 1px solid var(--lp-line-soft); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.07em; color: var(--lp-faint); }
+    .tab-datos { display: flex; flex-direction: column; min-width: 0; }
+    .tab-graf { padding: 18px 20px 6px; }
+    .tab-h { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .tab-h__tit { font-size: 14px; font-weight: 500; color: var(--lp-text); }
+    .tab-h__meta { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); white-space: nowrap; }
+    .tab-avisos { margin-top: auto; padding: 16px 20px 4px; border-top: 1px solid var(--lp-line-soft); }
+    .tab-avisos .bt-event:last-child { border-bottom: 0; }
+
+    /* ── el historial y lo que sale de él ── */
+    .reg-grid { margin-top: clamp(16px, 2.2vw, 26px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: clamp(16px, 2.2vw, 26px); align-items: stretch; }
+    .log, .informe { border: 1px solid var(--lp-line-soft); background: var(--lp-surface); border-radius: 14px; padding: 18px; transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
+
+    .log { display: flex; flex-direction: column; }
+    .log-h, .log-row { display: grid; grid-template-columns: 54px repeat(3, minmax(0, 1fr)); gap: 10px; align-items: center; }
+    .log-h { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); padding-bottom: 10px; border-bottom: 1px solid var(--lp-line-soft); }
+    .log-h span + span { text-align: right; }
+    .log-row { padding: 10px 0; border-bottom: 1px solid var(--lp-line-soft); font-size: 13.5px; }
+    .log-tabla .log-row:last-child { border-bottom: 0; }
     .log-row .hora, .log-row .val { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-weight: 600; }
-    .log-row .hora { color: var(--lp-faint); font-size: 12px; }
-    .log-row .est { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--lp-dim); }
-    .log-row .est::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-ok); flex: none; }
-    .log-row.fuera .val, .log-row.fuera .est { color: var(--lp-warn); }
-    .log-row.fuera .est::before { background: var(--lp-warn-mark); }
-    .log-row.aviso .est { color: var(--lp-warn); }
-    .log-row.aviso .est::before { background: var(--lp-warn-mark); }
-    .log-pie { margin-top: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 12px; }
-    .log-pie .mas { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; color: var(--lp-faint); }
-    .log-pie .der { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-    .sello { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-accent); border: 1px solid var(--lp-accent-line); border-radius: 999px; padding: 3px 8px; }
+    .log-row .val { text-align: right; }
+    .log-row .hora { color: var(--lp-faint); font-size: 12.5px; font-weight: 500; }
+    /* la fila fuera de rango se pinta hasta el borde de la caja: el margen
+       negativo tiene que seguir al padding de .log */
+    .log-row.fuera { margin-inline: -18px; padding-inline: 18px; background: var(--lp-warn-wash); border-color: var(--lp-warn-line); }
+    .log-row.fuera .val-temp { color: var(--lp-warn); }
+    .log-pie { margin-top: auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 14px; border-top: 1px solid var(--lp-line-soft); }
+    .log-pie .mas { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.07em; color: var(--lp-faint); }
+    .log-csv { margin-left: auto; display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px 5px 9px; border: 1px solid var(--lp-line); border-radius: 999px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-dim); white-space: nowrap; }
 
-    .informe { position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; }
-    .placa { width: 100%; max-width: 300px; aspect-ratio: 1 / 1.414; border: 1px dashed var(--lp-line); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--lp-faint); font-size: 12px; text-align: center; padding: 20px; transition: opacity 420ms var(--ease-out); }
-    .progreso { position: absolute; left: 50%; transform: translateX(-50%); bottom: 4px; width: 200px; height: 2px; background: var(--lp-line); border-radius: 2px; overflow: hidden; }
+    .informe { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: clamp(18px, 2.4vw, 32px); align-items: stretch; }
+    .inf-copy { display: flex; flex-direction: column; align-items: flex-start; }
+    .inf-tit { font-size: clamp(17px, 1.5vw, 21px); font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; }
+    .inf-lista { list-style: none; margin: 14px 0 22px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .inf-lista li { display: flex; gap: 10px; align-items: baseline; font-size: 13.5px; line-height: 1.45; color: var(--lp-dim); }
+    .inf-lista li::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--lp-accent); flex: none; transform: translateY(-2px); }
+    /* el botón baja al pie: las dos columnas cierran a la misma altura */
+    .inf-copy .cta { margin-top: auto; }
+    .inf-hoja { position: relative; display: flex; align-items: center; justify-content: center; }
+
+    .placa { width: 100%; aspect-ratio: 1 / 1.414; border: 1px dashed var(--lp-line); border-radius: 6px; background: var(--lp-plate); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: var(--lp-faint); font-size: 12px; line-height: 1.5; text-align: center; padding: 24px; transition: opacity 420ms var(--ease-out), background-color 420ms var(--ease-out); }
+    .placa svg { color: var(--lp-line); }
+    .progreso { position: absolute; left: 50%; transform: translateX(-50%); bottom: 4px; width: 180px; height: 2px; background: var(--lp-line); border-radius: 2px; overflow: hidden; }
     .progreso i { display: block; height: 100%; width: 40%; background: var(--lp-accent); border-radius: 2px; animation: barre 1100ms var(--ease-out) infinite; }
     @keyframes barre { 0% { transform: translateX(-110%); } 100% { transform: translateX(360%); } }
 
-    .hoja { width: 100%; max-width: 300px; aspect-ratio: 1 / 1.414; background: #FDFCF9; color: #14201F; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.14), 0 26px 50px -22px rgba(0,0,0,.45); padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(16px) scale(0.985); transition: opacity 620ms var(--ease-out), transform 720ms var(--ease-out); }
+    .hoja { width: 100%; aspect-ratio: 1 / 1.414; background: #FDFCF9; color: #14201F; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,.14), 0 26px 50px -22px rgba(0,0,0,.45); padding: 20px 18px; display: flex; flex-direction: column; gap: 10px; opacity: 0; transform: translateY(16px) scale(0.985); transition: opacity 620ms var(--ease-out), transform 720ms var(--ease-out); }
     .hoja.listo { opacity: 1; transform: none; }
     .hoja .h-top { display: flex; align-items: center; gap: 7px; padding-bottom: 9px; border-bottom: 1px solid #DED9CD; }
     .hoja .h-tick { width: 2.5px; height: 11px; background: #0A5C6B; }
@@ -53,3 +85,14 @@
     .hoja .h-pie { margin-top: auto; padding-top: 8px; border-top: 1px solid #DED9CD; display: flex; font-size: 6.5px; color: #8A938F; }
     .hoja .h-pie span:last-child { margin-left: auto; }
 
+    /* el tablero se parte antes que el resto: son dos columnas densas */
+    @media (max-width: 1080px) {
+      .tablero { grid-template-columns: 1fr; }
+      .tab-equipos { border-right: 0; border-bottom: 1px solid var(--lp-line-soft); padding-bottom: 2px; }
+      .reg-grid { grid-template-columns: 1fr; }
+      .informe { grid-template-columns: minmax(0, 1fr) 260px; }
+    }
+    @media (max-width: 640px) {
+      .informe { grid-template-columns: 1fr; gap: 22px; }
+      .inf-hoja { max-width: 300px; margin-inline: auto; width: 100%; }
+    }
