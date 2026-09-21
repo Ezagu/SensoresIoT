@@ -36,16 +36,28 @@ export function ranuraDe(clave: ClaveSensor): [number, number] {
   return ranura(RANURAS[clave])
 }
 
+/** Reparte las ranuras de arriba a abajo sin dejar huecos: el orden que llega
+ *  es el que manda (el de elección en el configurador, el del ambiente en el
+ *  carrusel). El prefijo es el de los id de cada módulo en esa pantalla. */
+export function ubicarEnRanuras(prefijo: string, claves: ClaveSensor[]) {
+  claves.forEach((clave, i) => {
+    const [x, y] = ranura(i)
+    document
+      .querySelector(`#${prefijo}-${clave} [data-pos]`)
+      ?.setAttribute('transform', `translate(${x} ${y})`)
+  })
+}
+
 /** La placa: donde converge todo adentro del gabinete. */
 export const PLACA = { x: INTERIOR.x, y: 378, w: INTERIOR.ancho, h: 22 }
 
-// Cuánto se separa cada módulo en la vista explotada. Lo leen el CSS (por
-// custom property, desde el componente) y marco.ts: una tabla, no dos.
+// De dónde entra cada módulo: el CSS lo lee por custom property (desde el
+// componente) y lo usa a un cuarto como desplazamiento de entrada.
 // Los sensores se corren apenas: adentro del gabinete no hay a dónde tirarlos
-// sin pisar el rótulo o la placa, y con el zócalo punteado atrás alcanza.
+// sin pisar el rótulo o la placa.
 const FUERA_DEL_ZOCALO: [number, number] = [-12, 0]
 
-export const EXPLOSION: Record<string, [number, number]> = {
+export const SEPARACION: Record<string, [number, number]> = {
   temp: FUERA_DEL_ZOCALO,
   hum: FUERA_DEL_ZOCALO,
   co2: FUERA_DEL_ZOCALO,

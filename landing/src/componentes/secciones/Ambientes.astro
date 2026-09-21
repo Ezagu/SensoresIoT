@@ -1,8 +1,26 @@
 ---
-// Fuente: Main.dc.html:1158-1324. Los 5 <g class="esc"> (los dibujos de
-// fondo) y las 10 piezas del equipo (pz-*) quedan siempre en el DOM;
-// scripts/ambientes.ts alterna 'on'/'esc on' y reescribe los 3 slots de
-// datos + el viewBox según el ambiente activo y el ancho de pantalla.
+// El equipo es el mismo de siempre (componentes/equipo/, compartido con el
+// hero y el configurador): un ambiente no es otro dibujo, es otra
+// configuración del mismo objeto. Los 5 <g class="esc"> —los lugares de
+// fondo— y los 10 módulos quedan siempre en el DOM; scripts/ambientes.ts
+// alterna 'on' y reescribe el viewBox según el ambiente activo.
+// El equipo trae su propio sistema de coordenadas (0 0 780 600) y entra acá
+// con una sola transform: correrlo dentro de la escena es tocar ese par de
+// números y nada más.
+import Cuerpo from '../equipo/Cuerpo.astro'
+import Gateway from '../equipo/Gateway.astro'
+import Solar from '../equipo/modulos/Solar.astro'
+import Lora from '../equipo/modulos/Lora.astro'
+import Bateria from '../equipo/modulos/Bateria.astro'
+import Presion from '../equipo/modulos/Presion.astro'
+import Uv from '../equipo/modulos/Uv.astro'
+import Temperatura from '../equipo/modulos/Temperatura.astro'
+import Humedad from '../equipo/modulos/Humedad.astro'
+import Co2 from '../equipo/modulos/Co2.astro'
+import Suelo from '../equipo/modulos/Suelo.astro'
+import { AMBIENTES } from '../../datos/ambientes'
+
+const inicial = AMBIENTES[0]
 ---
 
 <section class="band places stage">
@@ -11,156 +29,131 @@
   </div>
 
   <div id="carrusel" class="carrusel">
-    <svg id="ambiente-svg" class="scene-svg" viewBox="0 0 1200 460" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="El equipo configurado para una cámara de frío, con sensores de temperatura y humedad">
-      <line x1="0" y1="360" x2="1200" y2="360" class="ln ln-22" stroke-width="1"></line>
+    <svg id="ambiente-svg" class="scene-svg" viewBox="0 0 1240 500" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={inicial.alt}>
+      <defs>
+        <!-- el lugar se apaga antes de las flechas: sobre ellas queda el
+             cuadro, nunca el dibujo -->
+        <linearGradient id="amb-margen" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1240" y2="0">
+          <stop offset="0.04" stop-color="#000"></stop>
+          <stop offset="0.15" stop-color="#fff"></stop>
+          <stop offset="0.85" stop-color="#fff"></stop>
+          <stop offset="0.96" stop-color="#000"></stop>
+        </linearGradient>
+        <mask id="amb-recorte" maskUnits="userSpaceOnUse" x="0" y="0" width="1240" height="500">
+          <rect width="1240" height="500" fill="url(#amb-margen)"></rect>
+        </mask>
+        <!-- y se apaga otra vez alrededor del equipo, que no tiene el lugar
+             pasándole por atrás. El velo viaja con él, así que vale igual
+             para cualquier configuración -->
+        <radialGradient id="amb-velo">
+          <stop offset="0.5" class="velo-tono"></stop>
+          <stop offset="1" class="velo-tono" stop-opacity="0"></stop>
+        </radialGradient>
+      </defs>
 
-      <!-- cámara de frío: puerta, estantería, cajas -->
-      <g id="esc-0" class="esc on">
-        <rect x="110" y="150" width="152" height="210" rx="4" class="ln ln-22" stroke-width="1.2"></rect>
-        <rect x="124" y="164" width="124" height="182" rx="3" class="ln ln-22" stroke-width="1"></rect>
-        <rect x="230" y="240" width="8" height="34" rx="3" class="ln ln-45" stroke-width="1.2"></rect>
-        <path d="M950 360V190h172v170M950 250h172M950 306h172" class="ln ln-22" stroke-width="1.2"></path>
-        <rect x="966" y="208" width="52" height="40" rx="2" class="ln ln-22" stroke-width="1.1"></rect>
-        <rect x="1034" y="262" width="56" height="42" rx="2" class="ln ln-22" stroke-width="1.1"></rect>
-        <path d="M338 104v28M368 88v28M398 104v28" class="ln ln-22" stroke-width="1.1" stroke-linecap="round"></path>
-      </g>
+      <g class="escenas" mask="url(#amb-recorte)">
+        <line x1="0" y1="438" x2="1240" y2="438" class="ln ln-22" stroke-width="1"></line>
 
-      <!-- invernadero: estructura, plantas -->
-      <g id="esc-1" class="esc">
-        <path d="M92 360V254a152 122 0 0 1 304 0v106" class="ln ln-22" stroke-width="1.2"></path>
-        <path d="M244 132V360M172 170V360M316 170V360" class="ln ln-22" stroke-width="1"></path>
-        <path d="M958 360c0-30 16-46 16-46M974 336c-16-4-22-18-22-18M974 330c14-6 18-20 18-20" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-        <path d="M1044 360c0-24 13-38 13-38M1057 342c-13-4-18-15-18-15" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-      </g>
-
-      <!-- campo: surcos, plantas, sol -->
-      <g id="esc-2" class="esc">
-        <path d="M0 392c200-24 420-32 600-32s400 8 600 32" class="ln ln-22" stroke-width="1.1"></path>
-        <path d="M0 424c200-24 420-32 600-32s400 8 600 32" class="ln ln-22" stroke-width="1"></path>
-        <circle cx="214" cy="112" r="28" class="ln ln-22" stroke-width="1.2"></circle>
-        <path d="M214 62v12M214 150v12M158 112h12M258 112h12" class="ln ln-22" stroke-width="1.1" stroke-linecap="round"></path>
-        <path d="M196 360c0-32 16-50 16-50M212 336c-16-4-22-20-22-20M212 330c15-6 20-22 20-22" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-        <path d="M282 360c0-26 14-42 14-42M296 340c-14-4-19-17-19-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-      </g>
-
-      <!-- depósito: racks, pallets -->
-      <g id="esc-3" class="esc">
-        <path d="M100 360V172h192v188M100 234h192M100 296h192M196 172v188" class="ln ln-22" stroke-width="1.2"></path>
-        <rect x="962" y="298" width="92" height="62" rx="2" class="ln ln-22" stroke-width="1.1"></rect>
-        <rect x="1064" y="320" width="70" height="40" rx="2" class="ln ln-22" stroke-width="1.1"></rect>
-        <path d="M954 368h188" class="ln ln-22" stroke-width="1.2"></path>
-      </g>
-
-      <!-- laboratorio: mesada, matraz, tubo -->
-      <g id="esc-4" class="esc">
-        <path d="M118 318h276M140 318v42M372 318v42" class="ln ln-22" stroke-width="1.2"></path>
-        <path d="M186 316l24-46v-16h12v16l24 46z" class="ln ln-22" stroke-width="1.2"></path>
-        <path d="M204 296h28" class="ln ln-22" stroke-width="1"></path>
-        <rect x="272" y="268" width="16" height="48" rx="8" class="ln ln-22" stroke-width="1.2"></rect>
-        <path d="M264 300h32" class="ln ln-22" stroke-width="1"></path>
-        <rect x="316" y="290" width="28" height="26" rx="2" class="ln ln-22" stroke-width="1.1"></rect>
-        <path d="M990 360v-26h120v26" class="ln ln-22" stroke-width="1.1"></path>
-      </g>
-
-      <!-- el equipo, configurado según el ambiente -->
-      <g id="pz-solar" class="pieza pz-solar on">
-        <rect x="506" y="84" width="188" height="46" rx="5" class="plate-fill ln ln-45" stroke-width="1.2"></rect>
-        <path d="M506 107h188M568 84v46M632 84v46" class="ln ln-22" stroke-width="1"></path>
-        <path d="M560 130v40" class="ln ln-45" stroke-width="1.2"></path>
-      </g>
-      <g id="pz-bat" class="pieza pz-bat">
-        <rect x="462" y="196" width="46" height="72" rx="10" class="plate-fill ln ln-45" stroke-width="1.2"></rect>
-        <path d="M474 216h22M474 232h22M474 248h12" class="ln ln-22" stroke-width="1.1"></path>
-        <path d="M508 216h22M508 246h22" class="ln ln-45" stroke-width="1.2"></path>
-      </g>
-      <g id="pz-uv" class="pieza pz-uv">
-        <path d="M578 170a22 22 0 0 1 44 0" class="plate-fill ln ln-45" stroke-width="1.2"></path>
-        <path d="M588 160a12 12 0 0 1 24 0" class="ln ln-22" stroke-width="1"></path>
-      </g>
-      <g id="pz-lora" class="pieza pz-lora">
-        <path d="M640 170v-70" class="ln ln-45" stroke-width="1.4"></path>
-        <circle cx="640" cy="94" r="5" class="ln ln-08" stroke-width="1.3"></circle>
-        <path d="M628 112h24M632 126h16" class="ln ln-22" stroke-width="1.1"></path>
-      </g>
-
-      <rect x="530" y="170" width="140" height="130" rx="14" class="body-fill ln ln-08" stroke-width="1.6"></rect>
-      <rect x="540" y="180" width="120" height="110" rx="9" class="ln ln-22" stroke-width="1"></rect>
-      <circle cx="542" cy="182" r="2" fill="currentColor" opacity="0.3"></circle>
-      <circle cx="658" cy="182" r="2" fill="currentColor" opacity="0.3"></circle>
-      <circle cx="542" cy="288" r="2" fill="currentColor" opacity="0.3"></circle>
-      <circle cx="658" cy="288" r="2" fill="currentColor" opacity="0.3"></circle>
-      <path d="M552 268h40M552 278h26" class="ln ln-22" stroke-width="1.2" stroke-linecap="round"></path>
-      <text x="552" y="204" style="font-size: 8.5px; letter-spacing: 0.14em; fill: currentColor; opacity: 0.4;">BITÁCORA</text>
-      <circle cx="646" cy="192" r="10" fill="var(--lp-ok)" class="led-halo"></circle>
-      <circle cx="646" cy="192" r="3.6" fill="var(--lp-ok)"></circle>
-
-      <!-- antena wi-fi: siempre -->
-      <g class="antena">
-        <path d="M664 172l38-44" class="ln ln-45" stroke-width="1.3"></path>
-        <circle cx="702" cy="124" r="4.5" class="ln ln-08" stroke-width="1.3"></circle>
-        <path d="M710 114a17 17 0 0 1 9 11" class="ln onda-radio amb-wave" stroke-width="1.3"></path>
-        <path d="M717 102a31 31 0 0 1 17 20" class="ln onda-radio amb-wave w2" stroke-width="1.3"></path>
-      </g>
-
-      <g id="pz-temp" class="pieza pz-temp on">
-        <rect x="678" y="182" width="32" height="42" rx="9" class="body-fill ln ln-45" stroke-width="1.2"></rect>
-        <path d="M687 196h14M687 206h14" class="ln ln-22" stroke-width="1.1"></path>
-      </g>
-      <g id="pz-hum" class="pieza pz-hum on">
-        <rect x="678" y="232" width="32" height="42" rx="9" class="body-fill ln ln-45" stroke-width="1.2"></rect>
-        <circle cx="694" cy="253" r="8" class="ln ln-22" stroke-width="1.1"></circle>
-      </g>
-      <g id="pz-co2" class="pieza pz-co2">
-        <rect x="552" y="312" width="96" height="30" rx="9" class="body-fill ln ln-45" stroke-width="1.2"></rect>
-        <circle cx="574" cy="327" r="8" class="ln ln-45" stroke-width="1.1"></circle>
-        <path d="M592 322h40M592 332h24" class="ln ln-22" stroke-width="1.1"></path>
-      </g>
-      <g id="pz-suelo" class="pieza pz-suelo">
-        <path d="M536 300c-34 12-60 26-64 48" class="ln ln-22" stroke-width="1.2"></path>
-        <path d="M462 352h18l-9 32z" class="body-fill ln ln-45" stroke-width="1.2"></path>
-      </g>
-
-      <!-- gateway LoRa: segundo equipo -->
-      <g id="pz-gw" class="pieza pz-gw">
-        <g class="enlace-amb">
-          <path d="M762 226a34 34 0 0 1 0 48M786 214a52 52 0 0 1 0 72M810 202a70 70 0 0 1 0 96" class="ln ln-45" stroke-width="1.2" stroke-linecap="round"></path>
+        <!-- cámara de frío: puerta aislada, evaporador, estantería -->
+        <g id="esc-0" class="esc on">
+          <rect x="150" y="150" width="208" height="288" rx="6" class="ln ln-22" stroke-width="1.2"></rect>
+          <rect x="168" y="168" width="172" height="252" rx="4" class="ln ln-22" stroke-width="1"></rect>
+          <path d="M168 262h172" class="ln ln-22" stroke-width="1"></path>
+          <rect x="320" y="278" width="10" height="44" rx="5" class="ln ln-45" stroke-width="1.2"></rect>
+          <path d="M150 188h-22M150 400h-22" class="ln ln-22" stroke-width="1.2"></path>
+          <rect x="790" y="96" width="150" height="58" rx="5" class="ln ln-22" stroke-width="1.2"></rect>
+          <path d="M808 110v30M828 110v30M848 110v30M868 110v30M888 110v30M908 110v30M928 110v30" class="ln ln-22" stroke-width="1"></path>
+          <path d="M820 96V70M910 96V70" class="ln ln-22" stroke-width="1"></path>
+          <path d="M970 438V196h196v242M970 274h196M970 356h196" class="ln ln-22" stroke-width="1.2"></path>
+          <rect x="986" y="216" width="64" height="58" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="1074" y="300" width="72" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="986" y="382" width="86" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
         </g>
-        <path d="M984 258v-88" class="ln ln-45" stroke-width="1.4"></path>
-        <circle cx="984" cy="164" r="5" class="ln ln-08" stroke-width="1.3"></circle>
-        <path d="M970 182h28M974 198h20" class="ln ln-45" stroke-width="1.2"></path>
-        <rect x="930" y="258" width="108" height="84" rx="12" class="body-fill ln ln-08" stroke-width="1.5"></rect>
-        <rect x="940" y="268" width="88" height="64" rx="7" class="ln ln-22" stroke-width="1"></rect>
-        <path d="M952 318h30M952 326h18" class="ln ln-22" stroke-width="1.1" stroke-linecap="round"></path>
-        <circle cx="1016" cy="278" r="3.4" fill="var(--lp-accent)"></circle>
-        <path d="M948 342v12M1020 342v12" class="ln ln-45" stroke-width="1.2"></path>
-        <text x="930" y="380" class="rot-amb">GATEWAY LORA</text>
+
+        <!-- invernadero: nave curva, riego colgante, cantero -->
+        <g id="esc-1" class="esc">
+          <path d="M80 438V300a166 132 0 0 1 332 0v138" class="ln ln-22" stroke-width="1.2"></path>
+          <path d="M246 168V438M164 190V438M328 190V438" class="ln ln-22" stroke-width="1"></path>
+          <path d="M80 330h332" class="ln ln-22" stroke-width="1"></path>
+          <path d="M812 120h348" class="ln ln-22" stroke-width="1.2"></path>
+          <path d="M856 120v24M940 120v24M1024 120v24M1108 120v24" class="ln ln-22" stroke-width="1"></path>
+          <circle cx="856" cy="172" r="3.5" class="ln ln-45" stroke-width="1.1"></circle>
+          <circle cx="1024" cy="188" r="3.5" class="ln ln-45" stroke-width="1.1"></circle>
+          <path d="M962 406h188v32H962z" class="ln ln-22" stroke-width="1.1"></path>
+          <path d="M1000 406c0-30 16-46 16-46M1016 382c-16-4-22-18-22-18M1016 376c14-6 18-20 18-20" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          <path d="M1080 406c0-24 13-38 13-38M1093 388c-13-4-18-15-18-15" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          <path d="M1136 406c0-28 15-43 15-43M1151 384c-15-4-21-17-21-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+        </g>
+
+        <!-- campo: sol, surcos que se van al horizonte, alambrado -->
+        <g id="esc-2" class="esc">
+          <path d="M0 384c212-18 442-24 628-24s404 6 612 24" class="ln ln-22" stroke-width="1"></path>
+          <path d="M0 410c212-22 442-30 628-30s404 8 612 30" class="ln ln-22" stroke-width="1.1"></path>
+          <circle cx="1070" cy="104" r="30" class="ln ln-22" stroke-width="1.2"></circle>
+          <path d="M1070 50v14M1070 144v14M1010 104h14M1116 104h14M1028 62l10 10M1102 136l10 10M1112 62l-10 10M1038 136l-10 10" class="ln ln-22" stroke-width="1.1" stroke-linecap="round"></path>
+          <path d="M196 438c0-44 22-68 22-68M218 404c-22-5-30-27-30-27M218 396c21-8 27-30 27-30" class="ln ln-22" stroke-width="1.4" stroke-linecap="round"></path>
+          <path d="M272 438c0-34 17-53 17-53M289 412c-17-4-23-21-23-21M289 406c16-6 21-23 21-23" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          <path d="M330 438c0-26 14-42 14-42M344 418c-14-4-19-17-19-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          <path d="M1000 438v-84M1065 438v-78M1130 438v-72" class="ln ln-22" stroke-width="1.2"></path>
+          <path d="M1000 378c32-2 65-4 130-8M1000 404c32-2 65-4 130-8" class="ln ln-22" stroke-width="1"></path>
+        </g>
+
+        <!-- depósito: cabriadas, racks y pallets -->
+        <g id="esc-3" class="esc">
+          <path d="M600 92h560M600 140h560" class="ln ln-22" stroke-width="1"></path>
+          <path d="M600 140l35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48" class="ln ln-22" stroke-width="1.1"></path>
+          <path d="M92 438V180h248v258M92 258h248M92 348h248M216 180v258" class="ln ln-22" stroke-width="1.2"></path>
+          <rect x="108" y="196" width="88" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="232" y="286" width="92" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="108" y="376" width="88" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="950" y="358" width="120" height="80" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="1084" y="392" width="66" height="46" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <path d="M938 452h212" class="ln ln-22" stroke-width="1.2"></path>
+        </g>
+
+        <!-- laboratorio: mesada con vidrio, estante y campana -->
+        <g id="esc-4" class="esc">
+          <path d="M92 352h300M120 352v86M364 352v86" class="ln ln-22" stroke-width="1.2"></path>
+          <path d="M176 350l26-52v-18h13v18l26 52z" class="ln ln-22" stroke-width="1.2"></path>
+          <path d="M194 328h30" class="ln ln-22" stroke-width="1"></path>
+          <rect x="272" y="296" width="18" height="54" rx="9" class="ln ln-22" stroke-width="1.2"></rect>
+          <path d="M264 332h34" class="ln ln-22" stroke-width="1"></path>
+          <rect x="318" y="320" width="30" height="30" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <path d="M800 152h132" class="ln ln-22" stroke-width="1.2"></path>
+          <rect x="812" y="114" width="22" height="38" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="848" y="124" width="20" height="28" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <rect x="884" y="108" width="24" height="44" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <path d="M940 438V168h210v270M940 250h210" class="ln ln-22" stroke-width="1.2"></path>
+          <path d="M972 210h146" class="ln ln-22" stroke-width="1"></path>
+          <path d="M1045 168v-58M1009 110h72" class="ln ln-22" stroke-width="1.2"></path>
+        </g>
+      </g>
+
+      <!-- el equipo, con los módulos que pide el ambiente -->
+      <g class="amb-equipo" transform="translate(252 -20) scale(0.9)">
+        <g id="amb-outer" class:list={{ 'has-gw': inicial.mods.gw }}>
+          <g class="unit-main">
+            <ellipse class="velo" cx="320" cy="300" rx="250" ry="250" fill="url(#amb-velo)"></ellipse>
+            <Solar id="amb-solar" activo={inicial.mods.solar} />
+            <Lora id="amb-lora" activo={inicial.mods.lora} />
+            <Bateria id="amb-bat" activo={inicial.mods.bat} />
+            <Presion id="amb-pres" activo={inicial.mods.pres} />
+            <Uv id="amb-uv" activo={inicial.mods.uv} />
+            <Cuerpo />
+            <Temperatura id="amb-temp" activo={inicial.mods.temp} />
+            <Humedad id="amb-hum" activo={inicial.mods.hum} />
+            <Co2 id="amb-co2" activo={inicial.mods.co2} />
+            <Suelo id="amb-suelo" activo={inicial.mods.suelo} />
+          </g>
+          <ellipse class="velo velo-gw" cx="666" cy="317" rx="165" ry="190" fill="url(#amb-velo)"></ellipse>
+          <Gateway id="amb-gw" />
+        </g>
       </g>
     </svg>
 
     <div id="slide-info" class="slide-info fd-a">
-      <div id="ambiente-nombre" class="slide-nom">Cámara de frío</div>
-      <div id="ambiente-config" class="slide-cfg">Temperatura · Humedad</div>
-    </div>
-
-    <div id="slide-datos" class="slide-datos fd-a">
-      <div id="dato-0" class="dato">
-        <div class="dv"><b id="dato-0-v">4,2</b><span id="dato-0-u">°C</span></div>
-        <svg viewBox="0 0 84 20" fill="none" preserveAspectRatio="none" aria-hidden="true">
-          <polyline id="dato-0-p" points="0,13 14,11 28,14 42,10 56,13 70,9 84,12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline>
-        </svg>
-      </div>
-      <div id="dato-1" class="dato">
-        <div class="dv"><b id="dato-1-v">87</b><span id="dato-1-u">% HR</span></div>
-        <svg viewBox="0 0 84 20" fill="none" preserveAspectRatio="none" aria-hidden="true">
-          <polyline id="dato-1-p" points="0,9 14,12 28,8 42,11 56,7 70,10 84,9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline>
-        </svg>
-      </div>
-      <div id="dato-2" class="dato" hidden>
-        <div class="dv"><b id="dato-2-v"></b><span id="dato-2-u"></span></div>
-        <svg viewBox="0 0 84 20" fill="none" preserveAspectRatio="none" aria-hidden="true">
-          <polyline id="dato-2-p" points="" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline>
-        </svg>
-      </div>
+      <div id="ambiente-nombre" class="slide-nom">{inicial.nombre}</div>
+      <div id="ambiente-config" class="slide-cfg">{inicial.config}</div>
     </div>
 
     <button type="button" id="car-prev" class="car-nav prev" aria-label="Ambiente anterior">
@@ -170,12 +163,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
     </button>
 
+    <!-- el activo cuenta el tiempo que le queda; los demás son sólo un punto -->
     <div id="puntos" class="puntos">
-      <button type="button" class="punto on" data-i="0" aria-label="Cámara de frío"></button>
-      <button type="button" class="punto" data-i="1" aria-label="Invernadero"></button>
-      <button type="button" class="punto" data-i="2" aria-label="Campo"></button>
-      <button type="button" class="punto" data-i="3" aria-label="Depósito"></button>
-      <button type="button" class="punto" data-i="4" aria-label="Laboratorio"></button>
+      {AMBIENTES.map((amb, i) => (
+        <button type="button" class:list={['punto', { on: i === 0 }]} data-i={i} aria-label={amb.nombre}>
+          <span class="punto-barra"></span>
+        </button>
+      ))}
     </div>
   </div>
 </section>

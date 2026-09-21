@@ -18,4 +18,4 @@ export const VELOCIDAD_MS = {
   transicion: 1500,
 } as const
 
-export const CARRUSEL_SEGUNDOS = 7
+export const CARRUSEL_SEGUNDOS = 4

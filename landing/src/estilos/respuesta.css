@@ -20,13 +20,11 @@
       .cta-solid:hover { background: var(--lp-accent); }
       .cta-line:hover { border-color: var(--lp-line); }
       .car-nav:hover, .modo:hover, .top-link:hover { color: var(--lp-dim); border-color: var(--lp-line); }
-      .stage-top .ex:hover { color: var(--lp-dim); border-color: var(--lp-line); }
-      .stage-top .ex.on:hover { color: var(--lp-accent); border-color: var(--lp-accent-line); }
     }
 
     /* ── tablet: el equipo arriba, los dos rieles abajo ── */
     @media (max-width: 1120px) {
-      .build-stage .stage-frame svg { max-height: 58vh; }
+      .build-stage .stage-frame .device { max-height: 58vh; }
       .hero-grid { align-items: center; }
     }
 
@@ -36,7 +34,6 @@
       .cta-sm { height: 40px; }
       .campo input, .campo textarea { padding: 13px 13px; font-size: 15px; }
       .modo { width: 42px; height: 42px; }
-      .stage-top .ex { min-height: 44px; padding: 0 16px; }
       .log-pie .cta-sm { height: 44px; }
     }
 
@@ -82,18 +79,11 @@
       .build-grid { display: flex; flex-direction: column; align-items: stretch; gap: 22px; margin-top: 20px; }
       .build-stage { position: sticky; top: 60px; z-index: 8; background: var(--lp-alt); padding-bottom: 10px; margin-left: calc(-1 * var(--gut)); margin-right: calc(-1 * var(--gut)); padding-left: var(--gut); padding-right: var(--gut); box-shadow: 0 14px 18px -16px var(--lp-bg); }
       .stage-frame { border-radius: 14px; padding: 10px 12px 12px; }
-      .stage-frame svg { width: 100%; height: min(40vh, 330px); }
+      .stage-frame .device { height: min(40vh, 330px); }
       .stage-top { margin-bottom: 2px; }
-      .stage-top .ex { padding: 10px 14px; font-size: 12px; }
-      /* las lecturas quedan en una tira: no crecen el bloque fijo */
-      .mide { gap: 6px; min-height: 0; flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; scrollbar-width: none; -ms-overflow-style: none; }
-      .mide::-webkit-scrollbar { display: none; }
-      .mide .m { padding: 6px 11px; flex: none; }
-      .mide .vacio { flex: none; }
-      /* los rótulos del despiece tienen que leerse a este tamaño; los de °C y % HR
-         se van porque los repite la tira de lecturas y acá se pisaban con CELULAR */
-      .tag, .tag-fijo { font-size: 16px; letter-spacing: 0.02em; }
-      .rot-amb { font-size: 15px; }
+      /* el rótulo del gateway tiene que leerse a este tamaño. Sólo acá: el
+         carrusel recorta el equipo y ahí el mismo rótulo ya llega grande */
+      .stage-frame .tag-fijo { font-size: 16px; letter-spacing: 0.02em; }
 
       /* el orden de la mano: equipo, qué estoy eligiendo, los módulos */
       .build-stage { order: 1; }
@@ -120,15 +110,11 @@
       .sumbar .list { grid-column: 1; grid-row: 1; font-size: 12.5px; line-height: 1.4; max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sumbar .price { grid-column: 2; grid-row: 1; margin-left: 0; align-items: baseline; justify-content: flex-end; gap: 8px; }
       .sumbar .price .n { font-size: 23px; }
-      .sumbar .price .r { display: none; }
       .sumbar .cta { grid-column: 1 / -1; grid-row: 2; width: 100%; height: 46px; }
       .flow { margin-top: 26px; gap: 8px; }
 
-      /* ── ambientes: el equipo ocupa el cuadro, los datos en tres columnas ── */
+      /* ── ambientes: el equipo ocupa el cuadro ── */
       .carrusel { padding-bottom: 60px; }
-      .slide-datos { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding: 10px 18px 0; }
-      .dato { min-width: 0; padding: 8px 9px; }
-      .dato .dv b { font-size: 17px; }
       .car-nav { bottom: 8px; }
       .puntos { bottom: 2px; }
 
@@ -173,12 +159,12 @@
     /* pantallas bajas y anchas: el equipo fijo no se puede comer la pantalla */
     @media (max-width: 720px) and (max-height: 620px) {
       .build-stage { position: static; margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; box-shadow: none; }
-      .stage-frame svg { height: 46vh; }
+      .stage-frame .device { height: 46vh; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .rise, .mod, .trace-alert, .alerta-card, .esc, .pieza, .mide .m, .watch-read .big, .unit-main, .unit-gw, .delta, .sw-a, .sw-b, .fd-a, .fd-b, .punto { transition: none !important; animation: none !important; }
-      .amb-wave { animation: none !important; opacity: 0.35; }
+      .rise, .mod, .trace-alert, .alerta-card, .esc, .aviso, .watch-read .big, .unit-main, .unit-gw, .delta, .sw-a, .sw-b, .fd-a, .fd-b, .punto { transition: none !important; animation: none !important; }
+      .punto-barra { animation: none !important; }
       .led-halo { animation: none; opacity: 0.2; }
       .hero-dev .dot, .hero-dev .onda-radio { animation: none !important; }
       .hero-dev.det-alerta .nucleo-alerta { animation: none !important; opacity: 0.45; }

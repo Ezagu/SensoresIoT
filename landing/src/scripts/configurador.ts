@@ -2,94 +2,57 @@
 // el tramo "configurador" de renderVals() (~línea 2121). `client:load`
 // equivalente: los chips están sobre el fold en mobile, un IO ahí dejaría
 // un tap sin respuesta.
-import { BASE_USD, GATEWAY_USD, NOMBRES, PRECIOS, SENSORES, ENERGIA, precioDe, type ClaveModulo, type ClaveSensor } from '../datos/precios'
+import { SENSORES, ENERGIA, type ClaveModulo, type ClaveSensor } from '../datos/precios'
+import { INICIALES, TODOS, avisoDe, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../datos/equipo'
 import { dinero } from '../utiles/formato'
-import { marco } from './marco'
-import { ranura } from '../componentes/equipo/ranuras'
-import { observarMedia } from './medios'
+import { encuadrar } from './marco'
+import { quieto } from './medios'
+import { ubicarEnRanuras } from '../componentes/equipo/ranuras'
 
-const TODOS: ClaveModulo[] = [...SENSORES, ...ENERGIA]
-const CON_PRECIO_VISIBLE: ClaveModulo[] = ['co2', 'suelo', 'uv', 'pres', 'bat', 'solar', 'lora']
-
-const sel: Record<ClaveModulo, boolean> = {
-  temp: false, hum: false, co2: false, suelo: false, uv: false, pres: false,
-  bat: false, solar: false, lora: false,
-}
+const sel = seleccionInicial()
 /** Orden de elección: es lo que decide en qué ranura cae cada sensor. */
-let orden: ClaveSensor[] = []
-let explode = false
+let orden: ClaveSensor[] = INICIALES.filter((k): k is ClaveSensor => SENSORES.includes(k as ClaveSensor))
 let riel: 'sensores' | 'energia' = 'sensores'
+let barra = false
 let delta = 0
 let deltaId = 0
-let medio = false
-let barra = false
 let deltaTimer: number | null = null
 
-function signo(k: ClaveModulo): string {
-  return (sel[k] ? '− ' : '+ ') + dinero(PRECIOS[k])
+/** Cambiar un texto de lugar en el resumen es un cambio de estado: se ve. */
+function escribir(el: HTMLElement | null, valor: string) {
+  if (!el || el.textContent === valor) return
+  el.textContent = valor
+  if (quieto) return
+  el.animate?.(
+    [{ opacity: 0, transform: 'translateY(3px)' }, { opacity: 1, transform: 'none' }],
+    { duration: 260, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' },
+  )
 }
 
-function acomodarRanuras() {
-  orden
-    .filter((k) => sel[k])
-    .forEach((k, i) => {
-      const [x, y] = ranura(i)
-      document
-        .querySelector(`#mod-${k} [data-pos]`)
-        ?.setAttribute('transform', `translate(${x} ${y})`)
-    })
-}
-
-function aplicar() {
-  acomodarRanuras()
+function aplicar(animar = true) {
+  ubicarEnRanuras('mod', orden.filter((k) => sel[k]))
   TODOS.forEach((k) => {
     const btn = document.getElementById(`chip-${k}`)
     if (btn) {
       btn.classList.toggle('on', sel[k])
       btn.setAttribute('aria-pressed', String(sel[k]))
     }
-    if (CON_PRECIO_VISIBLE.includes(k)) {
-      const pr = document.getElementById(`pr-${k}`)
-      if (pr) pr.textContent = signo(k)
-    }
     document.getElementById(`mod-${k}`)?.classList.toggle('on', sel[k])
-
   })
 
-  document.getElementById('unit-gw')?.classList.toggle('on', sel.lora)
-  document.getElementById('equipo-outer')?.classList.toggle('has-gw', sel.lora)
-  const gwEstado = document.getElementById('gw-estado')
-  if (gwEstado) gwEstado.textContent = sel.lora ? 'entra con LoRa' : 'sólo con LoRa'
-  const chipGw = document.getElementById('chip-gw') as HTMLElement | null
-  if (chipGw) chipGw.style.opacity = sel.lora ? '1' : '0.45'
+  document.getElementById('unit-gw')?.classList.toggle('on', sel.gw)
+  document.getElementById('equipo-outer')?.classList.toggle('has-gw', sel.gw)
 
   const svg = document.getElementById('equipo-svg')
   if (svg) {
-    svg.setAttribute('class', explode ? 'device exploded' : 'device')
-    svg.setAttribute('viewBox', marco(sel, explode, medio))
+    encuadrar(svg, sel, animar)
     svg.setAttribute(
       'aria-label',
-      sel.lora
+      sel.gw
         ? 'Tu equipo con los módulos elegidos y el gateway LoRa como segundo equipo'
         : 'Tu equipo con los módulos elegidos',
     )
   }
-  const btnExplode = document.getElementById('btn-explode')
-  if (btnExplode) {
-    btnExplode.classList.toggle('on', explode)
-    btnExplode.setAttribute('aria-pressed', String(explode))
-  }
-
-  let hayLecturas = false
-  SENSORES.forEach((k) => {
-    const el = document.getElementById(`m-${k}`)
-    if (el) {
-      el.hidden = !sel[k]
-      if (sel[k]) hayLecturas = true
-    }
-  })
-  const vacio = document.getElementById('m-vacio')
-  if (vacio) vacio.hidden = hayLecturas
 
   const nSens = SENSORES.filter((k) => sel[k]).length
   const nEner = ENERGIA.filter((k) => sel[k]).length
@@ -107,37 +70,23 @@ function aplicar() {
   document.getElementById('rail-sensores')?.classList.toggle('oculto', !enSensores)
   document.getElementById('rail-energia')?.classList.toggle('oculto', enSensores)
 
-  const cuantos = nSens + nEner
-  const equipoId = document.getElementById('equipo-id')
-  if (equipoId) {
-    equipoId.textContent = cuantos ? `B—01 · ${cuantos}${cuantos === 1 ? ' módulo' : ' módulos'}` : 'B—01 · equipo base'
+  escribir(document.getElementById('equipo-id'), rotuloDe(sel))
+
+  const aviso = avisoDe(sel)
+  const avisoEl = document.getElementById('aviso-enlace')
+  if (avisoEl) {
+    if (aviso) avisoEl.textContent = aviso
+    avisoEl.hidden = !aviso
   }
 
-  let total = BASE_USD
-  const puestos: string[] = []
-  TODOS.forEach((k) => {
-    if (sel[k]) {
-      total += PRECIOS[k]
-      puestos.push(NOMBRES[k])
-    }
-  })
-  if (sel.lora) {
-    total += GATEWAY_USD
-    puestos.push('gateway LoRa')
-  }
-
-  const resumenTexto = cuantos ? `Equipo base + ${puestos.join(', ')}` : 'Equipo base, todavía sin módulos'
-  const totalTexto = dinero(total)
-  const resumenEl = document.getElementById('resumen-texto')
-  if (resumenEl) resumenEl.textContent = resumenTexto
-  const totalEl = document.getElementById('total')
-  if (totalEl) totalEl.textContent = totalTexto
+  const resumenTexto = resumenDe(sel)
+  const totalTexto = dinero(totalDe(sel))
+  escribir(document.getElementById('resumen-texto'), resumenTexto)
+  escribir(document.getElementById('total'), totalTexto)
   // La sección de cierre repite el mismo resumen (Main.dc.html reusa
   // resumenTexto/total ahí también).
-  const resumenCierre = document.getElementById('resumen-texto-cierre')
-  if (resumenCierre) resumenCierre.textContent = resumenTexto
-  const totalCierre = document.getElementById('total-cierre')
-  if (totalCierre) totalCierre.textContent = totalTexto
+  escribir(document.getElementById('resumen-texto-cierre'), resumenTexto)
+  escribir(document.getElementById('total-cierre'), totalTexto)
 
   document.getElementById('sumbar')?.classList.toggle('a-la-vista', barra)
 
@@ -150,20 +99,23 @@ function aplicar() {
 }
 
 function alternar(clave: ClaveModulo) {
+  const antes = totalDe(sel)
   const encendido = !sel[clave]
   sel[clave] = encendido
+  // El módulo LoRa no sirve sin un gateway que lo escuche: entran y salen
+  // juntos. Quitar el gateway a mano queda permitido (avisoDe lo explica).
+  if (clave === 'lora') sel.gw = encendido
   if (SENSORES.includes(clave as ClaveSensor)) {
     const s = clave as ClaveSensor
     orden = encendido ? [...orden.filter((k) => k !== s), s] : orden.filter((k) => k !== s)
   }
-  const monto = precioDe(clave)
-  // temp/hum son gratis (GRATIS fijo en el chip): no vale la pena mostrar
-  // un delta "+ US$ 0", así que sólo se anima cuando de verdad cambia el
-  // total — refinamiento directo del fix del bug precioDe()/P desunificados.
+  // temp/hum son gratis: un delta "+ US$ 0" no dice nada, así que sólo se
+  // anima cuando de verdad cambia el total.
+  const monto = totalDe(sel) - antes
   if (monto !== 0) {
     const id = deltaId + 1
     deltaId = id
-    delta = encendido ? monto : -monto
+    delta = monto
     if (deltaTimer) clearTimeout(deltaTimer)
     deltaTimer = window.setTimeout(() => {
       if (deltaId === id) {
@@ -179,22 +131,12 @@ TODOS.forEach((k) => {
   document.getElementById(`chip-${k}`)?.addEventListener('click', () => alternar(k))
 })
 
-document.getElementById('btn-explode')?.addEventListener('click', () => {
-  explode = !explode
-  aplicar()
-})
-
 document.getElementById('seg-sensores')?.addEventListener('click', () => {
   riel = 'sensores'
   aplicar()
 })
 document.getElementById('seg-energia')?.addEventListener('click', () => {
   riel = 'energia'
-  aplicar()
-})
-
-observarMedia('(max-width: 1120px)', (coincide) => {
-  medio = coincide
   aplicar()
 })
 
@@ -214,4 +156,5 @@ if (equipo && 'IntersectionObserver' in window) {
   barra = true
 }
 
-aplicar()
+// el primer encuadre no se anima: el SSR trae el lienzo entero, no un estado
+aplicar(false)

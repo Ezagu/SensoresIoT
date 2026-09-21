@@ -1,9 +1,11 @@
-// Fuente: Main.dc.html — irA()/programarCarrusel()/alBajar/alSoltar
-// (~línea 1634) y el tramo "ambientes" de renderVals() (~línea 2190).
-// `client:visible` para el autoplay (no tiene sentido animar un carrusel
-// fuera de pantalla), `client:load` para los controles.
+// El carrusel de ambientes: prende el lugar de fondo, le pone al equipo los
+// módulos de ese ambiente y reacomoda las ranuras. El equipo es el mismo
+// componente del configurador, así que acá no se dibuja nada: se prende.
 import { AMBIENTES } from '../datos/ambientes'
 import { CARRUSEL_SEGUNDOS } from '../datos/config'
+import { TODOS } from '../datos/equipo'
+import { SENSORES } from '../datos/precios'
+import { ubicarEnRanuras } from '../componentes/equipo/ranuras'
 import { observarMedia, quieto } from './medios'
 
 const svg = document.getElementById('ambiente-svg')
@@ -11,16 +13,18 @@ const carrusel = document.getElementById('carrusel')
 const infoNombre = document.getElementById('ambiente-nombre')
 const infoConfig = document.getElementById('ambiente-config')
 const slideInfo = document.getElementById('slide-info')
-const slideDatos = document.getElementById('slide-datos')
 
-if (svg && carrusel && infoNombre && infoConfig && slideInfo && slideDatos) {
+if (svg && carrusel && infoNombre && infoConfig && slideInfo) {
   let slide = 0
   let nav = 0
   let compacto = false
   let carTimer: number | null = null
+  let cuenta: Animation | null = null
   let arrastreX: number | null = null
+  // Mover el carrusel a mano es tomar el control: no se lo devolvemos solo.
+  let automatico = true
 
-  const PIEZAS = ['temp', 'hum', 'co2', 'suelo', 'uv', 'bat', 'solar', 'lora', 'gw'] as const
+  const puntos = Array.from(document.querySelectorAll<HTMLButtonElement>('#puntos .punto'))
 
   function aplicar() {
     const amb = AMBIENTES[slide]
@@ -28,44 +32,50 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo && slideDatos) {
     AMBIENTES.forEach((_, i) => {
       document.getElementById(`esc-${i}`)?.classList.toggle('on', i === slide)
     })
-    PIEZAS.forEach((k) => {
-      document.getElementById(`pz-${k}`)?.classList.toggle('on', Boolean(amb.mods[k as keyof typeof amb.mods]))
-    })
 
-    svg!.setAttribute('viewBox', compacto ? amb.vista : '0 0 1200 460')
+    ubicarEnRanuras('amb', SENSORES.filter((k) => amb.mods[k]))
+    TODOS.forEach((k) => {
+      document.getElementById(`amb-${k}`)?.classList.toggle('on', Boolean(amb.mods[k]))
+    })
+    document.getElementById('amb-outer')?.classList.toggle('has-gw', Boolean(amb.mods.gw))
+
+    svg!.setAttribute('viewBox', compacto ? amb.vista : '0 0 1240 500')
     svg!.setAttribute('aria-label', amb.alt)
 
-    const fd = nav % 2 === 0 ? 'fd-a' : 'fd-b'
-    slideInfo!.setAttribute('class', `slide-info ${fd}`)
-    slideDatos!.setAttribute('class', `slide-datos ${fd}`)
+    slideInfo!.setAttribute('class', `slide-info ${nav % 2 === 0 ? 'fd-a' : 'fd-b'}`)
     infoNombre!.textContent = amb.nombre
     infoConfig!.textContent = amb.config
 
-    for (let i = 0; i < 3; i++) {
-      const cont = document.getElementById(`dato-${i}`)
-      const dato = amb.datos[i]
-      if (!cont) continue
-      cont.hidden = !dato
-      if (dato) {
-        document.getElementById(`dato-${i}-v`)!.textContent = dato.v
-        document.getElementById(`dato-${i}-u`)!.textContent = dato.u
-        document.getElementById(`dato-${i}-p`)!.setAttribute('points', dato.p)
-      }
-    }
+    puntos.forEach((btn, i) => btn.classList.toggle('on', i === slide))
+  }
 
-    document.querySelectorAll<HTMLButtonElement>('#puntos .punto').forEach((btn, i) => {
-      btn.classList.toggle('on', i === slide)
-    })
+  /** La barra del punto activo es el tiempo que falta, así que se dibuja con
+   *  la misma espera que está corriendo. Cancelada, el CSS la deja llena. */
+  function contar(ms: number) {
+    const barra = puntos[slide]?.querySelector('.punto-barra')
+    cuenta = barra?.animate?.(
+      [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }],
+      { duration: ms, easing: 'linear', fill: 'forwards' },
+    ) ?? null
+  }
+
+  function detener() {
+    if (carTimer) clearTimeout(carTimer)
+    carTimer = null
+    cuenta?.cancel()
+    cuenta = null
   }
 
   function programarCarrusel() {
-    if (carTimer) clearTimeout(carTimer)
-    if (quieto) return
+    detener()
+    if (!automatico || quieto) return
     const espera = Math.max(2000, Math.round(CARRUSEL_SEGUNDOS * 1000))
     carTimer = window.setTimeout(() => irA(slide + 1), espera)
+    contar(espera)
   }
 
-  function irA(i: number) {
+  function irA(i: number, aMano = false) {
+    if (aMano) automatico = false
     const total = AMBIENTES.length
     slide = ((i % total) + total) % total
     nav++
@@ -73,21 +83,20 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo && slideDatos) {
     programarCarrusel()
   }
 
-  document.getElementById('car-prev')?.addEventListener('click', () => irA(slide - 1))
-  document.getElementById('car-next')?.addEventListener('click', () => irA(slide + 1))
-  document.querySelectorAll<HTMLButtonElement>('#puntos .punto').forEach((btn) => {
-    btn.addEventListener('click', () => irA(Number(btn.dataset.i)))
+  document.getElementById('car-prev')?.addEventListener('click', () => irA(slide - 1, true))
+  document.getElementById('car-next')?.addEventListener('click', () => irA(slide + 1, true))
+  puntos.forEach((btn) => {
+    btn.addEventListener('click', () => irA(Number(btn.dataset.i), true))
   })
 
   carrusel.addEventListener('pointerdown', (e) => {
     arrastreX = e.clientX
-    if (carTimer) clearTimeout(carTimer)
+    detener()
   })
   carrusel.addEventListener('pointerup', (e) => {
-    const x = e.clientX
-    const d = arrastreX !== null ? x - arrastreX : 0
+    const d = arrastreX !== null ? e.clientX - arrastreX : 0
     arrastreX = null
-    if (Math.abs(d) > 40) irA(d < 0 ? slide + 1 : slide - 1)
+    if (Math.abs(d) > 40) irA(d < 0 ? slide + 1 : slide - 1, true)
     else programarCarrusel()
   })
   carrusel.addEventListener('pointerleave', () => {
@@ -106,7 +115,7 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo && slideDatos) {
     const io = new IntersectionObserver((entradas) => {
       entradas.forEach((e) => {
         if (e.isIntersecting) programarCarrusel()
-        else if (carTimer) clearTimeout(carTimer)
+        else detener()
       })
     })
     io.observe(carrusel)
