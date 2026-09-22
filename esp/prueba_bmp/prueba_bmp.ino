@@ -8,8 +8,10 @@
 #include <esp_task_wdt.h>
 #include <esp_sleep.h>
 #include <algorithm>
+#include <Adafruit_BMP085.h>
 
 // Global
+Adafruit_BMP085 bmp;
 Preferences prefs;
 
 // Pines
@@ -44,20 +46,24 @@ const uint32_t MS_SUENO_MINIMO = 1000;
 const char* API_BASE = "http://192.168.1.4:8000";
 
 // Dispositivo
-const char* DISPOSITIVO_ID             = "5e97ef75-0c52-49de-a4c7-457a4320db0e"; //REEMPLAZAR
-const char* SECRET_DISPOSITIVO_INICIAL = "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a"; //REEMPLAZAR
+const char* DISPOSITIVO_ID             = "6e4eb952-cdb1-4507-9194-329ccbdafa1b"; // Dispositivo BMP
+const char* SECRET_DISPOSITIVO_INICIAL = "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372";
 
 RTC_DATA_ATTR bool rotacionPendiente = false;
 String      secretActual;
 
 // Sensores
-enum SensorIdx {SENSOR_TEMP, SENSOR_HUM, CANT_SENSORES};
-const char* SENSOR_IDS[CANT_SENSORES] = { // REEMPLAZAR
-  "e06eebf0-20ae-41fc-b3d8-59c405d60984",
-  "85907302-7ee1-4011-9224-0886c733c534"
+enum SensorIdx {SENSOR_TEMP, SENSOR_PRESS, CANT_SENSORES};
+const char* SENSOR_IDS[CANT_SENSORES] = {
+  "3b5f7025-82f9-4a17-9338-25ad05cad3e2",  // temperatura
+  "a019e751-5d54-4262-b6b6-0c33dfafd40c"   // presión
 };
 
 bool lecturaNueva[CANT_SENSORES] = {false};
+
+// Lecturas que el sensor no entregó o que salieron fuera del rango del datasheet.
+// En RTC memory: contarlas por ciclo no dice nada, lo que interesa es la tendencia.
+RTC_DATA_ATTR uint32_t lecturasFallidas = 0;
 
 // Alertas
 struct Umbral {
@@ -131,15 +137,19 @@ void setup() {
   ciclosDesdeEnvio++;
   ciclosDesdeContacto++;
 
-  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu\n",
+  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu | fallidas %lu\n",
                 arranqueFrio ? "FRÍO" : "timer",
                 ciclosDesdeEnvio, intervaloEnvioSeg / intervaloMuestreoSeg,
-                anclaEpoch ? "sí" : "NO", bufCantidad, (unsigned long) ahoraLocal());
+                anclaEpoch ? "sí" : "NO", bufCantidad, (unsigned long) ahoraLocal(),
+                (unsigned long) lecturasFallidas);
 
-  inicializarSensores();
-
-  if (arranqueFrio) primarVentana();
-  else              leerSensores();
+  // Sin sensor no tiene sentido gastar los ~30 ms de conversión en leer basura que
+  // enRango() va a descartar igual. El ciclo sigue: el heartbeat mueve last_seen_at
+  // sin mover last_data_at, que es justo la diferencia entre "vivo" y "midiendo".
+  if (inicializarSensores()) {
+    if (arranqueFrio) primarVentana();
+    else              leerSensores();
+  }
 
   bool hayAlerta = chequearUmbrales();
 
@@ -448,117 +458,76 @@ ResultadoWifi conectarWifi(bool permitirPortal) {
 
 //---------SENSORES----------------
 
-const uint8_t  DIR_AHT10   = 0x38;
-const uint8_t  AHT10_BUSY  = 0x80;
-const uint8_t  AHT10_CAL   = 0x08;
-const uint16_t MS_CONVERSION_AHT10 = 80;   // datasheet: ~75 ms
+const float   BMP085_TEMP_MIN   =  -40.0;
+const float   BMP085_TEMP_MAX   =   85.0;
+const float   BMP085_PRES_MIN   =  300.0;
+const float   BMP085_PRES_MAX   = 1100.0;
+const uint8_t BMP085_REINTENTOS = 3;
 
 bool inicializarSensores() {
   Wire.begin(PIN_SDA, PIN_SCL);
-  return inicializarAHT10();
+  return inicializarBMP085();
 }
 
 bool leerSensores() {
   // Instanciar funciones que lean los sensores instalados (AHT10, BMP, etc)
-  return leerAHT10();
+  return leerBMP085();
 }
 
-// El sensor nunca se apaga: cuelga de 3V3 y el que duerme es el ESP32. Mientras
-// conserve la calibración no hay nada que inicializar, así que el reset y la carga
-// de coeficientes salen sólo cuando el bit se cayó (primer arranque o corte de
-// alimentación). Reinicializarlo por ciclo eran 4320 resets por día al pedo.
-bool inicializarAHT10() {
-  int estado = statusAHT10();
-  if (estado >= 0 && (estado & AHT10_CAL)) return true;
-
-  Serial.printf("[AHT10] Sin calibrar (status %d), inicializando.\n", estado);
-
-  resetAHT10();
-  delay(20);
-
-  if (!comandoAHT10(0xE1, 0x08, 0x00)) {
-    Serial.println("[ERROR] AHT10 no contesta. Verifica las conexiones.");
+// A diferencia del AHT10, acá el begin() por despertar NO se puede evitar: no
+// resetea nada, lee los 11 coeficientes de calibración del sensor a la RAM de la
+// librería, y esa RAM la borra el deep sleep en cada ciclo. Además verifica el
+// chip id, así que su false significa de verdad "el sensor no está contestando".
+bool inicializarBMP085() {
+  if (!bmp.begin(BMP085_ULTRAHIGHRES, &Wire)) {
+    Serial.println("[ERROR] BMP085 no detectado. Verifica las conexiones.");
     return false;
   }
-  delay(20);
-
-  estado = statusAHT10();
-  if (estado < 0 || !(estado & AHT10_CAL)) {
-    Serial.printf("[ERROR] AHT10 no calibró (status %d).\n", estado);
-    return false;
-  }
-
-  Serial.println("[AHT10] Inicializado.");
   return true;
 }
 
-// La lectura va a mano y no por Adafruit_AHT10 por dos motivos: la librería
-// construye su I2C adentro de begin(), que es lo que obligaba a reinicializar en
-// cada despertar, y su getEvent() devuelve true aunque la trama venga vacía.
-// El status llega en el mismo frame, así que BUSY y CALIBRATED salen sin un
-// request extra.
-bool leerAHT10() {
-  if (!comandoAHT10(0xAC, 0x33, 0x00)) {
-    Serial.println("[ERROR] AHT10 no aceptó el disparo de medición.");
-    return false;
+bool leerBMP085() {
+  float temperaturaValue = NAN;
+  float presionValue     = NAN;
+
+  // La librería no reporta el error de I2C: devuelve lo que haya en el bus. Lo
+  // único verificable es que el número caiga donde el sensor puede medir.
+  for (uint8_t intento = 0; intento < BMP085_REINTENTOS; intento++) {
+    temperaturaValue = bmp.readTemperature();       // °C
+    presionValue     = bmp.readPressure() / 100.0;  // hPa
+
+    if (enRango(temperaturaValue, BMP085_TEMP_MIN, BMP085_TEMP_MAX) &&
+        enRango(presionValue, BMP085_PRES_MIN, BMP085_PRES_MAX)) {
+      break;
+    }
+    delay(50);
   }
 
-  delay(MS_CONVERSION_AHT10);
+  Serial.printf("[BMP085] Temp: %.2f °C | Presión: %.2f hPa\n", temperaturaValue, presionValue);
 
-  uint8_t d[6];
-  if (!leerBytesAHT10(d, 6)) {
-    Serial.println("[ERROR] Lectura fallida del sensor AHT10.");
-    return false;
+  bool ok = true;
+
+  if (enRango(temperaturaValue, BMP085_TEMP_MIN, BMP085_TEMP_MAX)) {
+    registrarMuestra(SENSOR_TEMP, temperaturaValue);
+  } else {
+    lecturasFallidas++;
+    ok = false;
+    Serial.println("[ERROR] Temperatura fuera del rango del sensor. Se descarta.");
   }
 
-  if (d[0] & AHT10_BUSY) {
-    Serial.println("[ERROR] AHT10 sigue convirtiendo, la trama no sirve.");
-    return false;
+  if (enRango(presionValue, BMP085_PRES_MIN, BMP085_PRES_MAX)) {
+    registrarMuestra(SENSOR_PRESS, presionValue);
+  } else {
+    lecturasFallidas++;
+    ok = false;
+    Serial.println("[ERROR] Presión fuera del rango del sensor. Se descarta.");
   }
 
-  if (!(d[0] & AHT10_CAL)) {
-    Serial.println("[ERROR] AHT10 perdió la calibración, el valor no significa nada.");
-    return false;
-  }
-
-  uint32_t crudoH = ((uint32_t) d[1] << 12) | ((uint32_t) d[2] << 4) | (d[3] >> 4);
-  uint32_t crudoT = ((uint32_t) (d[3] & 0x0F) << 16) | ((uint32_t) d[4] << 8) | d[5];
-
-  float humedadValue     = (float) crudoH * 100 / 0x100000;
-  float temperaturaValue = (float) crudoT * 200 / 0x100000 - 50;
-
-  Serial.printf("[AHT10] Temp: %.2f °C | Hum: %.2f %%\n", temperaturaValue, humedadValue);
-
-  registrarMuestra(SENSOR_TEMP, temperaturaValue);
-  registrarMuestra(SENSOR_HUM, humedadValue);
-
-  return true;
+  return ok;
 }
 
-bool resetAHT10() {
-  Wire.beginTransmission(DIR_AHT10);
-  Wire.write(0xBA);
-  return Wire.endTransmission() == 0;
-}
-
-bool comandoAHT10(uint8_t a, uint8_t b, uint8_t c) {
-  Wire.beginTransmission(DIR_AHT10);
-  Wire.write(a);
-  Wire.write(b);
-  Wire.write(c);
-  return Wire.endTransmission() == 0;
-}
-
-// -1 = no contestó, para no confundirlo con un 0xFF real.
-int statusAHT10() {
-  uint8_t b;
-  return leerBytesAHT10(&b, 1) ? b : -1;
-}
-
-bool leerBytesAHT10(uint8_t* destino, uint8_t cantidad) {
-  if (Wire.requestFrom(DIR_AHT10, cantidad) != cantidad) return false;
-  for (uint8_t i = 0; i < cantidad; i++) destino[i] = Wire.read();
-  return true;
+bool enRango(float valor, float minimo, float maximo) {
+  return !isnan(valor) && valor >= minimo && valor <= maximo;
 }
 
 //-----------UMBRALES--------------
@@ -646,6 +615,15 @@ bool chequearUmbrales() {
 void cargarSecret() {
   prefs.begin("dispositivo", false);
   secretActual = prefs.getString("secret", "");
+
+  // Una placa de banco se reflashea de un pedido a otro y la NVS sobrevive al
+  // flasheo: sin esto quedaría mandando el secret del equipo anterior contra el
+  // X-Dispositivo-Id nuevo, o sea 401 para siempre y sin ninguna pista de por qué.
+  if (prefs.getString("disp_id", "") != String(DISPOSITIVO_ID)) {
+    Serial.println("[NVS] La NVS es de otro dispositivo, se resiembra el secret.");
+    secretActual = "";
+    prefs.putString("disp_id", String(DISPOSITIVO_ID));
+  }
 
   if (secretActual.length() == 0) {
     secretActual = String(SECRET_DISPOSITIVO_INICIAL);
