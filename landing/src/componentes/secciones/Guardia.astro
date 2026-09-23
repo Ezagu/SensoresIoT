@@ -1,4 +1,5 @@
 ---
+// Prólogo de Registro.astro, que lo monta dentro de su banda.
 // El avance lo manda el scroll: la sección ocupa un tramo alto (.watch-pista)
 // y el contenido queda fijo adentro mientras se recorre. El trazo entero está
 // en el DOM y se revela con un clip cuyo ancho es la posición del scroll.
@@ -11,12 +12,12 @@ const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFr
 const inicial = valorEn(DIBUJADO_INICIAL)
 ---
 
-<section id="guardia" class="band watch stage">
+<section id="guardia" class="watch stage">
   <div id="watch-pista" class="watch-pista">
     <div class="watch-fijo">
       <h2 id="watch-titulo" class="say">Casi siempre, no pasa nada.</h2>
 
-      <div>
+      <div class="watch-graf" style={`--y-umbral: ${((Y_UMBRAL / VISTA.alto) * 100).toFixed(2)}%`}>
         <svg class="watch-svg" viewBox={`0 0 ${VISTA.ancho} ${VISTA.alto}`} preserveAspectRatio="none" fill="none" aria-hidden="true">
           <defs>
             <clipPath id="watch-revela" clipPathUnits="userSpaceOnUse">
@@ -32,7 +33,7 @@ const inicial = valorEn(DIBUJADO_INICIAL)
           <line id="watch-guia" class="guia" x1="0" y1="0" x2="0" y2={VISTA.alto}></line>
           <ellipse id="watch-cabeza" class="cabeza" cx="0" cy="0" rx="5" ry="5"></ellipse>
         </svg>
-        <div class="limit-row"><span class="micro" style="color: var(--lp-warn);">umbral {fmt.format(UMBRAL)} °C</span></div>
+        <span class="micro watch-umbral">umbral {fmt.format(UMBRAL)} °C</span>
       </div>
 
       <div class="watch-cols">

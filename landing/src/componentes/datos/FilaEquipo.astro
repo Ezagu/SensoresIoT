@@ -38,9 +38,9 @@ const fmtEntero = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, max
       {alertas > 0 && <span class="bt-badge bt-badge--critical bt-badge--count">{alertas}</span>}
     </span>
     <span class="bt-row__meta">
-      <span>{ubicacion}</span>
-      <span class="bt-row__sep">·</span>
-      <span>{ultimaVez}</span>
+      <span class="bt-row__where">{ubicacion}</span>
+      <span class="bt-row__sep" aria-hidden="true">·</span>
+      <span class="bt-row__when">{ultimaVez}</span>
     </span>
   </span>
   <span class="bt-row__readings">

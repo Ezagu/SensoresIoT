@@ -7,15 +7,18 @@
     .via p { font-size: 14px; line-height: 1.6; color: var(--lp-dim); max-width: 40ch; }
     .via .acciones { margin-top: auto; padding-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; }
     .campo { display: flex; flex-direction: column; gap: 6px; }
-    .campo label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); }
+    .campo label { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); }
     .campo input, .campo textarea { width: 100%; background: color-mix(in srgb, var(--lp-bg) 55%, transparent); border: 1px solid var(--lp-line); border-radius: 8px; padding: 11px 13px; font-family: var(--font-sans); font-size: 14px; color: var(--lp-text); transition: border-color 160ms var(--ease-out); }
     .campo textarea { resize: vertical; min-height: 78px; }
-    .campo input:focus, .campo textarea:focus { outline: none; border-color: var(--lp-accent-line); box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .campo input:focus, .campo textarea:focus { border-color: var(--lp-accent-line); box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     .gracias { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--lp-accent); padding: 10px 0; }
     .gracias .tilde { width: 18px; height: 18px; flex: none; }
 
     /* el remate ocupa la pantalla entera: nada del pie asoma hasta que se lo busca */
-    .close { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; padding: clamp(60px, 9vw, 130px) 0; text-align: center; }
+    .close { container-type: inline-size; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; padding: clamp(60px, 9vw, 130px) 0; text-align: center; }
+    /* En dos columnas el titular del hero mide contra media grilla y este
+       contra la sección entera: con el mismo 12cqi el remate le ganaba. */
+    @media (min-width: 941px) { .close .display { font-size: clamp(34px, 5.2cqi, 76px); } }
     .close .actions { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .foot { border-top: 1px solid var(--lp-line-soft); padding: 24px 0 32px; }
     .foot-in { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--lp-faint); }

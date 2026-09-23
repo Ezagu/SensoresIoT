@@ -104,6 +104,16 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo) {
     programarCarrusel()
   })
 
+  // El avance se frena mientras lo estás mirando: con el puntero encima o con
+  // el foco adentro. En táctil no aplica (ahí frena el pointerdown).
+  if (matchMedia('(hover: hover)').matches) {
+    carrusel.addEventListener('pointerenter', detener)
+  }
+  carrusel.addEventListener('focusin', detener)
+  carrusel.addEventListener('focusout', () => {
+    if (!carrusel.matches(':focus-within')) programarCarrusel()
+  })
+
   observarMedia('(max-width: 720px)', (coincide) => {
     compacto = coincide
     aplicar()

@@ -24,7 +24,7 @@
 .faq-q::-webkit-details-marker { display: none; }
 .faq-q::marker { content: ""; }
 .faq-q:hover { color: var(--lp-accent); }
-.faq-q:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+.faq-q:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
 .faq-item[open] .faq-q { color: var(--lp-accent); }
 .faq-signo { margin-left: auto; flex: none; width: 14px; height: 14px; position: relative; }
 .faq-signo::before, .faq-signo::after { content: ""; position: absolute; background: currentColor; transition: transform 300ms var(--ease-out), opacity 300ms var(--ease-out); }

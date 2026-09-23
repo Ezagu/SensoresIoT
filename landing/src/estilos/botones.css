@@ -5,6 +5,6 @@
     /* background explícito: en un <button> el fondo del navegador tapaba el texto */
     .cta-line { background: transparent; border-color: var(--lp-line); color: var(--lp-text); }
     .cta-line:hover { border-color: var(--lp-accent-line); }
-    .cta:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .cta:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     .cta-sm { height: 36px; padding: 0 16px; font-size: 14px; }
 

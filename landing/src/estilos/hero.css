@@ -9,7 +9,7 @@
     .hero { min-height: calc(100dvh - 60px); display: flex; flex-direction: column; justify-content: center; padding: clamp(40px, 7vw, 86px) 0 clamp(36px, 5vw, 64px); }
     .hero-grid { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); gap: clamp(20px, 4vw, 52px); align-items: center; }
     @media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; gap: 28px; } }
-    .hero-copy { display: flex; flex-direction: column; gap: 26px; }
+    .hero-copy { container-type: inline-size; display: flex; flex-direction: column; gap: 26px; }
     .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
     /* ── la entrada del equipo ── */

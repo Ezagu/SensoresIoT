@@ -1,12 +1,18 @@
 // La animación es el scroll: no hay timers ni "Ver otra vez". El avance sale
 // de cuánto se recorrió .watch-pista, y de ahí salen el ancho del clip que
 // revela el trazo, la posición de la cabeza y el valor que se lee.
-import { DIBUJADO_INICIAL, UMBRAL, VISTA, valorEn, yDe } from '../datos/guardia'
+import { AVANCE_CRUCE, AVANCE_FIN_CALMA, DIBUJADO_INICIAL, UMBRAL, VISTA, valorEn, yDe } from '../datos/guardia'
 
-// Los dos extremos del recorrido son aire: el trazo arranca cuando la sección
-// ya está encuadrada y la alerta se queda un rato antes de que se vaya.
-const ENTRADA = 0.1
-const SALIDA = 0.85
+// Recorrido fijado (0..1) → avance del trazo. Lineal, la calma plana se comía
+// el 61% del recorrido y la alerta quedaba en el último cuarto: acá la calma
+// se cruza en un 25% y la alerta se sostiene el 40% final, que es lo que se
+// tiene que alcanzar a leer.
+const TRAMOS: [number, number][] = [
+  [0.05, DIBUJADO_INICIAL],
+  [0.3, AVANCE_FIN_CALMA],
+  [0.6, AVANCE_CRUCE],
+  [0.7, 1],
+]
 const RADIO = 5
 
 const seccion = document.getElementById('guardia')
@@ -15,13 +21,12 @@ const svg = document.querySelector<SVGSVGElement>('.watch-svg')
 const clip = document.getElementById('watch-clip')
 const cabeza = document.getElementById('watch-cabeza')
 const guia = document.getElementById('watch-guia')
-const titulo = document.getElementById('watch-titulo')
 const valor = document.getElementById('watch-valor')
 const nota = document.getElementById('watch-nota')
 const pillNormal = document.getElementById('pastilla-normal')
 const pillCritical = document.getElementById('pastilla-critical')
 
-if (seccion && pista && svg && clip && cabeza && guia && titulo && valor && nota && pillNormal && pillCritical) {
+if (seccion && pista && svg && clip && cabeza && guia && valor && nota && pillNormal && pillCritical) {
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
   const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   const recortar = (n: number) => Math.min(1, Math.max(0, n))
@@ -35,8 +40,19 @@ if (seccion && pista && svg && clip && cabeza && guia && titulo && valor && nota
     cabeza!.setAttribute('ry', String((RADIO * VISTA.alto) / caja.height))
   }
 
-  function pintar(recorrido: number) {
-    const avance = DIBUJADO_INICIAL + recorrido * (1 - DIBUJADO_INICIAL)
+  function avanceDe(t: number): number {
+    if (t <= TRAMOS[0][0]) return TRAMOS[0][1]
+    for (let i = 1; i < TRAMOS.length; i++) {
+      const [t1, a1] = TRAMOS[i]
+      if (t <= t1) {
+        const [t0, a0] = TRAMOS[i - 1]
+        return a0 + ((t - t0) / (t1 - t0)) * (a1 - a0)
+      }
+    }
+    return 1
+  }
+
+  function pintar(avance: number) {
     const v = valorEn(avance)
     const x = avance * VISTA.ancho
     const y = yDe(v)
@@ -50,7 +66,6 @@ if (seccion && pista && svg && clip && cabeza && guia && titulo && valor && nota
     guia!.setAttribute('y1', String(y))
 
     seccion!.classList.toggle('is-alerta', enAlerta)
-    titulo!.textContent = enAlerta ? 'Cuando pasa algo, te enterás.' : 'Casi siempre, no pasa nada.'
     valor!.textContent = fmt.format(v)
     nota!.textContent = enAlerta
       ? 'Cruzó el umbral que definiste y salió el aviso. No tuviste que estar mirando.'
@@ -63,7 +78,7 @@ if (seccion && pista && svg && clip && cabeza && guia && titulo && valor && nota
     const caja = pista!.getBoundingClientRect()
     const recorrido = caja.height - window.innerHeight
     if (recorrido <= 0) return 1
-    return recortar((recortar(-caja.top / recorrido) - ENTRADA) / (SALIDA - ENTRADA))
+    return avanceDe(recortar(-caja.top / recorrido))
   }
 
   if (quieto) {

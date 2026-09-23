@@ -5,23 +5,23 @@ html[data-theme="dark"] .modo .ico-sol { display: none; }
 html[data-theme="light"] .modo .ico-luna { display: none; }
     .top { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--lp-bg) 88%, transparent); border-bottom: 1px solid var(--lp-line-soft); backdrop-filter: blur(8px); transition: background-color 420ms var(--ease-out); }
     .top-in { max-width: 1240px; margin: 0 auto; height: 60px; padding: 0 var(--gut); display: flex; align-items: center; gap: 18px; }
-    .mark { display: flex; align-items: center; gap: 9px; color: var(--lp-text); }
+    .mark { display: flex; align-items: center; gap: 9px; min-height: 44px; color: var(--lp-text); }
     .mark .name { font-weight: 600; font-size: 16px; letter-spacing: 0.15em; }
     .mark .tick { width: 3px; height: 14px; background: var(--lp-accent); display: inline-block; }
-    .mark .sub { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-faint); }
+    .mark .sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-faint); }
     @media (max-width: 620px) { .mark .sub { display: none; } }
     .top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-    .top-link { font-size: 13px; color: var(--lp-dim); }
+    .top-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--lp-dim); }
     .top-link:hover { color: var(--lp-text); }
     @media (max-width: 720px) { .top-link { display: none; } }
 
     /* menú de mano: el mismo índice, en formato pulgar */
-    .menu-btn { display: none; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--lp-line); background: transparent; padding: 0; align-items: center; justify-content: center; flex-direction: column; gap: 5px; color: var(--lp-dim); }
+    .menu-btn { display: none; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--lp-line); background: transparent; padding: 0; align-items: center; justify-content: center; flex-direction: column; gap: 5px; color: var(--lp-dim); }
     .menu-btn .bar { display: block; width: 16px; height: 1.5px; background: currentColor; transition: transform 260ms var(--ease-out), opacity 200ms var(--ease-out); }
     .menu-btn[aria-expanded="true"] { color: var(--lp-text); border-color: var(--lp-accent-line); }
     .menu-btn[aria-expanded="true"] .bar:first-child { transform: translateY(3.2px) rotate(45deg); }
     .menu-btn[aria-expanded="true"] .bar:last-child { transform: translateY(-3.2px) rotate(-45deg); }
-    .menu-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .menu-btn:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     /* grid-template-rows en vez de max-height (animar layout es lento y es
        exactamente lo que @utility colapso de frontend/src/index.css evita
        con el mismo truco 0fr->1fr; ver también estilos/preguntas.css). */
@@ -34,6 +34,6 @@ html[data-theme="light"] .modo .ico-luna { display: none; }
     .menu-panel a:last-child { border-bottom: 0; color: var(--lp-accent); }
     .modo { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--lp-line); background: transparent; color: var(--lp-dim); transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
     .modo:hover { color: var(--lp-text); border-color: var(--lp-accent-line); }
-    .modo:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .modo:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     .modo svg { width: 17px; height: 17px; }
 

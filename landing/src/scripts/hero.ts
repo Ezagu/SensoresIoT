@@ -143,9 +143,29 @@ if (svg && ledHalo && ledDot && estadoCard && estadoTitulo && estadoSub && estad
     aviso = false
     aplicar()
     emitir()
-    verEn(vuelo, 'normal') // hasta que no aterricen, mandan los rojos del ciclo anterior
+    verEn(vuelo, 'normal') // hasta que no aterricen, mandan los del ciclo anterior
 
     t += CICLO_HERO_MS.normal
+    const inicioAlerta = t
+    luego(inicioAlerta, () => {
+      fase = 'alerta'
+      aplicar() // el destello en la placa es el equipo detectando, no el aviso
+    })
+    verEn(inicioAlerta + vuelo, 'alerta')
+    luego(inicioAlerta + vuelo + CICLO_HERO_MS.retardoAviso, () => {
+      aviso = true
+      aplicar()
+    })
+
+    t += CICLO_HERO_MS.alerta
+    const finAlerta = t
+    luego(finAlerta, () => {
+      fase = 'normal'
+      aplicar() // la placa deja de destellar; la tarjeta sigue roja hasta que aterrice el verde
+    })
+    verEn(finAlerta + vuelo, 'normal')
+
+    t += CICLO_HERO_MS.calma
     const inicioEspera = t
     // el corte se declara recién cuando aterriza el último envío: la emisión
     // para una duración de vuelo antes, así ninguno se apaga a mitad de camino
@@ -184,22 +204,9 @@ if (svg && ledHalo && ledDot && estadoCard && estadoTitulo && estadoSub && estad
     luego(finDescarga, () => {
       fase = 'normal'
     })
-    verEn(finDescarga + vueloRapido, 'normal') // lo último del buffer todavía viaja rápido
-
-    t += CICLO_HERO_MS.calma
-    const inicioAlerta = t
-    luego(inicioAlerta, () => {
-      fase = 'alerta'
-      aplicar() // el destello en la placa es el equipo detectando, no el aviso
-    })
-    verEn(inicioAlerta + vuelo, 'alerta')
-    luego(inicioAlerta + vuelo + CICLO_HERO_MS.retardoAviso, () => {
-      aviso = true
-      aplicar()
-    })
-
-    t += CICLO_HERO_MS.alerta
-    luego(t, cicloHero)
+    // lo último del buffer todavía viaja rápido: se reinicia cuando aterriza
+    verEn(finDescarga + vueloRapido, 'normal')
+    luego(finDescarga + vueloRapido, cicloHero)
   }
 
   if (quieto) {

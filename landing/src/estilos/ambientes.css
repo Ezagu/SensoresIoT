@@ -8,17 +8,17 @@
     .esc { opacity: 0; transform: scale(1.025); transform-origin: 620px 250px; transition: opacity 900ms var(--ease-out), transform 1200ms var(--ease-out); }
     .esc.on { opacity: 0.62; transform: none; }
     /* el ambiente queda por detrás del equipo: líneas más tenues */
-    .esc .ln-22 { stroke-opacity: 0.14; }
-    .esc .ln-45 { stroke-opacity: 0.3; }
+    .esc .ln-22 { stroke-opacity: 0.32; }
+    .esc .ln-45 { stroke-opacity: 0.55; }
     .escenas > line.ln { opacity: 0.12; }
     /* el velo tapa el lugar justo detrás del equipo; el del gateway sólo
        cuando está puesto, y se desvanece con él */
     .velo-tono { stop-color: var(--lp-panel); }
     .velo-gw { opacity: 0; transition: opacity 300ms var(--ease-out); }
     .has-gw .velo-gw { opacity: 1; }
-    .slide-info { position: absolute; left: clamp(18px, 3vw, 34px); top: clamp(18px, 3vw, 32px); max-width: 15ch; }
+    .slide-info { position: absolute; left: clamp(18px, 3vw, 34px); top: clamp(18px, 3vw, 32px); max-width: 17rem; }
     .slide-nom { font-size: clamp(22px, 2.4vw, 30px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; }
-    .slide-cfg { margin-top: 8px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lp-faint); line-height: 1.7; }
+    .slide-cfg { margin-top: 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lp-faint); line-height: 1.7; }
     .fd-a { animation: entraA 700ms var(--ease-out); }
     .fd-b { animation: entraB 700ms var(--ease-out); }
     @keyframes entraA { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
@@ -31,18 +31,21 @@
       .slide-info { position: static; max-width: none; padding: 18px 18px 2px; }
     }
 
-    .car-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--lp-line); background: color-mix(in srgb, var(--lp-bg) 70%, transparent); color: var(--lp-dim); display: inline-flex; align-items: center; justify-content: center; transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
+    .car-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 999px; border: 1px solid var(--lp-line); background: color-mix(in srgb, var(--lp-bg) 70%, transparent); color: var(--lp-dim); display: inline-flex; align-items: center; justify-content: center; transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
     .car-nav:hover { color: var(--lp-text); border-color: var(--lp-accent-line); }
-    .car-nav:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .car-nav:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     .car-nav.prev { left: clamp(10px, 1.6vw, 18px); }
     .car-nav.next { right: clamp(10px, 1.6vw, 18px); }
     .car-nav svg { width: 16px; height: 16px; }
     @media (max-width: 820px) { .car-nav { top: auto; bottom: 14px; transform: none; } }
-    .puntos { position: absolute; left: 50%; transform: translateX(-50%); bottom: 16px; display: flex; align-items: center; gap: 9px; }
-    .punto { width: 7px; height: 7px; border: 0; padding: 0; border-radius: 999px; background: var(--lp-line); overflow: hidden; transition: width 420ms var(--ease-out); }
-    .punto.on { width: 38px; }
-    .punto:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .puntos { position: absolute; left: 50%; transform: translateX(-50%); bottom: 4px; display: flex; align-items: center; gap: 0; }
+    /* El toque crece con padding y la marca es la content-box. El radio va en
+       elipse (radio − padding = 3,5 en los dos ejes): con 999px el clamp lo
+       dejaba menor que el padding vertical y la marca salía cuadrada. */
+    .punto { width: 25px; height: 32px; border: 0; padding: 12.5px 9px; border-radius: 12.5px / 16px; background: var(--lp-line); background-clip: content-box; overflow: hidden; transition: width 420ms var(--ease-out); }
+    .punto.on { width: 56px; }
+    .punto:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     /* la barra la corre scripts/ambientes.ts con la espera que está contando;
        sin cuenta (avance a mano, motion reducido) queda llena */
-    .punto-barra { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--lp-accent); transform-origin: left; transform: scaleX(0); }
+    .punto-barra { display: block; width: 100%; height: 100%; border-radius: 999px; background: var(--lp-accent); transform-origin: left; transform: scaleX(0); }
     .punto.on .punto-barra { transform: scaleX(1); }

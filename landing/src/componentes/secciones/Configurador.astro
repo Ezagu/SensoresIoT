@@ -18,6 +18,7 @@ import Humedad from '../equipo/modulos/Humedad.astro'
 import Co2 from '../equipo/modulos/Co2.astro'
 import Suelo from '../equipo/modulos/Suelo.astro'
 import { BASE_USD, PRECIOS } from '../../datos/precios'
+import { AMBIENTES } from '../../datos/ambientes'
 import { avisoDe, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../../datos/equipo'
 import { dinero } from '../../utiles/formato'
 
@@ -29,6 +30,12 @@ const aviso = avisoDe(sel)
   <section id="equipo" class="build stage">
     <div class="build-head">
       <h2 class="say">Armá el equipo<br>que necesitás.</h2>
+      <div class="presets" role="group" aria-labelledby="presets-rotulo">
+        <span id="presets-rotulo" class="presets-rotulo">Empezá desde</span>
+        {AMBIENTES.map((amb, i) => (
+          <button type="button" class="preset" data-preset={i} aria-pressed="false">{amb.nombre}</button>
+        ))}
+      </div>
     </div>
 
     <div class="build-grid">
@@ -94,15 +101,15 @@ const aviso = avisoDe(sel)
         </div>
 
         <p id="aviso-enlace" class="aviso" role="status" hidden={!aviso}>{aviso}</p>
-      </div>
 
-      <div class="segm" role="group" aria-label="Qué módulos ver">
-        <button type="button" id="seg-sensores" class="on" aria-pressed="true">
-          <span>Sensores</span><span id="cuenta-sensores" class="cuenta"></span>
-        </button>
-        <button type="button" id="seg-energia" aria-pressed="false">
-          <span>Energía y enlace</span><span id="cuenta-energia" class="cuenta"></span>
-        </button>
+        <div class="segm" role="group" aria-label="Qué módulos ver">
+          <button type="button" id="seg-sensores" class="on" aria-pressed="true">
+            <span>Sensores</span><span id="cuenta-sensores" class="cuenta"></span>
+          </button>
+          <button type="button" id="seg-energia" aria-pressed="false">
+            <span>Energía y enlace</span><span id="cuenta-energia" class="cuenta"></span>
+          </button>
+        </div>
       </div>
 
       <div id="rail-energia" class="rail rail-energia oculto">

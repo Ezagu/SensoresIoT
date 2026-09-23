@@ -27,6 +27,15 @@ if (boton && panel) {
     if ((e.target as HTMLElement).closest('a')) cerrar()
   })
 
+  // Escape cierra y devuelve el foco al botón: sin esto el teclado queda
+  // adentro del panel sin salida declarada.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && boton.getAttribute('aria-expanded') === 'true') {
+      cerrar()
+      boton.focus()
+    }
+  })
+
   // Al pasar a desktop el menú de mano no debe quedar abierto ni inert=false
   const mq = matchMedia('(max-width: 720px)')
   const alCambiar = (e: MediaQueryListEvent | MediaQueryList) => {

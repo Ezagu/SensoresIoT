@@ -1,12 +1,12 @@
-// Fuente: Main.dc.html, defaults de data-props (línea 1562). Duración de
-// cada fase del ciclo del hero, en milisegundos, y velocidades de la
-// animación de la cola de transmisión.
+// Duración de cada fase del ciclo del hero, en milisegundos y en el orden en
+// que corren: la alerta va segunda porque es lo que el equipo promete, y el
+// corte con su buffer viene después, cuando ya se sabe para qué sirve la caja.
 export const CICLO_HERO_MS = {
-  normal: 8000,
-  espera: 8000,
-  descarga: 6000,
-  calma: 8000,
+  normal: 3000,
   alerta: 8000,
+  calma: 5000,
+  espera: 5000,
+  descarga: 4000,
   retardoAviso: 2000,
 } as const
 

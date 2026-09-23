@@ -4,6 +4,7 @@
 // un tap sin respuesta.
 import { SENSORES, ENERGIA, type ClaveModulo, type ClaveSensor } from '../datos/precios'
 import { INICIALES, TODOS, avisoDe, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../datos/equipo'
+import { AMBIENTES } from '../datos/ambientes'
 import { dinero } from '../utiles/formato'
 import { encuadrar } from './marco'
 import { quieto } from './medios'
@@ -13,6 +14,8 @@ const sel = seleccionInicial()
 /** Orden de elección: es lo que decide en qué ranura cae cada sensor. */
 let orden: ClaveSensor[] = INICIALES.filter((k): k is ClaveSensor => SENSORES.includes(k as ClaveSensor))
 let riel: 'sensores' | 'energia' = 'sensores'
+/** El ambiente del que se partió; tocar un módulo a mano lo suelta. */
+let preset: number | null = null
 let barra = false
 let delta = 0
 let deltaId = 0
@@ -88,6 +91,10 @@ function aplicar(animar = true) {
   escribir(document.getElementById('resumen-texto-cierre'), resumenTexto)
   escribir(document.getElementById('total-cierre'), totalTexto)
 
+  document.querySelectorAll<HTMLButtonElement>('.preset').forEach((btn) => {
+    btn.setAttribute('aria-pressed', String(Number(btn.dataset.preset) === preset))
+  })
+
   document.getElementById('sumbar')?.classList.toggle('a-la-vista', barra)
 
   const deltaEl = document.getElementById('delta')
@@ -96,6 +103,23 @@ function aplicar(animar = true) {
     deltaEl.classList.toggle('up', delta > 0)
     deltaEl.classList.toggle('down', delta < 0)
   }
+}
+
+/** temp/hum son gratis: un delta "+ US$ 0" no dice nada, así que sólo se
+ *  anima cuando de verdad cambia el total. */
+function marcarDelta(antes: number) {
+  const monto = totalDe(sel) - antes
+  if (monto === 0) return
+  const id = deltaId + 1
+  deltaId = id
+  delta = monto
+  if (deltaTimer) clearTimeout(deltaTimer)
+  deltaTimer = window.setTimeout(() => {
+    if (deltaId === id) {
+      delta = 0
+      aplicar()
+    }
+  }, 1600)
 }
 
 function alternar(clave: ClaveModulo) {
@@ -109,26 +133,29 @@ function alternar(clave: ClaveModulo) {
     const s = clave as ClaveSensor
     orden = encendido ? [...orden.filter((k) => k !== s), s] : orden.filter((k) => k !== s)
   }
-  // temp/hum son gratis: un delta "+ US$ 0" no dice nada, así que sólo se
-  // anima cuando de verdad cambia el total.
-  const monto = totalDe(sel) - antes
-  if (monto !== 0) {
-    const id = deltaId + 1
-    deltaId = id
-    delta = monto
-    if (deltaTimer) clearTimeout(deltaTimer)
-    deltaTimer = window.setTimeout(() => {
-      if (deltaId === id) {
-        delta = 0
-        aplicar()
-      }
-    }, 1600)
-  }
+  preset = null
+  marcarDelta(antes)
+  aplicar()
+}
+
+function partirDe(i: number) {
+  const antes = totalDe(sel)
+  const mods = AMBIENTES[i].mods
+  TODOS.forEach((k) => {
+    sel[k] = Boolean(mods[k])
+  })
+  orden = SENSORES.filter((k) => sel[k])
+  preset = i
+  marcarDelta(antes)
   aplicar()
 }
 
 TODOS.forEach((k) => {
   document.getElementById(`chip-${k}`)?.addEventListener('click', () => alternar(k))
+})
+
+document.querySelectorAll<HTMLButtonElement>('.preset').forEach((btn) => {
+  btn.addEventListener('click', () => partirDe(Number(btn.dataset.preset)))
 })
 
 document.getElementById('seg-sensores')?.addEventListener('click', () => {

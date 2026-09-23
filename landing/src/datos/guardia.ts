@@ -4,18 +4,19 @@
 //
 // La calma ondula dentro de una décima y con pocas muestras a propósito: el
 // valor se interpola contra el scroll, así que un ruido más grande o más
-// frecuente hace parpadear el número a cada pixel.
+// frecuente hace parpadear el número a cada pixel. Termina en 9,2, el pico
+// que Registro.astro tiene registrado para Cámara 1: el prólogo es ese episodio.
 export const UMBRAL = 8
 
 export const VISTA = { ancho: 1200, alto: 240, arriba: 24, abajo: 30 } as const
-const ESCALA = { min: 4.2, max: 11 } as const
+const ESCALA = { min: 4.2, max: 10 } as const
 
 export const SERIE = [
   4.80, 4.82, 4.85, 4.88, 4.90, 4.89, 4.86, 4.83, 4.80, 4.79,
   4.81, 4.84, 4.87, 4.90, 4.91, 4.89, 4.85, 4.82, 4.79, 4.78,
   4.80, 4.83, 4.86, 4.89, 4.91, 4.90, 4.87, 4.84, 4.82, 4.85,
-  5.0, 5.3, 5.4, 5.8, 6.2, 6.3, 6.7, 7.1, 7.2, 7.6,
-  7.9, 8.3, 8.4, 8.8, 9.2, 9.3, 9.7, 10.1, 10.2, 10.6,
+  5.0, 5.2, 5.3, 5.6, 5.9, 6.0, 6.3, 6.6, 6.7, 7.0,
+  7.2, 7.5, 7.6, 7.9, 8.2, 8.3, 8.5, 8.8, 8.9, 9.2,
 ]
 
 // El trazo no arranca en cero: la sección entra con algo de historia ya
@@ -53,6 +54,12 @@ const listar = (puntos: [number, number][]) =>
 
 const hasta = (desde: number, hastaExcl: number): [number, number][] =>
   SERIE.slice(desde, hastaExcl).map((v, k) => [xDe(desde + k), yDe(v)])
+
+/** Avance (0..1) donde la serie cruza el umbral. */
+export const AVANCE_CRUCE = (indiceCruce - 1 + proporcion) / (SERIE.length - 1)
+
+/** Avance donde termina la calma: la primera muestra que sale de la décima en la que ondula. */
+export const AVANCE_FIN_CALMA = SERIE.findIndex((v) => Math.abs(v - SERIE[0]) > 0.15) / (SERIE.length - 1)
 
 export const TRAMO_CALMA = listar([...hasta(0, indiceCruce), CRUCE])
 export const TRAMO_ALERTA = listar([CRUCE, ...hasta(indiceCruce, SERIE.length)])

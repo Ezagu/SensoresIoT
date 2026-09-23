@@ -63,6 +63,7 @@ html[data-theme="dark"] .lp {
   --lp-warn-wash: rgba(232,154,146,0.10);
   --lp-warn-line: rgba(232,154,146,0.34);
   --lp-amber: #DCAD52;
+  --lp-amber-ink: #DCAD52;
   --lp-amber-line: rgba(220,173,82,0.38);
   --lp-amber-wash: rgba(220,173,82,0.09);
   --lp-ok: #6FB491;
@@ -102,6 +103,8 @@ html[data-theme="light"] .lp {
   --lp-warn-wash: rgba(158,51,43,0.07);
   --lp-warn-line: rgba(158,51,43,0.26);
   --lp-amber: #96560A;
+  /* texto ámbar sobre su propio lavado: --lp-amber no llega a 4,5:1 */
+  --lp-amber-ink: #874C08;
   --lp-amber-line: rgba(150,86,10,0.34);
   --lp-amber-wash: rgba(150,86,10,0.10);
   --lp-ok: #21734C;

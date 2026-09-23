@@ -1,6 +1,5 @@
 /* Base: Main.dc.html:400-420 (mockup Canvas). */
     .soft-sec { padding: clamp(50px, 7vw, 100px) 0; }
-    .fine { margin-top: clamp(20px, 3vw, 32px); font-size: 13px; color: var(--lp-faint); max-width: 70ch; }
 
     .plans { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(14px, 2.4vw, 26px); margin-top: clamp(24px, 3.5vw, 38px); }
     @media (max-width: 800px) { .plans { grid-template-columns: 1fr; } }

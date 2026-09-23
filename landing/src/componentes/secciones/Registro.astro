@@ -1,8 +1,11 @@
 ---
-// La sección donde se ve la app. Una placa grande con la pantalla completa
-// (equipos, gráfico y avisos) y abajo lo que sale del historial: el CSV y el
-// informe. Todo es dato fijo resuelto en build; sólo el bloque del informe
+// La sección donde se ve la app, con Guardia de prólogo: el visitante ve a
+// Cámara 1 cruzar el umbral y acá encuentra ese mismo episodio registrado
+// (el pico de 9,2 del gráfico, el historial y el informe). Si se toca la serie
+// de datos/guardia.ts, el pico tiene que seguir coincidiendo con estos datos.
+// Todo es dato fijo resuelto en build; sólo el bloque del informe
 // (vacío/generando/listo) es interactivo — scripts/informe.ts.
+import Guardia from './Guardia.astro'
 import FilaEquipo from '../datos/FilaEquipo.astro'
 import SerieTemporal from '../datos/SerieTemporal.astro'
 import EventoAlerta from '../datos/EventoAlerta.astro'
@@ -14,9 +17,10 @@ const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
 ---
 
 <div class="band-alt">
+  <Guardia />
   <section class="soft-sec stage">
     <div class="reg-head">
-      <h2 class="say">Todo lo que mide,<br>queda registrado.</h2>
+      <h2 class="say">Lo que acabás de ver<br>queda registrado.</h2>
       <div class="reg-head__lado">
         <p class="note">
           El equipo mide y manda; la app lo muestra y lo guarda. Arriba, lo que está pasando ahora.
@@ -61,7 +65,7 @@ const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
             lecturas={[{ etiqueta: 'Temp', valor: 11.4, unidad: '°C' }, { etiqueta: 'HR', valor: 72, unidad: '%', decimales: 0 }]}
           />
         </div>
-        <div class="tab-pie">6 equipos · 1 con retraso · 1 sin reportar</div>
+        <div class="tab-pie">6 equipos · 1 fuera de rango · 1 con retraso · 1 sin reportar</div>
       </div>
 
       <div class="tab-datos">

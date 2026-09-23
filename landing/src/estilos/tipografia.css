@@ -1,6 +1,9 @@
-.display { margin: 0; font-weight: 600; font-size: clamp(38px, 6.4vw, 86px); line-height: 1.0; letter-spacing: -0.032em; }
-.display .soft { color: var(--lp-faint); }
-.say { margin: 0; font-weight: 600; font-size: clamp(27px, 3.9vw, 50px); line-height: 1.08; letter-spacing: -0.028em; max-width: 19ch; }
+/* cqi y no vw: el titular vive en media grilla, así que la ventana no dice
+   nada de su ancho real. Sus dos contenedores declaran el container-type. */
+.display { margin: 0; font-weight: 600; font-size: clamp(34px, 12cqi, 76px); line-height: 1.04; letter-spacing: -0.032em; text-wrap: balance; }
+/* el tono bajo va en el planteo; el remate —que es lo que diferencia— va entero */
+.display .soft { color: var(--lp-dim); }
+.say { margin: 0; font-weight: 600; font-size: clamp(27px, 3.9vw, 50px); line-height: 1.08; letter-spacing: -0.028em; max-width: 19ch; text-wrap: balance; }
 .note { font-size: clamp(15px, 1.35vw, 18px); line-height: 1.6; color: var(--lp-dim); max-width: 46ch; }
 .micro { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); }
 .read { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -0.015em; }
