@@ -1,12 +1,52 @@
 ---
-// Fuente: Main.dc.html:1552-1557.
+// Todos los datos de la empresa y los legales salen de datos/contacto.ts,
+// hoy con placeholders.
+import { APP_URL, CUIT, EMAIL_CONTACTO, HORARIO, LEGALES, RAZON_SOCIAL, UBICACION, linkMail, linkWhatsApp } from '../../datos/contacto'
+
+const PRODUCTO = [
+  { texto: 'Avisos', href: '#avisos' },
+  { texto: 'Informes', href: '#informes' },
+  { texto: 'Armá tu equipo', href: '#equipo' },
+  { texto: 'Planes', href: '#planes' },
+  { texto: 'Preguntas', href: '#preguntas' },
+]
+const whatsapp = linkWhatsApp('Hola, quiero consultar por un equipo de Bitácora.')
+const anio = new Date().getFullYear()
 ---
 
 <footer class="band foot stage">
-  <div class="foot-in">
-    <span class="mark" style="gap: 8px;"><span class="tick"></span><span class="name" style="font-size: 14px;">BITÁCORA</span></span>
-    <span>Monitoreo ambiental · equipo propio y plataforma</span>
-    <span class="r">© 2026 · nombre de marca provisorio</span>
+  <div class="pie-grid">
+    <div class="pie-marca">
+      <span class="mark"><span class="tick"></span><span class="name">BITÁCORA</span></span>
+      <p>Sensores ambientales conectados, con avisos al instante e informes para auditoría.</p>
+      <p class="pie-dato">{UBICACION}</p>
+    </div>
+
+    <nav class="pie-col" aria-label="Producto">
+      <p class="pie-tit">Producto</p>
+      {PRODUCTO.map((l) => <a href={l.href}>{l.texto}</a>)}
+    </nav>
+
+    <div class="pie-col">
+      <p class="pie-tit">Contacto</p>
+      <a href={whatsapp} target="_blank" rel="noopener">WhatsApp</a>
+      <a href={linkMail('Consulta')}>{EMAIL_CONTACTO}</a>
+      <span class="pie-dato">{HORARIO}</span>
+      <a href={`${APP_URL}/login`} class="pie-app">Ingresar a la app →</a>
+    </div>
+
+    <nav class="pie-col" aria-label="Legales">
+      <p class="pie-tit">Legales</p>
+      {LEGALES.map((l) => (
+        <a href={l.href} {...(l.href.startsWith('http') ? { target: '_blank', rel: 'noopener' } : {})}>{l.texto}</a>
+      ))}
+    </nav>
+  </div>
+
+  <div class="pie-base">
+    <span>© {anio} {RAZON_SOCIAL} · CUIT {CUIT}</span>
+    <!-- TODO(landing): QR de Data Fiscal de ARCA (se obtiene con clave fiscal) -->
+    <span class="pie-qr" role="img" aria-label="Data Fiscal (pendiente)">QR<br>Data Fiscal</span>
     <div class="tema" role="group" aria-label="Tema">
       <button type="button" data-tema="sistema" aria-pressed="true">Sistema</button>
       <button type="button" data-tema="claro" aria-pressed="false">Claro</button>

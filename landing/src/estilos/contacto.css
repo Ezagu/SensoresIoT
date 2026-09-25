@@ -15,10 +15,23 @@
     .via .via-mail { margin: 0; font-size: 13.5px; }
     .via-mail a { color: var(--lp-accent); text-decoration: underline; text-underline-offset: 3px; }
 
-    .foot { border-top: 1px solid var(--lp-line-soft); padding: 24px 0 32px; }
-    .foot-in { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--lp-faint); }
-    .foot-in .r { margin-left: auto; }
-    @media (max-width: 660px) { .foot-in .r { margin-left: 0; } }
+    .foot { border-top: 1px solid var(--lp-line-soft); padding: clamp(40px, 5vw, 64px) 0 28px; }
+    .pie-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); gap: 32px clamp(24px, 4vw, 56px); }
+    @media (max-width: 900px) { .pie-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pie-marca { grid-column: 1 / -1; } }
+    @media (max-width: 480px) { .pie-grid { grid-template-columns: 1fr; } }
+    .pie-marca { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+    .pie-marca .mark { min-height: 0; }
+    .pie-marca p { margin: 0; max-width: 34ch; font-size: 14px; line-height: 1.6; color: var(--lp-dim); }
+    .pie-col { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; font-size: 14px; }
+    .pie-tit { margin: 0 0 4px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); }
+    .pie-col a { color: var(--lp-dim); transition: color 160ms var(--ease-out); }
+    .pie-col a:hover { color: var(--lp-text); }
+    .pie-col .pie-app { color: var(--lp-accent); }
+    .foot .pie-dato { font-size: 13px; color: var(--lp-faint); }
+    .pie-base { margin-top: clamp(32px, 4vw, 48px); padding-top: 20px; border-top: 1px solid var(--lp-line-soft); display: flex; align-items: center; gap: 16px 24px; flex-wrap: wrap; font-size: 12px; color: var(--lp-faint); }
+    .pie-qr { width: 52px; height: 52px; display: grid; place-items: center; border: 1px dashed var(--lp-line); border-radius: 6px; font-size: 8.5px; line-height: 1.2; text-align: center; }
+    .pie-base .tema { margin-left: auto; }
+    @media (max-width: 560px) { .pie-base .tema { margin-left: 0; } }
     .tema { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--lp-line-soft); border-radius: 999px; }
     .tema button { height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--lp-faint); font-size: 12px; transition: color 160ms var(--ease-out), background-color 160ms var(--ease-out); }
     .tema button:hover { color: var(--lp-text); }
