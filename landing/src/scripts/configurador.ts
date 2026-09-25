@@ -87,15 +87,13 @@ function aplicar(animar = true) {
   const totalTexto = dinero(totalDe(sel))
   escribir(document.getElementById('resumen-texto'), resumenTexto)
   escribir(document.getElementById('total'), totalTexto)
-  // La sección de cierre repite el mismo resumen (Main.dc.html reusa
-  // resumenTexto/total ahí también).
-  escribir(document.getElementById('resumen-texto-cierre'), resumenTexto)
-  escribir(document.getElementById('total-cierre'), totalTexto)
+  // Contacto repite el mismo resumen y el mismo pedido
+  escribir(document.getElementById('resumen-texto-contacto'), resumenTexto)
+  escribir(document.getElementById('total-contacto'), totalTexto)
 
-  document.getElementById('pedir')?.setAttribute(
-    'href',
-    linkWhatsApp(mensajeDePedido(sel, preset === null ? undefined : AMBIENTES[preset].nombre)),
-  )
+  const pedido = linkWhatsApp(mensajeDePedido(sel, preset === null ? undefined : AMBIENTES[preset].nombre))
+  document.getElementById('pedir')?.setAttribute('href', pedido)
+  document.getElementById('pedir-contacto')?.setAttribute('href', pedido)
 
   document.getElementById('sumbar')?.classList.toggle('a-la-vista', barra)
 

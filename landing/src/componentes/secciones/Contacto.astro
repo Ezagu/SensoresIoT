@@ -1,10 +1,15 @@
 ---
-// Fuente: Main.dc.html:1498-1539.
-// TODO(landing): el form queda inerte a propósito (decisión del usuario:
-// "sólo el diseño, no tocar backend"). Conectar a un futuro POST /contacto
-// del backend cuando el producto entre en etapa de venta — ver
-// scripts/contacto.ts, que hoy sólo alterna al estado "enviado" sin mandar
-// nada a ningún lado.
+// El cierre de la página: pedir lo que ya se armó en el configurador, o
+// pedir ayuda para armarlo. Las dos terminan en WhatsApp; el mail queda para
+// quien no puede o no quiere usarlo. El resumen y el precio los mantiene al
+// día scripts/configurador.ts.
+import { EMAIL_CONTACTO, linkMail, linkWhatsApp } from '../../datos/contacto'
+import { mensajeDePedido, resumenDe, seleccionInicial, totalDe } from '../../datos/equipo'
+import { dinero } from '../../utiles/formato'
+
+const sel = seleccionInicial()
+const ayuda = linkWhatsApp('Hola, necesito ayuda para elegir un equipo. Quiero monitorear: ')
+const mail = linkMail('Consulta por un equipo', 'Hola, quiero monitorear: ')
 ---
 
 <section id="contacto" class="band soft-sec stage">
@@ -13,37 +18,28 @@
   <div class="vias">
     <div class="via">
       <h3>Ya sé qué necesito.</h3>
-      <p>Armá la configuración, mandala y te confirmamos disponibilidad, precio final y plazo de entrega.</p>
+      <p>Mandanos la configuración que armaste y te confirmamos disponibilidad, precio final y plazo de entrega.</p>
+
+      <div class="via-equipo">
+        <span class="via-equipo__lbl">Tu equipo</span>
+        <span id="resumen-texto-contacto" class="via-equipo__lista">{resumenDe(sel)}</span>
+        <span class="via-equipo__precio"><b id="total-contacto">{dinero(totalDe(sel))}</b> estimado</span>
+      </div>
+
       <div class="acciones">
-        <a href="#equipo" class="cta cta-solid">Armar mi equipo</a>
+        <a id="pedir-contacto" href={linkWhatsApp(mensajeDePedido(sel))} class="cta cta-solid" target="_blank" rel="noopener">Pedir este equipo</a>
+        <a href="#equipo" class="cta cta-line">Cambiar la configuración</a>
       </div>
     </div>
 
     <div class="via suave">
       <h3>No sé qué configuración me sirve.</h3>
-      <p>Contanos qué tenés que monitorear y dónde. Te decimos qué sensores, qué alimentación y qué conectividad conviene.</p>
+      <p>Contanos qué querés monitorear y dónde. Te recomendamos qué sensores, qué alimentación y qué conectividad te conviene.</p>
 
-      <form id="form-contacto" style="display: flex; flex-direction: column; gap: 14px;">
-        <div class="campo">
-          <label for="c-email">Email</label>
-          <input id="c-email" type="email" required>
-        </div>
-        <div class="campo">
-          <label for="c-que">Qué necesitás monitorear</label>
-          <textarea id="c-que"></textarea>
-        </div>
-        <div class="acciones">
-          <button type="submit" class="cta cta-line">Contarnos el caso</button>
-        </div>
-      </form>
-      <div id="form-gracias" class="gracias" hidden>
-        <svg class="tilde" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5 10-11"></path></svg>
-        <span>Listo. Te escribimos para definir el equipo.</span>
+      <div class="acciones">
+        <a href={ayuda} class="cta cta-solid" target="_blank" rel="noopener">Escribinos por WhatsApp</a>
       </div>
+      <p class="via-mail">¿Preferís mail? Escribinos a <a href={mail}>{EMAIL_CONTACTO}</a></p>
     </div>
   </div>
 </section>
-
-<script>
-  import '../../scripts/contacto'
-</script>

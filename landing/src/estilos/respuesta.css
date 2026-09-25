@@ -6,7 +6,7 @@
        costados; por debajo hay que devolver el gutter o el texto toca el borde.
        El ramp evita un salto brusco justo en el límite. */
     @media (max-width: 1240px) {
-      .hero, .build, .places, .soft-sec, .close, .foot {
+      .hero, .build, .places, .soft-sec, .foot {
         padding-inline: min(var(--gut), max(20px, 1240px - 100vw));
       }
     }
@@ -32,7 +32,6 @@
     @media (max-width: 900px) {
       .cta { height: 48px; padding: 0 20px; }
       .cta-sm { height: 44px; }
-      .campo input, .campo textarea { padding: 13px 13px; font-size: 15px; }
     }
 
     /* ── controles del carrusel: pensados para el dedo.
@@ -95,13 +94,12 @@
       /* ── preguntas y contacto ── */
       .faq-q { gap: 14px; padding: 17px 0; }
       .via { padding: 22px 20px; border-radius: 14px; }
-      .close { padding-block: clamp(52px, 12vw, 80px); }
     }
 
     /* ── pantallas angostas de verdad ── */
     @media (max-width: 430px) {
-      .hero-actions .cta, .close .actions .cta, .via .acciones .cta { width: 100%; }
-      .hero-actions, .close .actions { gap: 10px; }
+      .hero-actions .cta, .via .acciones .cta { width: 100%; }
+      .hero-actions { gap: 10px; }
       .sumbar .price .n { font-size: 21px; }
     }
 
