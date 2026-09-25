@@ -19,6 +19,12 @@
     .chip.on .un { color: var(--lp-dim); }
     .chip .pr { margin-left: auto; font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-size: 12.5px; font-weight: 600; color: var(--lp-faint); white-space: nowrap; }
     .chip.on .pr { color: var(--lp-accent); }
+    /* no se tilda ni suma al total: se cotiza por WhatsApp */
+    .otro-sensor { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border-radius: 7px; border: 1px dashed var(--lp-line); color: var(--lp-dim); text-decoration: none; transition: border-color 150ms var(--ease-out), color 150ms var(--ease-out); }
+    .otro-sensor:hover { border-color: var(--lp-accent-line); color: var(--lp-text); }
+    .otro-sensor:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    .otro-sensor .nm { font-size: 13.5px; font-weight: 500; }
+    .otro-sensor .dt { font-size: 12px; line-height: 1.45; color: var(--lp-faint); }
 
     .build-stage { display: flex; flex-direction: column; align-items: center; padding-top: 10px; }
     /* el recuadro no se mueve: lo que cambia es el encuadre de adentro, que
@@ -33,7 +39,7 @@
     .aviso::before { content: ''; flex: none; width: 6px; height: 6px; margin-top: 6px; border-radius: 999px; background: var(--lp-amber); }
     @keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-    .sumbar { position: sticky; bottom: 16px; z-index: 6; margin-top: clamp(18px, 3vw, 30px); display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 12px; padding: 13px 16px; box-shadow: var(--lp-shadow); transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
+    .sumbar { margin-top: clamp(18px, 3vw, 30px); display: flex; align-items: center; gap: clamp(12px, 2vw, 24px); flex-wrap: wrap; background: var(--lp-surface); border: 1px solid var(--lp-line); border-radius: 12px; padding: 13px 16px; box-shadow: var(--lp-shadow); transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
     .sumbar .lbl { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-faint); }
     .sumbar .list { font-size: 13px; color: var(--lp-dim); max-width: 42ch; line-height: 1.5; }
     .sumbar .price { margin-left: auto; display: flex; align-items: baseline; gap: 10px; }
@@ -41,7 +47,8 @@
     .delta { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; opacity: 0; transform: translateY(4px); transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out); }
     .delta.up { opacity: 1; transform: none; color: var(--lp-accent); }
     .delta.down { opacity: 1; transform: none; color: var(--lp-faint); }
-    @media (max-width: 780px) { .sumbar { position: static; } .sumbar .price { margin-left: 0; } }
-    .flow { display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--lp-faint); margin-top: clamp(16px, 2vw, 24px); }
-    .flow b { font-weight: 500; color: var(--lp-dim); }
+    @media (max-width: 780px) { .sumbar .price { margin-left: 0; } }
+
+    .nota-precio { margin: clamp(14px, 2vw, 20px) 0 0; max-width: 80ch; font-size: 12.5px; line-height: 1.7; color: var(--lp-faint); }
+    .nota-precio + .nota-precio { margin-top: 2px; }
 

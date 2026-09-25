@@ -13,7 +13,7 @@ import { quieto } from './medios'
 type Caja = [number, number, number, number]
 
 const BASE: Caja = [192, 174, 448, 494]
-const GATEWAY: Caja = [556, 158, 776, 476]
+const GATEWAY: Caja = [576, 180, 742, 476]
 
 
 function medir(clave: ClaveModulo): Caja | null {

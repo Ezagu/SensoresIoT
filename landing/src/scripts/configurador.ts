@@ -17,7 +17,6 @@ let orden: ClaveSensor[] = INICIALES.filter((k): k is ClaveSensor => SENSORES.in
 let riel: 'sensores' | 'energia' = 'sensores'
 /** El ambiente del que se partió; tocar un módulo a mano lo suelta. */
 let preset: number | null = null
-let barra = false
 let delta = 0
 let deltaId = 0
 let deltaTimer: number | null = null
@@ -95,8 +94,6 @@ function aplicar(animar = true) {
   document.getElementById('pedir')?.setAttribute('href', pedido)
   document.getElementById('pedir-contacto')?.setAttribute('href', pedido)
 
-  document.getElementById('sumbar')?.classList.toggle('a-la-vista', barra)
-
   const deltaEl = document.getElementById('delta')
   if (deltaEl) {
     deltaEl.textContent = delta > 0 ? `+ ${dinero(delta)}` : delta < 0 ? `− ${dinero(Math.abs(delta))}` : ''
@@ -165,22 +162,6 @@ document.getElementById('seg-energia')?.addEventListener('click', () => {
   riel = 'energia'
   aplicar()
 })
-
-const equipo = document.getElementById('equipo')
-if (equipo && 'IntersectionObserver' in window) {
-  const io = new IntersectionObserver(
-    (entradas) => {
-      entradas.forEach((e) => {
-        barra = e.isIntersecting
-        aplicar()
-      })
-    },
-    { threshold: 0, rootMargin: '-20% 0px -30% 0px' },
-  )
-  io.observe(equipo)
-} else {
-  barra = true
-}
 
 // el primer encuadre no se anima: el SSR trae el lienzo entero, no un estado
 aplicar(false)

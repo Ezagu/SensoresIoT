@@ -30,8 +30,6 @@
     /* tinta del dibujo, no el acento: el sistema Bitácora reserva el color
        para estado, y el acento acá competía con los CTA de al lado */
     .ico-mod { color: var(--lp-text); opacity: 0.5; }
-    /* las ondas de la antena: acá quietas, el hero las late desde hero.css */
-    .onda-radio { stroke-linecap: round; opacity: var(--lp-ln-suave); }
 
     .tag-fijo { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; fill: currentColor; opacity: 0.62; }
 

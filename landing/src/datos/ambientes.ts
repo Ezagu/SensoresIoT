@@ -45,12 +45,12 @@ export const AMBIENTES: Ambiente[] = [
 
 // Pantallas angostas: el lienzo de 1240x500 se recorta alrededor del equipo.
 // Sin gateway el gabinete (x≈524–754) ocupa la mitad del ancho; con gateway
-// el recorte se aleja lo necesario para que entren los dos cuerpos
-// (x≈361–943: sin gateway el gabinete va corrido 110, ver .unit-main en
+// el recorte se aleja lo necesario para que entren los dos cuerpos, centrado
+// a ojo sobre Campo (sin gateway el gabinete va corrido 110, ver .unit-main en
 // equipo.css). Las dos cajas tienen la misma proporción (644/462 = 460/330),
 // así que a igual ancho de pantalla dan el mismo alto y el carrusel no salta.
 // Coordenadas del <svg>, no de Cuerpo.astro: el equipo entra con
 // "translate(252 -20) scale(0.9)".
 export interface Vista { x: number; y: number; ancho: number; alto: number }
 export const VISTA_MOVIL: Vista = { x: 409, y: 116, ancho: 460, alto: 330 }
-export const VISTA_MOVIL_GW: Vista = { x: 330, y: 21, ancho: 644, alto: 462 }
+export const VISTA_MOVIL_GW: Vista = { x: 316, y: 21, ancho: 644, alto: 462 }

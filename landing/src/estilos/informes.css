@@ -9,6 +9,8 @@
    colores son fijos y no siguen el tema. */
 .informes__hojas { position: relative; width: 100%; max-width: 420px; margin-inline: auto; container-type: inline-size; }
 .hoja { position: relative; width: 100%; aspect-ratio: 1 / 1.414; background: #FDFCF9; color: #14201F; border-radius: 1.4cqi; box-shadow: 0 2px 6px rgba(0,0,0,.14), 0 26px 50px -22px rgba(0,0,0,.45); padding: 7.1cqi 6.4cqi; display: flex; flex-direction: column; gap: 3.6cqi; }
+/* la pila deja lugar para la hoja de atrás: sin eso el centrado sólo ve la de adelante */
+.hojas-pila { position: relative; margin: 0 4cqi 4cqi 0; }
 .hoja--atras { position: absolute; inset: 0; transform: translate(4cqi, 4cqi); background: #F1EEE6; }
 .hoja .h-top { display: flex; align-items: center; gap: 2.5cqi; padding-bottom: 3.2cqi; border-bottom: 1px solid #DED9CD; }
 .hoja .h-tick { width: 0.9cqi; height: 3.9cqi; background: #0A5C6B; }

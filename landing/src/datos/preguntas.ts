@@ -7,13 +7,10 @@ export interface Pregunta {
 }
 
 export const PREGUNTAS: Pregunta[] = [
-  { p: '¿Cómo se instala?', r: 'Lo enchufás, te conectás desde el celular o la computadora a la red que genera el equipo y le pasás tu wi-fi desde el navegador. No hay que instalar una app ni tocar el router.' },
-  { p: '¿Qué pasa si se corta internet?', r: 'El equipo sigue midiendo y guarda las lecturas. Cuando vuelve la conexión las manda todas y se pone al día solo. Mientras tanto lo vas a ver como "con retraso" en la plataforma.' },
-  { p: '¿Qué sensores puedo elegir?', r: 'Temperatura, humedad, CO₂, humedad de suelo, radiación UV y presión. Si necesitás medir algo que no está en la lista, escribinos: lo evaluamos y lo integramos al equipo.' },
-  { p: '¿Puedo pedir una configuración especial?', r: 'Sí. Cada equipo se arma, se compila y se flashea con la configuración del pedido, así que no hay kits fijos. Si tu ambiente necesita algo distinto, lo definimos antes de armarlo.' },
-  { p: '¿Cómo funcionan las alertas?', r: 'Vos definís el rango de cada sensor. El equipo chequea cada 15 a 20 segundos y, si un valor cruza el umbral, te llega el aviso por email, WhatsApp o Telegram.' },
-  { p: '¿Qué incluye LoRa?', r: 'La radio en el equipo más el gateway, que es un segundo equipo con su propia antena. Se usa cuando el sitio no tiene wi-fi o cuando el alcance no llega hasta donde está el equipo.' },
-  { p: '¿Cuánto historial puedo consultar?', r: 'En Free se muestran los últimos 15 días y en Premium el historial completo. En los dos casos las mediciones se guardan enteras: el plan limita lo que se ve, no lo que se almacena.' },
-  { p: '¿Puedo exportar mis datos?', r: 'Sí, en CSV. Free exporta el período visible y Premium todo el historial. Premium además genera informes del período que elijas.' },
-  { p: '¿Puedo compartir un equipo con mi gente?', r: 'Con Premium, sí: sumás a las personas de tu equipo y cada una entra con su propia cuenta.' },
+  { p: '¿Qué necesito para instalarlo?', r: 'Un enchufe y wi-fi. Lo enchufás, te conectás desde el celular a la red que genera el equipo y le pasás tu wi-fi. En unos minutos ya ves las primeras mediciones en la app.' },
+  { p: 'Si el registro es cada 5 minutos, ¿me entero tarde de un problema?', r: 'No. El equipo mide cada 15 segundos aunque guarde un punto cada 5 minutos, y si un valor se sale de rango lo manda en el momento. Para no avisarte por una lectura suelta lo confirmamos con tres seguidas, así que el aviso te llega en alrededor de un minuto.' },
+  { p: '¿Qué pasa si se corta internet o la luz?', r: 'Si se corta internet, el equipo sigue midiendo, guarda las lecturas y las manda cuando vuelve la conexión. Si se corta la luz y no tiene batería, se apaga y no mide mientras dure el corte. En los dos casos, a los 15 minutos te avisamos que dejó de reportar.' },
+  { p: '¿Cuándo me conviene LoRa?', r: 'Cuando donde va el equipo no llega el wi-fi. El equipo manda las mediciones por radio a un gateway, un segundo equipo que ponés donde sí hay internet.' },
+  { p: '¿Tiene un costo mensual?', r: 'El equipo se paga una sola vez y con el plan Free lo usás sin costo. Premium se paga por equipo y por mes, y si lo dejás no se borra nada: volvés a ver los últimos 15 días, pero el historial completo sigue guardado.' },
+  { p: '¿Pueden agregar un sensor que no está en el configurador?', r: 'Escribinos por WhatsApp contando qué necesitás medir y lo charlamos.' },
 ]
