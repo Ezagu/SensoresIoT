@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "src/estilos/ambientes.css"
+        ],
+        "createdAt": "2026-09-25T04:27:46.310Z",
+        "reason": "Claude: .punto width 25->56px es el indicador del carrusel que empuja a sus vecinos; transform no reacomoda el layout. Preexistente, un solo elemento chico."
+      }
+    ]
+  }
+}

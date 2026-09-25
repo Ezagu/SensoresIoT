@@ -20,12 +20,8 @@ const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
   <Guardia />
   <section class="soft-sec stage">
     <div class="reg-head">
-      <h2 class="say">Lo que acabás de ver<br>queda registrado.</h2>
+      <h2 class="say">Todo queda registrado.</h2>
       <div class="reg-head__lado">
-        <p class="note">
-          El equipo mide y manda; la app lo muestra y lo guarda. Arriba, lo que está pasando ahora.
-          Abajo, todo lo que ya pasó: el historial completo, el CSV y el informe que te piden en una auditoría.
-        </p>
         <div class="narra">
           <span>Monitorea</span><span class="flecha">→</span>
           <span>Registra</span><span class="flecha">→</span>
@@ -41,37 +37,33 @@ const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
         <div class="cap">Equipos</div>
         <div class="tab-lista">
           <FilaEquipo
-            nombre="Cámara 1" ubicacion="Depósito norte" estado="normal" etiquetaEstado="Normal" ultimaVez="hace 12 s"
-            lecturas={[{ etiqueta: 'Temp', valor: 4.9, unidad: '°C' }, { etiqueta: 'HR', valor: 85, unidad: '%', decimales: 0 }]}
-          />
-          <FilaEquipo
-            nombre="Cámara 2" ubicacion="Depósito sur" estado="critical" etiquetaEstado="Fuera de rango" ultimaVez="hace 40 s" alertas={1}
+            nombre="Cámara 2" ubicacion="Depósito sur" estado="critical" etiquetaEstado="Alerta"
             lecturas={[{ etiqueta: 'Temp', valor: 9.4, unidad: '°C', tono: 'critical' }, { etiqueta: 'HR', valor: 84, unidad: '%', decimales: 0 }]}
           />
           <FilaEquipo
-            nombre="Invernadero A" ubicacion="Lote 3" estado="attention" etiquetaEstado="Con retraso" ultimaVez="hace 43 min"
-            lecturas={[{ etiqueta: 'Temp', valor: 23.8, unidad: '°C', desactualizada: true }, { etiqueta: 'HR', valor: 61, unidad: '%', decimales: 0, desactualizada: true }]}
-          />
-          <FilaEquipo
-            nombre="Sala de máquinas" ubicacion="Planta baja" estado="critical" etiquetaEstado="Sin reportar" ultimaVez="hace 2 h 10 min"
+            nombre="Sala de máquinas" ubicacion="Planta baja" estado="critical" etiquetaEstado="Sin reportar"
             lecturas={[{ etiqueta: 'Temp', valor: 19.2, unidad: '°C', desactualizada: true }, { etiqueta: 'HR', valor: 44, unidad: '%', decimales: 0, desactualizada: true }]}
           />
           <FilaEquipo
-            nombre="Cámara 3" ubicacion="Depósito este" estado="normal" etiquetaEstado="Normal" ultimaVez="hace 1 min"
-            lecturas={[{ etiqueta: 'Temp', valor: 3.8, unidad: '°C' }, { etiqueta: 'HR', valor: 88, unidad: '%', decimales: 0 }]}
+            nombre="Invernadero A" ubicacion="Lote 3" estado="attention" etiquetaEstado="Con retraso"
+            lecturas={[{ etiqueta: 'UV', valor: 6, unidad: 'idx', decimales: 0, desactualizada: true }, { etiqueta: 'Suelo', valor: 38, unidad: '% vol', decimales: 0, desactualizada: true }]}
           />
           <FilaEquipo
-            nombre="Antecámara" ubicacion="Recepción" estado="normal" etiquetaEstado="Normal" ultimaVez="hace 25 s"
+            nombre="Cámara 1" ubicacion="Depósito norte" estado="normal" etiquetaEstado="Normal"
+            lecturas={[{ etiqueta: 'Temp', valor: 4.9, unidad: '°C' }, { etiqueta: 'HR', valor: 85, unidad: '%', decimales: 0 }]}
+          />
+          <FilaEquipo
+            nombre="Antecámara" ubicacion="Recepción" estado="normal" etiquetaEstado="Normal"
             lecturas={[{ etiqueta: 'Temp', valor: 11.4, unidad: '°C' }, { etiqueta: 'HR', valor: 72, unidad: '%', decimales: 0 }]}
           />
         </div>
-        <div class="tab-pie">6 equipos · 1 fuera de rango · 1 con retraso · 1 sin reportar</div>
+        <div class="tab-pie">5 equipos · 1 alerta · 1 con retraso · 1 sin reportar</div>
       </div>
 
       <div class="tab-datos">
         <div class="tab-graf">
           <div class="tab-h">
-            <span class="tab-h__tit">Cámara 1 · Temperatura</span>
+            <span class="tab-h__tit">Cámara 1 &nbsp; · &nbsp; Temperatura</span>
             <span class="tab-h__meta">Hoy · últimas 6 h</span>
           </div>
           <SerieTemporal datos={datosSerie} unidad="°C" umbral={8} etiquetaUmbral="umbral 8,0 °C" ancho={560} alto={210} divisiones={3} />
@@ -79,16 +71,15 @@ const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
 
         <div class="tab-avisos">
           <div class="cap">Avisos</div>
-          <EventoAlerta tipo="disparada" dispositivo="Cámara 2" sensor="Temperatura" valor={9.4} unidad="°C" condicion="mayor" umbral={8} cuando="hoy 17:34" />
-          <EventoAlerta tipo="normalizada" dispositivo="Cámara 1" sensor="Temperatura" valor={6.4} unidad="°C" condicion="mayor" umbral={8} cuando="hoy 17:25" />
-          <EventoAlerta tipo="silencio" dispositivo="Sala de máquinas" silencio="2 h 10 min" cuando="hoy 15:20" />
+          <EventoAlerta tipo="normalizada" sensor="Temperatura" unidad="°C" condicion="mayor" umbral={8} cuando="hoy 17:50" />
+          <EventoAlerta tipo="disparada" sensor="Temperatura" unidad="°C" condicion="mayor" umbral={8} cuando="hoy 16:55" />
+          <EventoAlerta tipo="silencio" silencio="30 min" cuando="hoy 15:20" />
         </div>
       </div>
     </div>
 
     <div class="reg-grid">
       <div class="log">
-        <span class="hilo" aria-hidden="true"></span>
         <div class="cap">Historial</div>
         <div class="log-tabla">
           <div class="log-h">
@@ -113,7 +104,6 @@ const datosSerie = serie.map((value, i) => ({ value, label: etiquetas[i] }))
       </div>
 
       <div class="informe">
-        <span class="hilo" aria-hidden="true"></span>
         <div class="inf-copy">
           <div class="cap">Informe</div>
           <p class="inf-tit">El período entero, en un PDF.</p>

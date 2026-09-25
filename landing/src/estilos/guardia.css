@@ -2,7 +2,7 @@
    dash + transición sino con un clip que mueve el scroll (scripts/guardia.ts),
    así que la sección ocupa un tramo alto y fija el contenido adentro. */
     .watch { padding: 0; }
-    .watch-pista { position: relative; height: 150vh; }
+    .watch-pista { position: relative; height: 165vh; }
     .watch-fijo { position: sticky; top: 0; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; gap: clamp(20px, 3.4vh, 38px); padding: clamp(72px, 10vh, 118px) 0 clamp(32px, 6vh, 64px); }
     .watch-svg { width: 100%; height: auto; display: block; }
     .trace { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
@@ -20,7 +20,7 @@
     /* el rótulo va sobre la línea que nombra: afuera del SVG porque el
        viewBox se estira sin conservar proporción y deformaría el texto */
     .watch-graf { position: relative; }
-    .watch-umbral { position: absolute; right: 0; top: var(--y-umbral); transform: translateY(-100%); padding-bottom: 5px; color: var(--lp-warn); }
+    .watch-umbral { position: absolute; left: 0; top: var(--y-umbral); transform: translateY(-100%); padding-bottom: 5px; color: var(--lp-warn); padding-left: 3px;}
     .watch-cols { display: flex; gap: clamp(24px, 4vw, 56px); flex-wrap: wrap; align-items: flex-start; }
     .watch-card { border: 1px solid var(--lp-line-soft); background: var(--lp-surface); border-radius: 14px; padding: clamp(14px, 1.8vw, 20px) clamp(16px, 2vw, 24px); min-width: 264px; transition: background-color 320ms var(--ease-out), border-color 320ms var(--ease-out); }
     .is-alerta .watch-card { background: var(--lp-warn-wash); border-color: var(--lp-warn-line); }
@@ -33,3 +33,4 @@
     .alerta-card { margin-top: 22px; max-width: 420px; border: 1px solid var(--lp-warn-line); background: var(--lp-warn-wash); border-radius: 10px; padding: 15px 17px; opacity: 0; transform: translateY(10px); transition: opacity 280ms var(--ease-out), transform 280ms var(--ease-out); }
     .is-alerta .alerta-card { opacity: 1; transform: none; }
     .alerta-card .t { font-size: 14px; font-weight: 600; color: var(--lp-warn); }
+    .alerta-card .t .sep { margin: 0 4px; }

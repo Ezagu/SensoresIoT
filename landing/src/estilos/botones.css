@@ -1,10 +1,14 @@
 /* Port verbatim de Main.dc.html:111-119 (mockup Canvas), sin cambios. */
-    .cta { display: inline-flex; align-items: center; justify-content: center; gap: 10px; height: 46px; padding: 0 22px; border-radius: 4px; font-size: 15px; font-weight: 500; border: 1px solid transparent; transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out); }
+    .cta { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 46px; padding: 0 22px; border-radius: 4px; font-size: 15px; font-weight: 500; border: 1px solid transparent; transition: background-color 160ms var(--ease-out), border-color 160ms var(--ease-out), color 160ms var(--ease-out); }
     .cta-solid { background: var(--lp-accent); color: var(--lp-accent-ink); }
     .cta-solid:hover { background: var(--lp-accent-2); }
     /* background explícito: en un <button> el fondo del navegador tapaba el texto */
-    .cta-line { background: transparent; border-color: var(--lp-line); color: var(--lp-text); }
-    .cta-line:hover { border-color: var(--lp-accent-line); }
+    /* box-shadow en vez de border: un borde inset (border-box) recorta el
+       relleno hacia adentro y al lado del cta-solid se ve más bajo aunque la
+       caja mida lo mismo (efecto de irradiación); el box-shadow dibuja el
+       trazo por fuera de la caja sin tocar el layout. */
+    .cta-line { background: transparent; border-color: transparent; box-shadow: 0 0 0 1px var(--lp-line); color: var(--lp-text); }
+    .cta-line:hover { box-shadow: 0 0 0 1px var(--lp-accent-line); }
     .cta:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
     .cta-sm { height: 36px; padding: 0 16px; font-size: 14px; }
 

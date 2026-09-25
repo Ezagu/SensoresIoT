@@ -41,16 +41,16 @@ const inicial = valorEn(DIBUJADO_INICIAL)
           <div class="watch-card__top">
             <span class="watch-card__name">Cámara 1</span>
             <PastillaEstado id="pastilla-normal" estado="normal" etiqueta="En línea" pill />
-            <PastillaEstado id="pastilla-critical" estado="critical" etiqueta="Fuera de rango" pill hidden />
+            <PastillaEstado id="pastilla-critical" estado="critical" etiqueta="Alerta" pill hidden />
           </div>
           <div class="watch-read read">
             <span id="watch-valor" class="big">{fmt.format(inicial)}</span><span class="unit">°C</span>
           </div>
         </div>
         <div style="flex: 1; min-width: 260px;">
-          <p id="watch-nota" class="note">El equipo mide cada 15 a 20 segundos. Mientras el valor esté donde tiene que estar, acá no pasa nada.</p>
+          <p id="watch-nota" class="note">Mientras el valor esté donde tiene que estar, acá no pasa nada.</p>
           <div class="alerta-card">
-            <div class="t">Alerta enviada · Cámara 1</div>
+            <div class="t">Alerta enviada <span class="sep">·</span> Cámara 1</div>
           </div>
         </div>
       </div>

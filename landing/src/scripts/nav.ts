@@ -37,7 +37,7 @@ if (boton && panel) {
   })
 
   // Al pasar a desktop el menú de mano no debe quedar abierto ni inert=false
-  const mq = matchMedia('(max-width: 720px)')
+  const mq = matchMedia('(max-width: 900px)')
   const alCambiar = (e: MediaQueryListEvent | MediaQueryList) => {
     if (!e.matches) cerrar()
   }

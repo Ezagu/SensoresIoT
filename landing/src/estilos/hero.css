@@ -93,9 +93,9 @@
     .estado-card.is-espera .e-dot { background: var(--lp-amber); }
     .estado-card.is-alerta { border-color: var(--lp-warn-line); background: var(--lp-warn-wash); }
     .estado-card.is-alerta .e-dot { background: var(--lp-warn-mark); }
-    .estado-card .e-t { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; }
+    .estado-card .e-t { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; user-select: none; }
     .estado-card.is-alerta .e-t { color: var(--lp-warn); }
-    .estado-card .e-s { font-size: 12px; color: var(--lp-dim); margin-top: 3px; }
+    .estado-card .e-s { font-size: 12px; color: var(--lp-dim); margin-top: 3px; user-select: none; }
     .e-avisa { margin-left: auto; flex: none; display: inline-flex; color: var(--lp-warn); animation: avisaEntra var(--lp-trans, 520ms) var(--ease-out); }
     .e-avisa svg { width: 22px; height: 22px; }
     .e-avisa .campana { animation: campana 2600ms ease-in-out infinite; transform-origin: 12px 5px; }

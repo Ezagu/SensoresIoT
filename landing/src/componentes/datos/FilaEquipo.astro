@@ -19,12 +19,11 @@ interface Props {
   ubicacion: string
   estado: Estado
   etiquetaEstado: string
-  ultimaVez: string
   lecturas: Lectura[]
   alertas?: number
 }
 
-const { nombre, ubicacion, estado, etiquetaEstado, ultimaVez, lecturas, alertas = 0 } = Astro.props
+const { nombre, ubicacion, estado, etiquetaEstado, lecturas, alertas = 0 } = Astro.props
 const rail = estado === 'critical' || estado === 'attention' ? `bt-row--${estado}` : ''
 const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const fmtEntero = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -38,9 +37,8 @@ const fmtEntero = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, max
       {alertas > 0 && <span class="bt-badge bt-badge--critical bt-badge--count">{alertas}</span>}
     </span>
     <span class="bt-row__meta">
+      <svg class="bt-row__pin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
       <span class="bt-row__where">{ubicacion}</span>
-      <span class="bt-row__sep" aria-hidden="true">·</span>
-      <span class="bt-row__when">{ultimaVez}</span>
     </span>
   </span>
   <span class="bt-row__readings">
@@ -53,8 +51,5 @@ const fmtEntero = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 0, max
         </span>
       </span>
     ))}
-  </span>
-  <span class="bt-row__chev" aria-hidden="true">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
   </span>
 </div>

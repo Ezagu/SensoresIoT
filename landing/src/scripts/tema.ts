@@ -1,33 +1,48 @@
-// El stamp pre-paint vive en Base.astro (is:inline). Esto sólo maneja el
-// toggle: lee el estado que ya escribió el stamp y lo invierte. Mismo
-// contrato que frontend/src/hooks/usarTema.ts — clave 'bitacora-tema',
-// pero la landing sólo escribe 'claro'/'oscuro', nunca 'sistema'.
+// El stamp pre-paint vive en Base.astro (is:inline). Esto maneja el selector
+// del pie. Mismo contrato que frontend/src/hooks/usarTema.ts: clave
+// 'bitacora-tema', valores 'sistema'|'claro'|'oscuro'.
+type Tema = 'sistema' | 'claro' | 'oscuro'
 const CLAVE = 'bitacora-tema'
+const sistemaClaro = matchMedia('(prefers-color-scheme: light)')
 
-function guardar(valor: 'claro' | 'oscuro') {
+function leer(): Tema {
   try {
-    localStorage.setItem(CLAVE, valor)
+    const t = localStorage.getItem(CLAVE)
+    if (t === 'claro' || t === 'oscuro') return t
   } catch {
-    /* modo privado o storage bloqueado: la sesión igual respeta el cambio */
+    /* storage bloqueado: sigue al sistema */
+  }
+  return 'sistema'
+}
+
+function guardar(tema: Tema) {
+  try {
+    if (tema === 'sistema') localStorage.removeItem(CLAVE)
+    else localStorage.setItem(CLAVE, tema)
+  } catch {
+    /* modo privado: la sesión igual respeta el cambio */
   }
 }
 
-function aplicar(oscuro: boolean, boton: HTMLButtonElement) {
-  document.documentElement.dataset.theme = oscuro ? 'dark' : 'light'
-  const etiqueta = oscuro ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'
-  boton.setAttribute('aria-pressed', String(oscuro))
-  boton.setAttribute('aria-label', etiqueta)
-  boton.title = etiqueta
+const botones = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-tema]'))
+let actual = leer()
+
+function aplicar() {
+  const claro = actual === 'claro' || (actual === 'sistema' && sistemaClaro.matches)
+  document.documentElement.dataset.theme = claro ? 'light' : 'dark'
+  botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.tema === actual)))
 }
 
-const boton = document.getElementById('btn-tema') as HTMLButtonElement | null
-if (boton) {
-  aplicar(document.documentElement.dataset.theme !== 'light', boton)
-  boton.addEventListener('click', () => {
-    const oscuroAhora = document.documentElement.dataset.theme !== 'light'
-    aplicar(!oscuroAhora, boton)
-    guardar(oscuroAhora ? 'claro' : 'oscuro')
+botones.forEach((b) => {
+  b.addEventListener('click', () => {
+    actual = b.dataset.tema as Tema
+    guardar(actual)
+    aplicar()
   })
-}
+})
+sistemaClaro.addEventListener('change', () => {
+  if (actual === 'sistema') aplicar()
+})
+aplicar()
 
 export {}

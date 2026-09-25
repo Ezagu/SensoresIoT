@@ -14,15 +14,22 @@
 .bt-status--pill.bt-status--normal { background: var(--lp-ok-wash); border-color: var(--lp-ok-line); }
 .bt-status--pill.bt-status--attention { background: var(--lp-amber-wash); border-color: var(--lp-amber-line); }
 .bt-status--pill.bt-status--critical { background: var(--lp-warn-wash); border-color: var(--lp-warn-line); }
+/* como hijo directo de .bt-row (grid), sin esto la pastilla se estira a lo
+   ancho de su columna fija en vez de abrazar el texto de la etiqueta */
+.bt-row > .bt-status { justify-self: start; }
 
-.bt-row { display: flex; align-items: center; gap: 16px; width: 100%; min-height: 52px; padding: 12px 16px 12px 14px; border: 0; border-left: 2px solid transparent; border-bottom: 1px solid var(--lp-line-soft); background: transparent; text-align: left; }
+/* grid en vez de flex: la pastilla de estado cambia de ancho con el largo de
+   su etiqueta ("Alerta" vs "Sin reportar"), así que un flujo flex corre el
+   nombre de cada fila a un x distinto. La columna fija alinea todos los
+   nombres sin importar qué diga la pastilla. */
+.bt-row { display: grid; grid-template-columns: 95px minmax(0, 1fr) auto; align-items: center; gap: 16px; width: 100%; min-height: 52px; padding: 12px 16px 12px 14px; border: 0; border-left: 2px solid transparent; border-bottom: 1px solid var(--lp-line-soft); background: transparent; text-align: left; }
 .bt-row--critical { border-left-color: var(--lp-warn-mark); }
 .bt-row--attention { border-left-color: var(--lp-amber); }
-.bt-row__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bt-row__main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .bt-row__name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--lp-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bt-row__meta { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 12px; color: var(--lp-faint); }
+.bt-row__meta { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 12px; color: var(--lp-faint); }
+.bt-row__pin { flex: none; }
 .bt-row__where { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bt-row__sep, .bt-row__when { flex: none; white-space: nowrap; }
 .bt-row__readings { display: flex; align-items: center; gap: 20px; flex: none; }
 .bt-row__cell { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .bt-row__cell-label { font-size: 11px; letter-spacing: -0.01em; text-transform: uppercase; white-space: nowrap; color: var(--lp-faint); }
@@ -43,9 +50,11 @@
 .bt-event__what { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .bt-event__title { color: var(--lp-text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bt-event__where { font-size: 12px; color: var(--lp-faint); }
-.bt-event__cmp { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--lp-dim); white-space: nowrap; }
+.bt-event__cmp { grid-column: 3; font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-size: 12px; color: var(--lp-dim); white-space: nowrap; }
 .bt-event__cmp b { font-weight: 500; color: var(--lp-text); }
-.bt-event__when { font-family: var(--font-reading); font-size: 12px; color: var(--lp-faint); white-space: nowrap; text-align: right; }
+/* columna fija: en disparada/normalizada no hay .bt-event__cmp, y sin esto
+   la hora ocuparía su lugar (3ª columna) en vez de la última */
+.bt-event__when { grid-column: 4; font-family: var(--font-reading); font-size: 12px; color: var(--lp-faint); white-space: nowrap; text-align: right; }
 
 .bt-chart { width: 100%; height: auto; display: block; }
 .bt-chart__axis-y { font-family: var(--font-mono); font-size: 9px; fill: var(--lp-faint); }

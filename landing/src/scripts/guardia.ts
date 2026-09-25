@@ -23,10 +23,11 @@ const cabeza = document.getElementById('watch-cabeza')
 const guia = document.getElementById('watch-guia')
 const valor = document.getElementById('watch-valor')
 const nota = document.getElementById('watch-nota')
+const titulo = document.getElementById('watch-titulo')
 const pillNormal = document.getElementById('pastilla-normal')
 const pillCritical = document.getElementById('pastilla-critical')
 
-if (seccion && pista && svg && clip && cabeza && guia && valor && nota && pillNormal && pillCritical) {
+if (seccion && pista && svg && clip && cabeza && guia && valor && nota && titulo && pillNormal && pillCritical) {
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
   const fmt = new Intl.NumberFormat('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   const recortar = (n: number) => Math.min(1, Math.max(0, n))
@@ -67,9 +68,10 @@ if (seccion && pista && svg && clip && cabeza && guia && valor && nota && pillNo
 
     seccion!.classList.toggle('is-alerta', enAlerta)
     valor!.textContent = fmt.format(v)
+    titulo!.textContent = enAlerta ? 'Si pasa, te enterás.' : 'Casi siempre, no pasa nada.'
     nota!.textContent = enAlerta
       ? 'Cruzó el umbral que definiste y salió el aviso. No tuviste que estar mirando.'
-      : 'El equipo mide cada 15 a 20 segundos. Mientras el valor esté donde tiene que estar, acá no pasa nada.'
+      : 'Mientras el valor esté donde tiene que estar, acá no pasa nada.'
     pillNormal!.hidden = enAlerta
     pillCritical!.hidden = !enAlerta
   }

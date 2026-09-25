@@ -11,12 +11,15 @@ export const UMBRAL = 8
 export const VISTA = { ancho: 1200, alto: 240, arriba: 24, abajo: 30 } as const
 const ESCALA = { min: 4.2, max: 10 } as const
 
+// La calma ocupa el primer tercio (índices 0-16) y cruza el umbral en el
+// índice 34 de 49 (~69%) — ver AVANCE_CRUCE más abajo.
 export const SERIE = [
   4.80, 4.82, 4.85, 4.88, 4.90, 4.89, 4.86, 4.83, 4.80, 4.79,
-  4.81, 4.84, 4.87, 4.90, 4.91, 4.89, 4.85, 4.82, 4.79, 4.78,
-  4.80, 4.83, 4.86, 4.89, 4.91, 4.90, 4.87, 4.84, 4.82, 4.85,
-  5.0, 5.2, 5.3, 5.6, 5.9, 6.0, 6.3, 6.6, 6.7, 7.0,
-  7.2, 7.5, 7.6, 7.9, 8.2, 8.3, 8.5, 8.8, 8.9, 9.2,
+  4.81, 4.84, 4.87, 4.90, 4.91, 4.89, 4.85,
+  4.90, 4.95, 5.05, 5.20, 5.38, 5.55, 5.75, 5.95, 6.15, 6.35,
+  6.58, 6.80, 7.00, 7.20, 7.42, 7.60, 7.80, 8.00,
+  8.15, 8.30, 8.45, 8.60, 8.72, 8.82, 8.90, 8.96, 9.02, 9.06,
+  9.10, 9.13, 9.16, 9.18, 9.20,
 ]
 
 // El trazo no arranca en cero: la sección entra con algo de historia ya

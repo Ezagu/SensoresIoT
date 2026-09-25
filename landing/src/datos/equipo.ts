@@ -2,6 +2,7 @@
 // Son funciones puras sobre la selección porque el mismo texto lo escriben el
 // render del servidor (Configurador.astro) y el configurador en el navegador.
 import { BASE_USD, ENERGIA, NOMBRES, PRECIOS, SENSORES, type ClaveModulo } from './precios'
+import { dinero } from '../utiles/formato'
 
 export type Seleccion = Record<ClaveModulo, boolean>
 
@@ -44,4 +45,21 @@ export function avisoDe(sel: Seleccion): string | null {
     return 'El gateway sólo recibe equipos con módulo LoRa. Sumale el módulo al equipo o sacá el gateway.'
   }
   return null
+}
+
+/** El pedido que arranca la charla por WhatsApp: un renglón por módulo, así
+ *  el presupuesto se arma sin volver a preguntar qué eligió. */
+export function mensajeDePedido(sel: Seleccion, ambiente?: string): string {
+  const renglones = puestos(sel).map((k) => {
+    const nombre = NOMBRES[k].charAt(0).toUpperCase() + NOMBRES[k].slice(1)
+    return `• ${nombre}${PRECIOS[k] ? ` (${dinero(PRECIOS[k])})` : ''}`
+  })
+  return [
+    `Hola, quiero pedir este equipo${ambiente ? ` para ${ambiente.toLowerCase()}` : ''}:`,
+    '',
+    `• Equipo base con Wi-Fi (${dinero(BASE_USD)})`,
+    ...renglones,
+    '',
+    `Total estimado: ${dinero(totalDe(sel))}`,
+  ].join('\n')
 }

@@ -18,8 +18,8 @@ import Humedad from '../equipo/modulos/Humedad.astro'
 import Co2 from '../equipo/modulos/Co2.astro'
 import Suelo from '../equipo/modulos/Suelo.astro'
 import { BASE_USD, PRECIOS } from '../../datos/precios'
-import { AMBIENTES } from '../../datos/ambientes'
-import { avisoDe, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../../datos/equipo'
+import { avisoDe, mensajeDePedido, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../../datos/equipo'
+import { linkWhatsApp } from '../../datos/contacto'
 import { dinero } from '../../utiles/formato'
 
 const sel = seleccionInicial()
@@ -30,12 +30,6 @@ const aviso = avisoDe(sel)
   <section id="equipo" class="build stage">
     <div class="build-head">
       <h2 class="say">Armá el equipo<br>que necesitás.</h2>
-      <div class="presets" role="group" aria-labelledby="presets-rotulo">
-        <span id="presets-rotulo" class="presets-rotulo">Empezá desde</span>
-        {AMBIENTES.map((amb, i) => (
-          <button type="button" class="preset" data-preset={i} aria-pressed="false">{amb.nombre}</button>
-        ))}
-      </div>
     </div>
 
     <div class="build-grid">
@@ -147,7 +141,7 @@ const aviso = avisoDe(sel)
         <span id="delta" class="delta"></span>
         <span id="total" class="n">{dinero(totalDe(sel))}</span>
       </span>
-      <a href="#cierre" class="cta cta-solid">Pedir este equipo</a>
+      <a id="pedir" href={linkWhatsApp(mensajeDePedido(sel))} class="cta cta-solid" target="_blank" rel="noopener">Pedir este equipo</a>
     </div>
 
     <p class="flow">

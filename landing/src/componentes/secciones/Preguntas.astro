@@ -1,7 +1,7 @@
 ---
 // Fuente: Main.dc.html:1474-1497. La FAQ pasa de <div class="faq-item"> +
 // onClick a <details name="preguntas"> nativo (ver estilos/preguntas.css):
-// acordeón exclusivo sin una línea de JS.
+// acordeón exclusivo sin JS; scripts/preguntas.ts le suma la animación.
 import { PREGUNTAS } from '../../datos/preguntas'
 ---
 
@@ -27,3 +27,7 @@ import { PREGUNTAS } from '../../datos/preguntas'
     </div>
   </section>
 </div>
+
+<script>
+  import '../../scripts/preguntas'
+</script>

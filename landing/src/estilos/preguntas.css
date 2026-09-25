@@ -1,11 +1,7 @@
-/* Port de Main.dc.html:479-499. Un cambio respecto del mockup: la FAQ pasa
-   de <div class="faq-item">+onClick a <details name="preguntas"> nativo
-   (acordeón exclusivo sin JS, funciona sin JavaScript, aria-expanded lo
-   gestiona el navegador). .faq-item.on -> .faq-item[open]; .faq-a gana un
-   <div> interno para el truco grid-template-rows 0fr->1fr (el mismo que
-   frontend/src/index.css usa en @utility colapso), que además hace
-   innecesario el max-height:440px de mobile en respuesta.css: el grid
-   mide el contenido real en vez de un tope fijo. */
+/* Port de Main.dc.html:479-499, con <details name="preguntas"> nativo:
+   sin JS es un acordeón exclusivo que abre de golpe; scripts/preguntas.ts
+   le anima el alto. .cerrando marca el cierre en curso, con [open] todavía
+   puesto, para que el título y el signo vuelvan apenas se hace click. */
 .faq-wrap { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr); gap: clamp(24px, 5vw, 72px); align-items: start; }
 @media (max-width: 900px) { .faq-wrap { grid-template-columns: 1fr; gap: 24px; } }
 .faq-lado { position: sticky; top: 92px; }
@@ -25,13 +21,11 @@
 .faq-q::marker { content: ""; }
 .faq-q:hover { color: var(--lp-accent); }
 .faq-q:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
-.faq-item[open] .faq-q { color: var(--lp-accent); }
+.faq-item[open]:not(.cerrando) .faq-q { color: var(--lp-accent); }
 .faq-signo { margin-left: auto; flex: none; width: 14px; height: 14px; position: relative; }
 .faq-signo::before, .faq-signo::after { content: ""; position: absolute; background: currentColor; transition: transform 300ms var(--ease-out), opacity 300ms var(--ease-out); }
 .faq-signo::before { left: 0; top: 6px; width: 14px; height: 1.5px; }
 .faq-signo::after { left: 6px; top: 0; width: 1.5px; height: 14px; }
-.faq-item[open] .faq-signo::after { transform: scaleY(0); opacity: 0; }
-.faq-a { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 420ms var(--ease-out), opacity 320ms var(--ease-out); }
-.faq-item[open] .faq-a { grid-template-rows: 1fr; opacity: 1; }
-.faq-a > div { overflow: hidden; }
+.faq-item[open]:not(.cerrando) .faq-signo::after { transform: scaleY(0); opacity: 0; }
+.faq-a { overflow: hidden; }
 .faq-a p { font-size: 14px; line-height: 1.65; color: var(--lp-dim); max-width: 62ch; padding-bottom: clamp(18px, 2vw, 24px); }

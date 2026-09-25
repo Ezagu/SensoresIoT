@@ -3,7 +3,8 @@
 // equivalente: los chips están sobre el fold en mobile, un IO ahí dejaría
 // un tap sin respuesta.
 import { SENSORES, ENERGIA, type ClaveModulo, type ClaveSensor } from '../datos/precios'
-import { INICIALES, TODOS, avisoDe, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../datos/equipo'
+import { INICIALES, TODOS, avisoDe, mensajeDePedido, resumenDe, rotuloDe, seleccionInicial, totalDe } from '../datos/equipo'
+import { linkWhatsApp } from '../datos/contacto'
 import { AMBIENTES } from '../datos/ambientes'
 import { dinero } from '../utiles/formato'
 import { encuadrar } from './marco'
@@ -91,9 +92,10 @@ function aplicar(animar = true) {
   escribir(document.getElementById('resumen-texto-cierre'), resumenTexto)
   escribir(document.getElementById('total-cierre'), totalTexto)
 
-  document.querySelectorAll<HTMLButtonElement>('.preset').forEach((btn) => {
-    btn.setAttribute('aria-pressed', String(Number(btn.dataset.preset) === preset))
-  })
+  document.getElementById('pedir')?.setAttribute(
+    'href',
+    linkWhatsApp(mensajeDePedido(sel, preset === null ? undefined : AMBIENTES[preset].nombre)),
+  )
 
   document.getElementById('sumbar')?.classList.toggle('a-la-vista', barra)
 
@@ -154,9 +156,8 @@ TODOS.forEach((k) => {
   document.getElementById(`chip-${k}`)?.addEventListener('click', () => alternar(k))
 })
 
-document.querySelectorAll<HTMLButtonElement>('.preset').forEach((btn) => {
-  btn.addEventListener('click', () => partirDe(Number(btn.dataset.preset)))
-})
+// "Usar este preset" del carrusel de ambientes
+document.addEventListener('usar-ambiente', (e) => partirDe((e as CustomEvent<number>).detail))
 
 document.getElementById('seg-sensores')?.addEventListener('click', () => {
   riel = 'sensores'

@@ -1,19 +1,13 @@
-/* Port verbatim de Main.dc.html:81-109 (mockup Canvas), sin cambios, salvo
-   el bloque de abajo: los dos <sc-if> que elegían el ícono de sol/luna en
-   el mockup se reemplazan por CSS puro sobre html[data-theme]. */
-html[data-theme="dark"] .modo .ico-sol { display: none; }
-html[data-theme="light"] .modo .ico-luna { display: none; }
+/* Port de Main.dc.html:81-109 (mockup Canvas). */
     .top { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--lp-bg) 88%, transparent); border-bottom: 1px solid var(--lp-line-soft); backdrop-filter: blur(8px); transition: background-color 420ms var(--ease-out); }
     .top-in { max-width: 1240px; margin: 0 auto; height: 60px; padding: 0 var(--gut); display: flex; align-items: center; gap: 18px; }
     .mark { display: flex; align-items: center; gap: 9px; min-height: 44px; color: var(--lp-text); }
     .mark .name { font-weight: 600; font-size: 16px; letter-spacing: 0.15em; }
     .mark .tick { width: 3px; height: 14px; background: var(--lp-accent); display: inline-block; }
-    .mark .sub { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lp-faint); }
-    @media (max-width: 620px) { .mark .sub { display: none; } }
+    .top-links { display: flex; align-items: center; gap: 22px; margin-left: clamp(12px, 3vw, 36px); }
     .top-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-    .top-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--lp-dim); }
+    .top-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; white-space: nowrap; color: var(--lp-dim); }
     .top-link:hover { color: var(--lp-text); }
-    @media (max-width: 720px) { .top-link { display: none; } }
 
     /* menú de mano: el mismo índice, en formato pulgar */
     .menu-btn { display: none; width: 44px; height: 44px; border-radius: 8px; border: 1px solid var(--lp-line); background: transparent; padding: 0; align-items: center; justify-content: center; flex-direction: column; gap: 5px; color: var(--lp-dim); }
@@ -32,8 +26,18 @@ html[data-theme="light"] .modo .ico-luna { display: none; }
     .menu-panel a { display: flex; align-items: center; min-height: 54px; padding: 0 var(--gut); font-size: 16px; color: var(--lp-text); border-bottom: 1px solid var(--lp-line-soft); }
     .menu-panel a .flechita { margin-left: auto; color: var(--lp-faint); }
     .menu-panel a:last-child { border-bottom: 0; color: var(--lp-accent); }
-    .modo { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--lp-line); background: transparent; color: var(--lp-dim); transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
-    .modo:hover { color: var(--lp-text); border-color: var(--lp-accent-line); }
-    .modo:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
-    .modo svg { width: 17px; height: 17px; }
 
+
+    /* los dos accesos: consultar (WhatsApp) y entrar a la app */
+    .top-cta { white-space: nowrap; }
+    .top-wa svg { width: 15px; height: 15px; flex: none; }
+    /* en mano no entran las dos etiquetas: WhatsApp queda sólo con el ícono */
+    @media (max-width: 720px) {
+      .top .top-cta { height: 40px; padding: 0 12px; font-size: 13.5px; }
+      .top .top-wa { width: 40px; padding: 0; }
+      .top-wa span { display: none; }
+      .top-wa svg { width: 16px; height: 16px; }
+    }
+
+    /* el índice pasa al menú de mano cuando no entra al lado de la marca */
+    @media (max-width: 900px) { .top-links { display: none; } .menu-btn { display: inline-flex; } }

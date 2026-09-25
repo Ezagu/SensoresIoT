@@ -18,7 +18,7 @@ import Temperatura from '../equipo/modulos/Temperatura.astro'
 import Humedad from '../equipo/modulos/Humedad.astro'
 import Co2 from '../equipo/modulos/Co2.astro'
 import Suelo from '../equipo/modulos/Suelo.astro'
-import { AMBIENTES } from '../../datos/ambientes'
+import { AMBIENTES, VISTA_MOVIL } from '../../datos/ambientes'
 
 const inicial = AMBIENTES[0]
 ---
@@ -28,7 +28,17 @@ const inicial = AMBIENTES[0]
     <h2 class="say">Cada ambiente<br>pide su equipo.</h2>
   </div>
 
+  <!-- En desktop el header y el pie se superponen al dibujo (posición
+       absoluta y display: contents); en mobile son tres bloques apilados. -->
   <div id="carrusel" class="carrusel">
+    <header class="car-cab">
+      <div id="slide-info" class="slide-info fd-a">
+        <div id="ambiente-nombre" class="slide-nom">{inicial.nombre}</div>
+        <button type="button" id="usar-preset" class="cta cta-line cta-sm">Usar este preset</button>
+        <div id="ambiente-config" class="slide-cfg">{inicial.config}</div>
+      </div>
+    </header>
+
     <svg id="ambiente-svg" class="scene-svg" viewBox="0 0 1240 500" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label={inicial.alt}>
       <defs>
         <!-- el lugar se apaga antes de las flechas: sobre ellas queda el
@@ -42,6 +52,18 @@ const inicial = AMBIENTES[0]
         <mask id="amb-recorte" maskUnits="userSpaceOnUse" x="0" y="0" width="1240" height="500">
           <rect width="1240" height="500" fill="url(#amb-margen)"></rect>
         </mask>
+        <!-- en mobile no hay flechas encima: el fundido es corto y sigue los
+             bordes del recorte, no los del lienzo -->
+        <linearGradient id="amb-margen-movil" gradientUnits="userSpaceOnUse" x1={VISTA_MOVIL.x} y1="0" x2={VISTA_MOVIL.x + VISTA_MOVIL.ancho} y2="0">
+          <!-- x1/x2 los reescribe scripts/ambientes.ts: siguen al recorte activo -->
+          <stop offset="0" stop-color="#000"></stop>
+          <stop offset="0.06" stop-color="#fff"></stop>
+          <stop offset="0.94" stop-color="#fff"></stop>
+          <stop offset="1" stop-color="#000"></stop>
+        </linearGradient>
+        <mask id="amb-recorte-movil" maskUnits="userSpaceOnUse" x="0" y="0" width="1240" height="500">
+          <rect width="1240" height="500" fill="url(#amb-margen-movil)"></rect>
+        </mask>
         <!-- y se apaga otra vez alrededor del equipo, que no tiene el lugar
              pasándole por atrás. El velo viaja con él, así que vale igual
              para cualquier configuración -->
@@ -49,83 +71,127 @@ const inicial = AMBIENTES[0]
           <stop offset="0.5" class="velo-tono"></stop>
           <stop offset="1" class="velo-tono" stop-opacity="0"></stop>
         </radialGradient>
+        <!-- mobile: los costados quedan pegados al equipo; un contorno del
+             color del cuadro corta las líneas del fondo antes de que toquen
+             una pieza. El alfa se satura para que los trazos tenues también
+             lo generen. -->
+        <filter id="amb-halo" x="-15%" y="-15%" width="130%" height="130%" color-interpolation-filters="sRGB">
+          <feComponentTransfer in="SourceAlpha" result="alfa">
+            <feFuncA type="linear" slope="20"></feFuncA>
+          </feComponentTransfer>
+          <feMorphology in="alfa" operator="dilate" radius="12" result="ancho"></feMorphology>
+          <feGaussianBlur in="ancho" stdDeviation="3" result="suave"></feGaussianBlur>
+          <feFlood class="halo-tono"></feFlood>
+          <feComposite in2="suave" operator="in" result="halo"></feComposite>
+          <feMerge>
+            <feMergeNode in="halo"></feMergeNode>
+            <feMergeNode in="SourceGraphic"></feMergeNode>
+          </feMerge>
+        </filter>
       </defs>
 
-      <g class="escenas" mask="url(#amb-recorte)">
+      <g id="escenas" class="escenas" mask="url(#amb-recorte)">
         <line x1="0" y1="438" x2="1240" y2="438" class="ln ln-22" stroke-width="1"></line>
+
+        <!-- Cada escena separa lo que está a los costados del equipo (izq/der)
+             de lo que va arriba: en mobile el recorte es angosto y los
+             costados se acercan (ambientes.css); lo de arriba no se mueve. -->
 
         <!-- cámara de frío: puerta aislada, evaporador, estantería -->
         <g id="esc-0" class="esc on">
-          <rect x="150" y="150" width="208" height="288" rx="6" class="ln ln-22" stroke-width="1.2"></rect>
-          <rect x="168" y="168" width="172" height="252" rx="4" class="ln ln-22" stroke-width="1"></rect>
-          <path d="M168 262h172" class="ln ln-22" stroke-width="1"></path>
-          <rect x="320" y="278" width="10" height="44" rx="5" class="ln ln-45" stroke-width="1.2"></rect>
-          <path d="M150 188h-22M150 400h-22" class="ln ln-22" stroke-width="1.2"></path>
+          <g class="lado izq">
+            <rect x="150" y="150" width="208" height="288" rx="6" class="ln ln-22" stroke-width="1.2"></rect>
+            <rect x="168" y="168" width="172" height="252" rx="4" class="ln ln-22" stroke-width="1"></rect>
+            <path d="M168 262h172" class="ln ln-22" stroke-width="1"></path>
+            <rect x="320" y="278" width="10" height="44" rx="5" class="ln ln-45" stroke-width="1.2"></rect>
+            <path d="M150 188h-22M150 400h-22" class="ln ln-22" stroke-width="1.2"></path>
+          </g>
           <rect x="790" y="96" width="150" height="58" rx="5" class="ln ln-22" stroke-width="1.2"></rect>
           <path d="M808 110v30M828 110v30M848 110v30M868 110v30M888 110v30M908 110v30M928 110v30" class="ln ln-22" stroke-width="1"></path>
           <path d="M820 96V70M910 96V70" class="ln ln-22" stroke-width="1"></path>
-          <path d="M970 438V196h196v242M970 274h196M970 356h196" class="ln ln-22" stroke-width="1.2"></path>
-          <rect x="986" y="216" width="64" height="58" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <rect x="1074" y="300" width="72" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <rect x="986" y="382" width="86" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <g class="lado der">
+            <path d="M970 438V196h196v242M970 274h196M970 356h196" class="ln ln-22" stroke-width="1.2"></path>
+            <rect x="986" y="216" width="64" height="58" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+            <rect x="1074" y="300" width="72" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+            <rect x="986" y="382" width="86" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          </g>
         </g>
 
         <!-- invernadero: nave curva, riego colgante, cantero -->
         <g id="esc-1" class="esc">
-          <path d="M80 438V300a166 132 0 0 1 332 0v138" class="ln ln-22" stroke-width="1.2"></path>
-          <path d="M246 168V438M164 190V438M328 190V438" class="ln ln-22" stroke-width="1"></path>
-          <path d="M80 330h332" class="ln ln-22" stroke-width="1"></path>
+          <g class="lado izq">
+            <path d="M80 438V300a166 132 0 0 1 332 0v138" class="ln ln-22" stroke-width="1.2"></path>
+            <path d="M246 168V438M164 190V438M328 190V438" class="ln ln-22" stroke-width="1"></path>
+            <path d="M80 330h332" class="ln ln-22" stroke-width="1"></path>
+          </g>
           <path d="M812 120h348" class="ln ln-22" stroke-width="1.2"></path>
           <path d="M856 120v24M940 120v24M1024 120v24M1108 120v24" class="ln ln-22" stroke-width="1"></path>
           <circle cx="856" cy="172" r="3.5" class="ln ln-45" stroke-width="1.1"></circle>
           <circle cx="1024" cy="188" r="3.5" class="ln ln-45" stroke-width="1.1"></circle>
-          <path d="M962 406h188v32H962z" class="ln ln-22" stroke-width="1.1"></path>
-          <path d="M1000 406c0-30 16-46 16-46M1016 382c-16-4-22-18-22-18M1016 376c14-6 18-20 18-20" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-          <path d="M1080 406c0-24 13-38 13-38M1093 388c-13-4-18-15-18-15" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-          <path d="M1136 406c0-28 15-43 15-43M1151 384c-15-4-21-17-21-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          <g class="lado der">
+            <path d="M962 406h188v32H962z" class="ln ln-22" stroke-width="1.1"></path>
+            <path d="M1000 406c0-30 16-46 16-46M1016 382c-16-4-22-18-22-18M1016 376c14-6 18-20 18-20" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+            <path d="M1080 406c0-24 13-38 13-38M1093 388c-13-4-18-15-18-15" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+            <path d="M1136 406c0-28 15-43 15-43M1151 384c-15-4-21-17-21-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          </g>
         </g>
 
         <!-- campo: sol, surcos que se van al horizonte, alambrado -->
         <g id="esc-2" class="esc">
           <path d="M0 384c212-18 442-24 628-24s404 6 612 24" class="ln ln-22" stroke-width="1"></path>
           <path d="M0 410c212-22 442-30 628-30s404 8 612 30" class="ln ln-22" stroke-width="1.1"></path>
-          <circle cx="1070" cy="104" r="30" class="ln ln-22" stroke-width="1.2"></circle>
-          <path d="M1070 50v14M1070 144v14M1010 104h14M1116 104h14M1028 62l10 10M1102 136l10 10M1112 62l-10 10M1038 136l-10 10" class="ln ln-22" stroke-width="1.1" stroke-linecap="round"></path>
-          <path d="M196 438c0-44 22-68 22-68M218 404c-22-5-30-27-30-27M218 396c21-8 27-30 27-30" class="ln ln-22" stroke-width="1.4" stroke-linecap="round"></path>
-          <path d="M272 438c0-34 17-53 17-53M289 412c-17-4-23-21-23-21M289 406c16-6 21-23 21-23" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-          <path d="M330 438c0-26 14-42 14-42M344 418c-14-4-19-17-19-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
-          <path d="M1000 438v-84M1065 438v-78M1130 438v-72" class="ln ln-22" stroke-width="1.2"></path>
-          <path d="M1000 378c32-2 65-4 130-8M1000 404c32-2 65-4 130-8" class="ln ln-22" stroke-width="1"></path>
+          <g class="lado izq">
+            <path d="M196 438c0-44 22-68 22-68M218 404c-22-5-30-27-30-27M218 396c21-8 27-30 27-30" class="ln ln-22" stroke-width="1.4" stroke-linecap="round"></path>
+            <path d="M272 438c0-34 17-53 17-53M289 412c-17-4-23-21-23-21M289 406c16-6 21-23 21-23" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+            <path d="M330 438c0-26 14-42 14-42M344 418c-14-4-19-17-19-17" class="ln ln-22" stroke-width="1.3" stroke-linecap="round"></path>
+          </g>
+          <g class="lado der">
+            <!-- bajo para no quedar detrás de "Usar este preset"; en mobile sube (ambientes.css) -->
+            <g class="sol">
+              <circle cx="1070" cy="180" r="30" class="ln ln-22" stroke-width="1.2"></circle>
+              <path d="M1070 126v14M1070 220v14M1010 180h14M1116 180h14M1028 138l10 10M1102 212l10 10M1112 138l-10 10M1038 212l-10 10" class="ln ln-22" stroke-width="1.1" stroke-linecap="round"></path>
+            </g>
+            <path d="M1000 438v-84M1065 438v-78M1130 438v-72" class="ln ln-22" stroke-width="1.2"></path>
+            <path d="M1000 378c32-2 65-4 130-8M1000 404c32-2 65-4 130-8" class="ln ln-22" stroke-width="1"></path>
+          </g>
         </g>
 
         <!-- depósito: cabriadas, racks y pallets -->
         <g id="esc-3" class="esc">
           <path d="M600 92h560M600 140h560" class="ln ln-22" stroke-width="1"></path>
           <path d="M600 140l35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48 35-48 35 48" class="ln ln-22" stroke-width="1.1"></path>
-          <path d="M92 438V180h248v258M92 258h248M92 348h248M216 180v258" class="ln ln-22" stroke-width="1.2"></path>
-          <rect x="108" y="196" width="88" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <rect x="232" y="286" width="92" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <rect x="108" y="376" width="88" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <rect x="950" y="358" width="120" height="80" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <rect x="1084" y="392" width="66" height="46" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <path d="M938 452h212" class="ln ln-22" stroke-width="1.2"></path>
+          <g class="lado izq">
+            <path d="M92 438V180h248v258M92 258h248M92 348h248M216 180v258" class="ln ln-22" stroke-width="1.2"></path>
+            <rect x="108" y="196" width="88" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+            <rect x="232" y="286" width="92" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+            <rect x="108" y="376" width="88" height="56" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          </g>
+          <g class="lado der">
+            <rect x="950" y="358" width="120" height="80" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+            <rect x="1084" y="392" width="66" height="46" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+            <path d="M938 452h212" class="ln ln-22" stroke-width="1.2"></path>
+          </g>
         </g>
 
         <!-- laboratorio: mesada con vidrio, estante y campana -->
         <g id="esc-4" class="esc">
-          <path d="M92 352h300M120 352v86M364 352v86" class="ln ln-22" stroke-width="1.2"></path>
-          <path d="M176 350l26-52v-18h13v18l26 52z" class="ln ln-22" stroke-width="1.2"></path>
-          <path d="M194 328h30" class="ln ln-22" stroke-width="1"></path>
-          <rect x="272" y="296" width="18" height="54" rx="9" class="ln ln-22" stroke-width="1.2"></rect>
-          <path d="M264 332h34" class="ln ln-22" stroke-width="1"></path>
-          <rect x="318" y="320" width="30" height="30" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          <g class="lado izq">
+            <path d="M92 352h300M120 352v86M364 352v86" class="ln ln-22" stroke-width="1.2"></path>
+            <path d="M176 350l26-52v-18h13v18l26 52z" class="ln ln-22" stroke-width="1.2"></path>
+            <path d="M194 328h30" class="ln ln-22" stroke-width="1"></path>
+            <rect x="272" y="296" width="18" height="54" rx="9" class="ln ln-22" stroke-width="1.2"></rect>
+            <path d="M264 332h34" class="ln ln-22" stroke-width="1"></path>
+            <rect x="318" y="320" width="30" height="30" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
+          </g>
           <path d="M800 152h132" class="ln ln-22" stroke-width="1.2"></path>
           <rect x="812" y="114" width="22" height="38" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
           <rect x="848" y="124" width="20" height="28" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
           <rect x="884" y="108" width="24" height="44" rx="3" class="ln ln-22" stroke-width="1.1"></rect>
-          <path d="M940 438V168h210v270M940 250h210" class="ln ln-22" stroke-width="1.2"></path>
-          <path d="M972 210h146" class="ln ln-22" stroke-width="1"></path>
-          <path d="M1045 168v-58M1009 110h72" class="ln ln-22" stroke-width="1.2"></path>
+          <g class="lado der">
+            <path d="M940 438V168h210v270M940 250h210" class="ln ln-22" stroke-width="1.2"></path>
+            <path d="M972 210h146" class="ln ln-22" stroke-width="1"></path>
+            <path d="M1045 168v-58M1009 110h72" class="ln ln-22" stroke-width="1.2"></path>
+          </g>
         </g>
       </g>
 
@@ -134,16 +200,19 @@ const inicial = AMBIENTES[0]
         <g id="amb-outer" class:list={{ 'has-gw': inicial.mods.gw }}>
           <g class="unit-main">
             <ellipse class="velo" cx="320" cy="300" rx="250" ry="250" fill="url(#amb-velo)"></ellipse>
-            <Solar id="amb-solar" activo={inicial.mods.solar} />
-            <Lora id="amb-lora" activo={inicial.mods.lora} />
-            <Bateria id="amb-bat" activo={inicial.mods.bat} />
-            <Presion id="amb-pres" activo={inicial.mods.pres} />
-            <Uv id="amb-uv" activo={inicial.mods.uv} />
-            <Cuerpo />
-            <Temperatura id="amb-temp" activo={inicial.mods.temp} />
-            <Humedad id="amb-hum" activo={inicial.mods.hum} />
-            <Co2 id="amb-co2" activo={inicial.mods.co2} />
-            <Suelo id="amb-suelo" activo={inicial.mods.suelo} />
+            <!-- fuera del halo va el velo: saturado taparía todo el fondo -->
+            <g class="amb-piezas">
+              <Solar id="amb-solar" activo={inicial.mods.solar} />
+              <Lora id="amb-lora" activo={inicial.mods.lora} />
+              <Bateria id="amb-bat" activo={inicial.mods.bat} />
+              <Presion id="amb-pres" activo={inicial.mods.pres} />
+              <Uv id="amb-uv" activo={inicial.mods.uv} />
+              <Cuerpo />
+              <Temperatura id="amb-temp" activo={inicial.mods.temp} />
+              <Humedad id="amb-hum" activo={inicial.mods.hum} />
+              <Co2 id="amb-co2" activo={inicial.mods.co2} />
+              <Suelo id="amb-suelo" activo={inicial.mods.suelo} />
+            </g>
           </g>
           <ellipse class="velo velo-gw" cx="666" cy="317" rx="165" ry="190" fill="url(#amb-velo)"></ellipse>
           <Gateway id="amb-gw" />
@@ -151,26 +220,24 @@ const inicial = AMBIENTES[0]
       </g>
     </svg>
 
-    <div id="slide-info" class="slide-info fd-a">
-      <div id="ambiente-nombre" class="slide-nom">{inicial.nombre}</div>
-      <div id="ambiente-config" class="slide-cfg">{inicial.config}</div>
-    </div>
+    <footer class="car-pie">
+      <button type="button" id="car-prev" class="car-nav prev" aria-label="Ambiente anterior">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+      </button>
 
-    <button type="button" id="car-prev" class="car-nav prev" aria-label="Ambiente anterior">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
-    </button>
-    <button type="button" id="car-next" class="car-nav next" aria-label="Ambiente siguiente">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
-    </button>
+      <!-- el activo cuenta el tiempo que le queda; los demás son sólo un punto -->
+      <div id="puntos" class="puntos">
+        {AMBIENTES.map((amb, i) => (
+          <button type="button" class:list={['punto', { on: i === 0 }]} data-i={i} aria-label={amb.nombre}>
+            <span class="punto-barra"></span>
+          </button>
+        ))}
+      </div>
 
-    <!-- el activo cuenta el tiempo que le queda; los demás son sólo un punto -->
-    <div id="puntos" class="puntos">
-      {AMBIENTES.map((amb, i) => (
-        <button type="button" class:list={['punto', { on: i === 0 }]} data-i={i} aria-label={amb.nombre}>
-          <span class="punto-barra"></span>
-        </button>
-      ))}
-    </div>
+      <button type="button" id="car-next" class="car-nav next" aria-label="Ambiente siguiente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+      </button>
+    </footer>
   </div>
 </section>
 

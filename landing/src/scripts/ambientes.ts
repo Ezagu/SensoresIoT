@@ -1,7 +1,7 @@
 // El carrusel de ambientes: prende el lugar de fondo, le pone al equipo los
 // módulos de ese ambiente y reacomoda las ranuras. El equipo es el mismo
 // componente del configurador, así que acá no se dibuja nada: se prende.
-import { AMBIENTES } from '../datos/ambientes'
+import { AMBIENTES, VISTA_MOVIL, VISTA_MOVIL_GW } from '../datos/ambientes'
 import { CARRUSEL_SEGUNDOS } from '../datos/config'
 import { TODOS } from '../datos/equipo'
 import { SENSORES } from '../datos/precios'
@@ -13,8 +13,10 @@ const carrusel = document.getElementById('carrusel')
 const infoNombre = document.getElementById('ambiente-nombre')
 const infoConfig = document.getElementById('ambiente-config')
 const slideInfo = document.getElementById('slide-info')
+const escenas = document.getElementById('escenas')
+const fundidoMovil = document.getElementById('amb-margen-movil')
 
-if (svg && carrusel && infoNombre && infoConfig && slideInfo) {
+if (svg && carrusel && infoNombre && infoConfig && slideInfo && escenas && fundidoMovil) {
   let slide = 0
   let nav = 0
   let compacto = false
@@ -39,7 +41,15 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo) {
     })
     document.getElementById('amb-outer')?.classList.toggle('has-gw', Boolean(amb.mods.gw))
 
-    svg!.setAttribute('viewBox', compacto ? amb.vista : '0 0 1240 500')
+    if (compacto) {
+      const v = amb.mods.gw ? VISTA_MOVIL_GW : VISTA_MOVIL
+      svg!.setAttribute('viewBox', `${v.x} ${v.y} ${v.ancho} ${v.alto}`)
+      fundidoMovil!.setAttribute('x1', String(v.x))
+      fundidoMovil!.setAttribute('x2', String(v.x + v.ancho))
+    } else {
+      svg!.setAttribute('viewBox', '0 0 1240 500')
+    }
+    escenas!.setAttribute('mask', compacto ? 'url(#amb-recorte-movil)' : 'url(#amb-recorte)')
     svg!.setAttribute('aria-label', amb.alt)
 
     slideInfo!.setAttribute('class', `slide-info ${nav % 2 === 0 ? 'fd-a' : 'fd-b'}`)
@@ -89,6 +99,13 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo) {
     btn.addEventListener('click', () => irA(Number(btn.dataset.i), true))
   })
 
+  // El configurador sabe partir de un ambiente (mismo índice): se le avisa
+  // en vez de duplicar esa lógica acá.
+  document.getElementById('usar-preset')?.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('usar-ambiente', { detail: slide }))
+    document.getElementById('equipo')?.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'start' })
+  })
+
   carrusel.addEventListener('pointerdown', (e) => {
     arrastreX = e.clientX
     detener()
@@ -99,16 +116,19 @@ if (svg && carrusel && infoNombre && infoConfig && slideInfo) {
     if (Math.abs(d) > 40) irA(d < 0 ? slide + 1 : slide - 1, true)
     else programarCarrusel()
   })
+  // Sólo reprograma si el pointerleave corta un arrastre a mitad de camino
+  // (se fue sin soltar): un simple paso del mouse no puede reiniciar la
+  // cuenta de un avance que ya venía corriendo, o el hover volvería a frenarlo
+  // de hecho.
   carrusel.addEventListener('pointerleave', () => {
+    const enArrastre = arrastreX !== null
     arrastreX = null
-    programarCarrusel()
+    if (enArrastre) programarCarrusel()
   })
 
-  // El avance se frena mientras lo estás mirando: con el puntero encima o con
-  // el foco adentro. En táctil no aplica (ahí frena el pointerdown).
-  if (matchMedia('(hover: hover)').matches) {
-    carrusel.addEventListener('pointerenter', detener)
-  }
+  // El avance se frena con el foco adentro (accesibilidad), no con el simple
+  // paso del mouse: en desktop la animación sigue aunque el puntero esté
+  // encima. En táctil tampoco aplica (ahí frena el pointerdown).
   carrusel.addEventListener('focusin', detener)
   carrusel.addEventListener('focusout', () => {
     if (!carrusel.matches(':focus-within')) programarCarrusel()

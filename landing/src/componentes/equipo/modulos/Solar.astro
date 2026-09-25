@@ -2,7 +2,7 @@
 import type { Props } from './props'
 import { SEPARACION } from '../ranuras'
 const [ex, ey] = SEPARACION.solar
-const { id, activo = false, x = 224, y = 108 } = Astro.props
+const { id, activo = false, x = 224, y = 110 } = Astro.props
 ---
 
 <g id={id} class:list={['mod', 'p-solar', { on: activo }]} style={`--ex:${ex}px;--ey:${ey}px`}>
@@ -10,6 +10,6 @@ const { id, activo = false, x = 224, y = 108 } = Astro.props
     <rect width="192" height="45" rx="6" class="plate-fill ln ln-45" stroke-width="1.3"></rect>
     <path d="M0 22.5h192M48 0v45M96 0v45M144 0v45" class="ln ln-22" stroke-width="1"></path>
     <!-- la placa se come parte del mástil: el pie apoya en el techo del gabinete -->
-    <path d="M96 45v19M72 64h48" class="ln ln-45" stroke-width="1.3"></path>
+    <path d="M96 45v19" class="ln ln-45" stroke-width="1.3"></path>
   </g>
 </g>

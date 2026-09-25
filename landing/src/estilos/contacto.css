@@ -24,6 +24,12 @@
     .foot-in { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--lp-faint); }
     .foot-in .r { margin-left: auto; }
     @media (max-width: 660px) { .foot-in .r { margin-left: 0; } }
+    .tema { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--lp-line-soft); border-radius: 999px; }
+    .tema button { height: 30px; padding: 0 12px; border: 0; border-radius: 999px; background: transparent; color: var(--lp-faint); font-size: 12px; transition: color 160ms var(--ease-out), background-color 160ms var(--ease-out); }
+    .tema button:hover { color: var(--lp-text); }
+    .tema button[aria-pressed="true"] { background: var(--lp-accent-wash); color: var(--lp-text); }
+    .tema button:focus-visible { box-shadow: 0 0 0 3px var(--lp-accent-wash); }
+    @media (max-width: 900px) { .tema button { height: 40px; padding: 0 14px; } }
 
     /* piezas que sólo existen en pantalla chica */
     .segm { display: none; }
