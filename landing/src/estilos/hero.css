@@ -1,114 +1,100 @@
-/* Port de Main.dc.html:121-263. Un cambio: .rise/.rise.in (activado por la
-   clave heroIn que setState-eaba a los 120ms) pasa a un @keyframes con
-   animation-delay: la clave desaparece y el disparo ya no depende de JS.
-   El bloque prefers-reduced-motion de respuesta.css apaga esta animación
-   con animation:none, que deja el elemento en su estado final (visible,
-   sin transform) — el resultado es el mismo que quieto=true en el mockup. */
-    /* La barra es sticky y ocupa lugar en el flujo, así que el alto de pantalla
-       se reparte entre las dos: 100dvh acá dejaría el hero 60px abajo del pliegue. */
-    .hero { min-height: calc(100dvh - 60px); display: flex; flex-direction: column; justify-content: center; padding: clamp(40px, 7vw, 86px) 0 clamp(36px, 5vw, 64px); }
-    .hero-grid { display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr); gap: clamp(20px, 4vw, 52px); align-items: center; }
-    @media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; gap: 28px; } }
-    .hero-copy { container-type: inline-size; display: flex; flex-direction: column; gap: 26px; }
-    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+/* La barra es sticky y ocupa lugar en el flujo, así que el alto de pantalla
+   se reparte entre las dos: 100dvh acá dejaría el hero 60px abajo del pliegue. */
+.hero { min-height: calc(100dvh - 60px); display: flex; flex-direction: column; justify-content: center; padding: clamp(40px, 7vw, 86px) 0 clamp(36px, 5vw, 64px); }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(20px, 4vw, 52px); align-items: center; }
+@media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; gap: 36px; } }
+.hero-copy { container-type: inline-size; display: flex; flex-direction: column; gap: 26px; }
+/* el titular dice más que el de las otras secciones: un paso abajo para que entre en cuatro líneas */
+.hero .display { font-size: clamp(34px, 10.4cqi, 66px); }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
-    /* ── la entrada del equipo ── */
-    @keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-    .rise { animation: riseIn 700ms var(--ease-out) 120ms both; }
+.hero-pilares { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--lp-dim); }
+.hero-pilares li { display: inline-flex; align-items: center; gap: 8px; }
+.hero-pilares li::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-accent); }
 
-    /* ── hero: la demostración en vivo ── */
-    /* el equipo y la tarjeta comparten ancho: comparten el centro */
-    .hero-dev-wrap { width: 100%; max-width: 500px; margin-inline: auto; }
-    .hero-dev .onda-radio { opacity: 0.16; transition: stroke 300ms var(--ease-out); }
-    .hero-dev.tx .onda-radio { animation: onda calc(var(--lp-sal, 4000ms) * 0.7) ease-out infinite; }
-    .hero-dev.tx .ondas path:nth-child(2) { animation-delay: 320ms; }
-    .hero-dev.tx .ondas path:nth-child(3) { animation-delay: 640ms; }
-    .hero-dev.tx-rapido .onda-radio { animation-duration: calc(var(--lp-sal, 4000ms) * 0.45); }
-    .hero-dev.f-alerta .onda-radio { stroke: var(--lp-warn-mark); }
-    @keyframes onda { 0% { opacity: 0.1; } 28% { opacity: 0.75; } 100% { opacity: 0.1; } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 
-    /* medir es rutina: la medición que entra se ve, no se hace notar */
-    .hero-dev .dot-in { opacity: 0; fill: var(--lp-faint); }
-    /* El color y la duración los fija hero.ts al emitir cada punto, no una clase
-       de fase: un envío que ya salió termina su viaje como salió, aunque el
-       equipo cambie de estado mientras tanto. */
-    .hero-dev .dot-out { fill: var(--lp-ok); animation: transmite var(--lp-sal, 4000ms) linear both; }
-    .hero-dev .d-temp { animation: mideTemp var(--lp-ent, 4600ms) linear infinite; }
-    .hero-dev .d-hum { animation: mideHum var(--lp-ent, 4600ms) linear infinite; }
-    .hero-dev .d-co2 { animation: mideCo2 var(--lp-ent, 4600ms) linear infinite; }
-    .hero-dev .r2 { animation-delay: calc(var(--lp-ent, 4600ms) / 3); }
-    .hero-dev .r3 { animation-delay: calc(var(--lp-ent, 4600ms) / 3 * 2); }
-    .hero-dev.sin-anim .dot, .hero-dev.sin-anim .onda-radio { animation: none !important; }
-    .hero-dev.sin-anim .onda-radio { opacity: 0.35; }
+/* ── la escena: la foto del equipo atrás, el celular adelante ── */
+.hero-escena { position: relative; width: 100%; max-width: 540px; margin-inline: auto; aspect-ratio: 540 / 580; }
 
-    /* Cada sensor es una celda de la grilla; el punto baja a la placa y de ahí
-       sale por la antena. Los centros salen de equipo/ranuras.ts (celda + 29). */
-    @keyframes mideTemp {
-      0%   { transform: translate(251px, 300px); opacity: 0; }
-      14%  { opacity: 0.42; }
-      46%  { transform: translate(251px, 350px); opacity: 0.42; }
-      88%  { opacity: 0.34; }
-      100% { transform: translate(295px, 384px); opacity: 0; }
-    }
-    @keyframes mideHum {
-      0%   { transform: translate(320px, 300px); opacity: 0; }
-      14%  { opacity: 0.42; }
-      46%  { transform: translate(320px, 350px); opacity: 0.42; }
-      88%  { opacity: 0.34; }
-      100% { transform: translate(320px, 384px); opacity: 0; }
-    }
-    @keyframes mideCo2 {
-      0%   { transform: translate(389px, 300px); opacity: 0; }
-      14%  { opacity: 0.42; }
-      52%  { transform: translate(389px, 350px); opacity: 0.42; }
-      88%  { opacity: 0.34; }
-      100% { transform: translate(345px, 384px); opacity: 0; }
-    }
-    /* de la placa al mástil, y por dentro del mástil hasta donde nacen las
-       ondas (equipo/modulos/Lora.astro, x=450 y=160 en el hero) */
-    @keyframes transmite {
-      0%   { transform: translate(410px, 388px); opacity: 0; }
-      12%  { opacity: 1; }
-      30%  { transform: translate(462px, 378px); opacity: 1; }
-      62%  { transform: translate(468px, 294px); opacity: 1; }
-      86%  { transform: translate(468px, 214px); opacity: 0.9; }
-      100% { transform: translate(470px, 186px); opacity: 0; }
-    }
+.hero-foto { position: absolute; left: 0; top: 11%; width: 58%; margin: 0; display: flex; flex-direction: column; gap: 10px; animation: riseIn 700ms var(--ease-out) 60ms both; }
+.hero-foto__marco { aspect-ratio: 4 / 5; border-radius: 16px; border: 1px dashed var(--lp-line); background: var(--lp-surface); color: var(--lp-faint); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; font-size: 13px; }
+.hero-foto__marco svg { width: 30px; height: 30px; }
+.hero-foto figcaption { padding-left: 2px; }
 
-    .hero-dev .buf-hueco { fill: currentColor; opacity: 0.22; }
-    .hero-dev .buf { fill: var(--lp-amber); opacity: 0; transition: opacity calc(var(--lp-trans, 520ms) * 0.9) var(--ease-out); }
-    .hero-dev .buf.on { opacity: 1; }
-    .hero-dev .led { transition: fill calc(var(--lp-trans, 520ms) * 1.2) var(--ease-out); }
-    .hero-dev .nucleo-alerta { opacity: 0; }
-    /* Respiración, no destello: la misma curva que el halo del LED (equipo.css)
-       pero más rápida y sin llegar a apagarse — mientras el equipo detecta, la
-       placa nunca vuelve del todo a normal. Los 2200ms no coinciden con los
-       2600ms del halo a propósito: sincronizados se leen como un mecanismo. */
-    .hero-dev.det-alerta .nucleo-alerta { animation: respiraAlerta 2200ms ease-in-out infinite; }
-    @keyframes respiraAlerta { 0%, 100% { opacity: 0.14; } 50% { opacity: 0.62; } }
+/* ── el celular ──
+   Lo de adentro se mide en cqi del propio teléfono y se achica entero con él.
+   El marco va en px: el cqi de .tel se resuelve contra su ancestro, no contra sí. */
+.tel { position: absolute; right: 0; top: 0; width: 50%; aspect-ratio: 9 / 18.4; container-type: inline-size; padding: 8px; border-radius: 40px; background: var(--lp-plate); border: 1px solid var(--lp-line); box-shadow: var(--lp-shadow); animation: riseIn 700ms var(--ease-out) 180ms both; }
+.tel-pantalla { position: relative; height: 100%; overflow: hidden; border-radius: 32px; background: var(--lp-surface); display: flex; flex-direction: column; }
 
-    .estado-card { margin: 0 auto 18px; max-width: 340px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--lp-line); background: var(--lp-surface); border-radius: 12px; padding: 13px 15px; transition: border-color var(--lp-trans, 520ms) var(--ease-out), background-color var(--lp-trans, 520ms) var(--ease-out); }
-    .estado-card .e-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lp-ok); flex: none; transition: background-color var(--lp-trans, 520ms) var(--ease-out); }
-    .estado-card.is-espera { border-color: var(--lp-amber-line); background: var(--lp-amber-wash); }
-    .estado-card.is-espera .e-dot { background: var(--lp-amber); }
-    .estado-card.is-alerta { border-color: var(--lp-warn-line); background: var(--lp-warn-wash); }
-    .estado-card.is-alerta .e-dot { background: var(--lp-warn-mark); }
-    .estado-card .e-t { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; user-select: none; }
-    .estado-card.is-alerta .e-t { color: var(--lp-warn); }
-    .estado-card .e-s { font-size: 12px; color: var(--lp-dim); margin-top: 3px; user-select: none; }
-    .e-avisa { margin-left: auto; flex: none; display: inline-flex; color: var(--lp-warn); animation: avisaEntra var(--lp-trans, 520ms) var(--ease-out); }
-    .e-avisa svg { width: 22px; height: 22px; }
-    .e-avisa .campana { animation: campana 2600ms ease-in-out infinite; transform-origin: 12px 5px; }
-    .e-avisa .onda { opacity: 0; animation: avisaOnda 2600ms ease-out infinite; }
-    .e-avisa .onda.o2 { animation-delay: 220ms; }
-    @keyframes avisaEntra { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-    @keyframes campana { 0%, 62%, 100% { transform: rotate(0deg); } 68% { transform: rotate(7deg); } 74% { transform: rotate(-6deg); } 80% { transform: rotate(3deg); } 86% { transform: rotate(0deg); } }
-    @keyframes avisaOnda { 0%, 58% { opacity: 0; } 70% { opacity: 0.85; } 100% { opacity: 0; } }
-    /* cardA/cardB son el mismo movimiento: alternar la clase es lo que
-       vuelve a disparar la animación en cada cambio de fase */
-    .sw-a { animation: cardA var(--lp-trans, 520ms) var(--ease-out); }
-    .sw-b { animation: cardB var(--lp-trans, 520ms) var(--ease-out); }
-    @keyframes cardA { from { opacity: 0.25; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-    @keyframes cardB { from { opacity: 0.25; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.tel-barra { display: flex; align-items: center; justify-content: space-between; padding: 4.4cqi 7cqi 0; font-size: 4.2cqi; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tel-isla { width: 27cqi; height: 7.6cqi; border-radius: 99px; background: var(--lp-bg); }
+.tel-bat { width: 7.6cqi; height: 3.8cqi; border-radius: 1.2cqi; border: 1px solid var(--lp-dim); box-shadow: inset 4.4cqi 0 0 var(--lp-dim); }
 
+/* el bloque va centrado en la pantalla: el aviso cae arriba, sobre el aire, sin tapar el dato */
+.tel-app { padding: 0 6.5cqi 8cqi; display: flex; flex-direction: column; justify-content: center; flex: 1; }
 
+.tel-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 3cqi; }
+.tel-nombre { font-size: 5.6cqi; font-weight: 600; }
+.tel-lugar { font-size: 4.2cqi; color: var(--lp-dim); margin-top: 0.8cqi; }
+.tel .bt-status--pill { height: 8.4cqi; padding: 0 3.4cqi 0 2.6cqi; gap: 2.2cqi; }
+.tel .bt-status__label { font-size: 4.4cqi; }
+.tel .bt-mark { width: 3.6cqi; height: 3.6cqi; }
+
+.tel-lectura { margin-top: 6cqi; display: flex; align-items: baseline; gap: 1.6cqi; }
+.tel-valor { font-size: 19cqi; line-height: 1; letter-spacing: -0.03em; transition: color 300ms var(--ease-out); }
+.tel-unidad { font-size: 5.6cqi; color: var(--lp-dim); }
+.tel.es-alerta .tel-valor { color: var(--lp-warn); }
+.tel-rotulo { font-size: 3.4cqi; margin-top: 3cqi; display: flex; align-items: center; gap: 1.8cqi; }
+.tel-vivo { width: 1.8cqi; height: 1.8cqi; border-radius: 50%; background: var(--lp-ok); animation: vivo 1600ms ease-in-out infinite; }
+@keyframes vivo { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.tel-graf { margin-top: 4cqi; }
+.tel-graf svg { display: block; width: 100%; height: auto; overflow: visible; }
+.tel-zona { fill: var(--lp-warn-wash); }
+.tel-guia { stroke: var(--lp-line-soft); stroke-width: 1; }
+.tel-umbral { stroke: var(--lp-warn-mark); stroke-width: 1.2; stroke-dasharray: 4 4; opacity: 0.8; }
+.tel-umbral-txt { fill: var(--lp-warn); font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; }
+.tel-calma, .tel-sube { stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.tel-calma { stroke: var(--lp-accent); }
+.tel-sube { stroke: var(--lp-warn-mark); }
+.tel-punta { fill: var(--lp-accent); stroke: var(--lp-surface); stroke-width: 2; transition: fill 300ms var(--ease-out); }
+.tel-punta.arriba { fill: var(--lp-warn-mark); }
+
+.tel-home { position: absolute; left: 50%; bottom: 3cqi; width: 34cqi; height: 1.4cqi; margin-left: -17cqi; border-radius: 99px; background: var(--lp-dim); opacity: 0.5; }
+
+/* ── en rango: la tarjeta que ocupa el lugar del aviso ── */
+.tel-estado { position: absolute; left: 3.4cqi; right: 3.4cqi; top: 16cqi; display: flex; gap: 3.4cqi; align-items: center; padding: 3.8cqi; border-radius: 6.4cqi; background: var(--lp-plate); border: 1px solid var(--lp-line-soft); transition: opacity 320ms var(--ease-out), transform 320ms var(--ease-out); }
+.tel.es-alerta .tel-estado { opacity: 0; transform: scale(0.96); }
+.tel-estado__icono { flex: none; width: 9.6cqi; height: 9.6cqi; border-radius: 2.8cqi; display: grid; place-items: center; background: var(--lp-ok-wash); color: var(--lp-ok); }
+.tel-estado__icono svg { width: 5.2cqi; height: 5.2cqi; }
+.tel-estado__tit { font-size: 4.6cqi; font-weight: 600; }
+.tel-estado__sub { font-size: 4cqi; color: var(--lp-dim); margin-top: 0.8cqi; }
+
+/* ── la notificación ──
+   Entra desde arriba como cualquier aviso del sistema, sin decir por qué
+   canal: eso lo cuentan los planes. */
+.tel-aviso { position: absolute; z-index: 1; left: 3.4cqi; right: 3.4cqi; top: 16cqi; display: flex; gap: 3.4cqi; align-items: flex-start; padding: 3.8cqi; border-radius: 6.4cqi; background: var(--lp-raise); border: 1px solid var(--lp-line); box-shadow: var(--lp-shadow); opacity: 0; transform: translateY(-120%); transition: transform 420ms var(--ease-out), opacity 260ms var(--ease-out); }
+.tel-aviso.on { opacity: 1; transform: none; transition: transform 520ms var(--ease-out), opacity 200ms var(--ease-out); }
+/* los tres canales apilados en la misma celda: se cruzan en vez de saltar */
+.tel-aviso__icono { flex: none; width: 9.6cqi; height: 9.6cqi; border-radius: 2.8cqi; display: grid; place-items: center; background: var(--lp-accent-wash); color: var(--lp-accent); }
+.tel-aviso__icono svg { grid-area: 1 / 1; width: 5.6cqi; height: 5.6cqi; opacity: 0; transform: scale(0.6); transition: opacity 240ms var(--ease-out), transform 320ms var(--ease-out); }
+.tel-aviso__cab b { grid-area: 1 / 1; font-weight: 600; opacity: 0; transition: opacity 240ms var(--ease-out); }
+.tel-aviso[data-canal="mail"] [data-canal="mail"],
+.tel-aviso[data-canal="whatsapp"] [data-canal="whatsapp"],
+.tel-aviso[data-canal="telegram"] [data-canal="telegram"] { opacity: 1; transform: none; }
+.tel-aviso__txt { min-width: 0; flex: 1; }
+.tel-aviso__cab { display: grid; grid-template-columns: 1fr auto; font-size: 3.6cqi; color: var(--lp-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.tel-aviso__tit { display: flex; align-items: center; gap: 1.8cqi; font-size: 4.6cqi; font-weight: 600; margin-top: 1.2cqi; }
+.tel-aviso__tit .bt-mark { width: 3.4cqi; height: 3.4cqi; }
+.tel-aviso__cuerpo { font-size: 4cqi; color: var(--lp-dim); margin-top: 0.8cqi; line-height: 1.35; }
+
+/* ── en mano: el celular pasa adelante y más grande, la foto asoma atrás ── */
+@media (max-width: 720px) {
+  .hero-escena { aspect-ratio: 1 / 1.2; max-width: 440px; }
+  .hero-foto { width: 52%; top: 14%; }
+  /* sólo el tramo de la foto que el celular no tapa */
+  .hero-foto figcaption { max-width: 78%; line-height: 1.5; }
+  .tel { width: 58%; }
+}

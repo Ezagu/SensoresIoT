@@ -7,10 +7,11 @@
 @import './equipo.css';
 @import './nav.css';
 @import './hero.css';
-@import './guardia.css';
+@import './avisos.css';
 @import './configurador.css';
 @import './ambientes.css';
-@import './registro.css';
+@import './app.css';
+@import './informes.css';
 @import './planes.css';
 @import './preguntas.css';
 @import './contacto.css';

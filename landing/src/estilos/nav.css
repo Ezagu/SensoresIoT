@@ -19,9 +19,11 @@
     /* grid-template-rows en vez de max-height (animar layout es lento y es
        exactamente lo que @utility colapso de frontend/src/index.css evita
        con el mismo truco 0fr->1fr; ver también estilos/preguntas.css). */
-    .menu-panel { display: grid; grid-template-rows: 0fr; background: var(--lp-bg); transition: grid-template-rows 340ms var(--ease-out); }
+    /* Encima del contenido, no en el flujo: si empujara la página, al cerrarse
+       después de tocar un link el destino subiría lo que medía el panel. */
+    .menu-panel { position: absolute; top: 100%; left: 0; right: 0; display: grid; grid-template-rows: 0fr; background: var(--lp-bg); transition: grid-template-rows 340ms var(--ease-out); }
     .menu-panel > div { overflow: hidden; }
-    .menu-panel.abierto { grid-template-rows: 1fr; }
+    .menu-panel.abierto { grid-template-rows: 1fr; box-shadow: var(--lp-shadow); border-bottom: 1px solid var(--lp-line-soft); }
     .menu-panel.abierto > div { border-top: 1px solid var(--lp-line-soft); }
     .menu-panel a { display: flex; align-items: center; min-height: 54px; padding: 0 var(--gut); font-size: 16px; color: var(--lp-text); border-bottom: 1px solid var(--lp-line-soft); }
     .menu-panel a .flechita { margin-left: auto; color: var(--lp-faint); }

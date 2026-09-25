@@ -1,0 +1,26 @@
+---
+// Un aviso tal como llega al celular: el mismo lenguaje que la notificación
+// del hero, en tamaño fijo.
+import MarcaEstado, { type Estado } from './MarcaEstado.astro'
+import IconoCanal, { type Canal } from './IconoCanal.astro'
+
+interface Props {
+  canal: Canal
+  estado: Estado
+  titulo: string
+  cuerpo: string
+  cuando?: string
+}
+
+const { canal, estado, titulo, cuerpo, cuando = 'ahora' } = Astro.props
+const NOMBRE: Record<Canal, string> = { mail: 'Mail', whatsapp: 'WhatsApp', telegram: 'Telegram' }
+---
+
+<div class="notif">
+  <span class="notif__icono"><IconoCanal canal={canal} /></span>
+  <div class="notif__txt">
+    <div class="notif__cab"><b>{NOMBRE[canal]}</b><span>{cuando}</span></div>
+    <div class="notif__tit"><MarcaEstado estado={estado} />{titulo}</div>
+    <div class="notif__cuerpo">{cuerpo}</div>
+  </div>
+</div>

@@ -1,0 +1,68 @@
+---
+// La app en la computadora y en el celular, y cómo se comparte un equipo.
+// Las pantallas son placeholders: el diseño de la app todavía no es el
+// definitivo, así que van capturas reales cuando lo sea.
+const ACCIONES = [
+  'Estado de cada equipo',
+  'Gráficos en tiempo real',
+  'Historial de cada sensor',
+  'Registro de avisos',
+  'Configuración del dispositivo',
+  'Reportes y exportación',
+]
+
+const PERSONAS = [
+  { iniciales: 'MD', nombre: 'Martín Díaz (vos)', mail: 'martin.diaz@ejemplo.com', rol: 'Dueño' },
+  { iniciales: 'JP', nombre: 'Juan Pérez', mail: 'juan.perez@ejemplo.com', rol: 'Puede editar' },
+  { iniciales: 'MG', nombre: 'María Gómez', mail: 'maria.gomez@ejemplo.com', rol: 'Puede ver' },
+]
+---
+
+<section id="app" class="band soft-sec stage">
+  <div class="app-cab">
+    <h2 class="say">Todos tus equipos, en una sola app.</h2>
+    <ul class="app-acciones">
+      {ACCIONES.map((a) => <li>{a}</li>)}
+    </ul>
+  </div>
+
+  <div class="app-escena">
+    <div class="monitor">
+      <div class="monitor__pantalla">
+        <!-- TODO(landing): reemplazar por la captura de la app en escritorio (<img>, 16:10) -->
+        <div class="captura" role="img" aria-label="Captura de la app en la computadora">
+          <span>Captura de la app · escritorio</span>
+        </div>
+      </div>
+      <span class="monitor__pie" aria-hidden="true"></span>
+    </div>
+
+    <div class="celu">
+      <div class="celu__pantalla">
+        <!-- TODO(landing): reemplazar por la captura de la app en el celular (<img>, 9:19,5) -->
+        <div class="captura" role="img" aria-label="Captura de la app en el celular">
+          <span>Captura · celular</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="compartir">
+    <div class="compartir__copy">
+      <h3>Compartilo con tu equipo</h3>
+      <p>Invitá a otras personas por link o por mail y elegí el rol de cada una: si puede mirar o también editar.</p>
+    </div>
+    <ul class="roles">
+      {PERSONAS.map((p) => (
+        <li>
+          <span class="roles__avatar">{p.iniciales}</span>
+          <span class="roles__quien">
+            <b>{p.nombre}</b>
+            <span>{p.mail}</span>
+          </span>
+          <span class="roles__rol">{p.rol}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>

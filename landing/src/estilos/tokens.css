@@ -23,16 +23,10 @@
    #FBFAF7). No "corregir" para que coincidan con frontend/src/index.css. */
 .lp {
   /* clip y no hidden: hidden hace de .lp un scroll container y deja sin efecto
-     todo position:sticky de adentro (la barra, la guardia, el resumen del
+     todo position:sticky de adentro (la barra, el resumen del
      configurador, el lado del FAQ). Recorta igual y no crea scrollport. */
   width: 100%; overflow-x: clip;
   --gut: clamp(20px, 5vw, 64px);
-  /* Velocidades de la demo del hero. Eran data-props ajustables en el
-     editor de diseño; acá quedan fijas en sus valores por defecto
-     (datos/config.ts:VELOCIDAD_MS). Los var(--lp-*, fallback) de hero.css
-     traen su propio fallback distinto (4600/4000/520) por si esta regla
-     no cargó — no confundir esos números con el valor real. */
-  --lp-ent: 3000ms; --lp-sal: 2300ms; --lp-trans: 1500ms;
   background: var(--lp-bg); color: var(--lp-text);
   transition: background-color 420ms var(--ease-out), color 420ms var(--ease-out);
 }

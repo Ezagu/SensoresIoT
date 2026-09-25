@@ -1,0 +1,38 @@
+.app-cab { display: flex; align-items: flex-end; justify-content: space-between; gap: clamp(18px, 4vw, 64px); flex-wrap: wrap; }
+.app-acciones { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, auto); gap: 10px 32px; font-size: 15px; color: var(--lp-dim); }
+.app-acciones li { display: flex; align-items: center; gap: 10px; }
+.app-acciones li::before { content: ''; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--lp-accent); }
+@media (max-width: 480px) { .app-acciones { grid-template-columns: 1fr; } }
+
+/* ── el monitor y el celular: el celular pisa la esquina del monitor ── */
+.app-escena { position: relative; max-width: 1000px; margin: 0 auto; margin-top: clamp(28px, 4vw, 48px); padding-bottom: 2px; }
+.monitor { width: 86%; }
+.monitor__pantalla { aspect-ratio: 16 / 10; padding: clamp(6px, 0.9vw, 10px); border-radius: clamp(10px, 1.2vw, 14px); background: var(--lp-plate); border: 1px solid var(--lp-line); box-shadow: var(--lp-shadow); }
+.monitor__pie { display: block; width: 22%; height: clamp(8px, 1vw, 12px); margin-inline: auto; border-radius: 0 0 10px 10px; background: var(--lp-line); }
+
+.celu { position: absolute; right: 0; bottom: 0; width: 22%; aspect-ratio: 9 / 19.5; padding: clamp(4px, 0.6vw, 7px); border-radius: clamp(16px, 2.4vw, 30px); background: var(--lp-plate); border: 1px solid var(--lp-line); box-shadow: var(--lp-shadow); }
+.celu__pantalla { height: 100%; overflow: hidden; border-radius: clamp(12px, 2vw, 24px); }
+.monitor__pantalla .captura { border-radius: clamp(4px, 0.6vw, 6px); }
+
+.captura { width: 100%; height: 100%; display: grid; place-items: center; padding: 12px; background: var(--lp-surface); border: 1px dashed var(--lp-line); color: var(--lp-faint); font-size: 13px; text-align: center; }
+.celu .captura { font-size: 11px; border-radius: inherit; }
+
+@media (max-width: 720px) {
+  .monitor { width: 92%; }
+  .celu { width: 27%; }
+}
+
+/* ── compartir el equipo ── */
+.compartir { margin-top: clamp(48px, 7vw, 96px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(22px, 4vw, 64px); align-items: center; }
+@media (max-width: 860px) { .compartir { grid-template-columns: 1fr; } }
+.compartir h3 { margin: 0; font-size: clamp(22px, 2.4vw, 30px); font-weight: 600; letter-spacing: -0.022em; line-height: 1.15; }
+.compartir p { margin: 14px 0 0; font-size: 15px; line-height: 1.6; color: var(--lp-dim); max-width: 46ch; }
+
+.roles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.roles li { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: var(--lp-surface); border: 1px solid var(--lp-line-soft); transition: background-color 420ms var(--ease-out), border-color 420ms var(--ease-out); }
+.roles__avatar { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--lp-accent-wash); color: var(--lp-accent); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; }
+.roles__quien { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.roles__quien b { font-size: 14.5px; font-weight: 600; }
+.roles__quien span { font-size: 13px; color: var(--lp-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.roles__rol { flex: none; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--lp-line); font-size: 12px; color: var(--lp-dim); white-space: nowrap; }
+.roles li:first-child .roles__rol { border-color: var(--lp-accent-line); background: var(--lp-accent-wash); color: var(--lp-text); }

@@ -1,0 +1,34 @@
+.informes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: clamp(28px, 6vw, 96px); align-items: center; }
+@media (max-width: 900px) { .informes { grid-template-columns: 1fr; } }
+.informes__copy { display: flex; flex-direction: column; gap: 18px; }
+.informes__copy .note { margin: 0; }
+
+/* ── la hoja ──
+   Diseñada a 280 px de ancho y medida en cqi del contenedor (1cqi = 2,8 px
+   ahí), así crece entera en vez de reescribir cada tamaño. Es papel: sus
+   colores son fijos y no siguen el tema. */
+.informes__hojas { position: relative; width: 100%; max-width: 420px; margin-inline: auto; container-type: inline-size; }
+.hoja { position: relative; width: 100%; aspect-ratio: 1 / 1.414; background: #FDFCF9; color: #14201F; border-radius: 1.4cqi; box-shadow: 0 2px 6px rgba(0,0,0,.14), 0 26px 50px -22px rgba(0,0,0,.45); padding: 7.1cqi 6.4cqi; display: flex; flex-direction: column; gap: 3.6cqi; }
+.hoja--atras { position: absolute; inset: 0; transform: translate(4cqi, 4cqi); background: #F1EEE6; }
+.hoja .h-top { display: flex; align-items: center; gap: 2.5cqi; padding-bottom: 3.2cqi; border-bottom: 1px solid #DED9CD; }
+.hoja .h-tick { width: 0.9cqi; height: 3.9cqi; background: #0A5C6B; }
+.hoja .h-marca { font-size: 3.6cqi; font-weight: 600; letter-spacing: 0.14em; }
+.hoja .h-tipo { margin-left: auto; font-family: var(--font-mono); font-size: 2.7cqi; letter-spacing: 0.08em; text-transform: uppercase; color: #6B7573; }
+.hoja .h-tit { font-size: 4.6cqi; font-weight: 600; letter-spacing: -0.01em; }
+.hoja .h-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4cqi 3.6cqi; }
+.hoja .h-meta div { font-size: 2.7cqi; line-height: 1.45; color: #6B7573; }
+.hoja .h-meta b { display: block; color: #14201F; font-size: 3cqi; font-weight: 600; }
+.hoja .h-cap { font-family: var(--font-mono); font-size: 2.5cqi; letter-spacing: 0.12em; text-transform: uppercase; color: #6B7573; margin-top: 0.7cqi; }
+.hoja .h-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2.1cqi; }
+.hoja .h-nums div { border: 1px solid #E8E3D8; border-radius: 1.4cqi; padding: 1.8cqi 1.4cqi; }
+.hoja .h-nums b { display: block; font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-size: 3.9cqi; font-weight: 600; letter-spacing: -0.02em; }
+.hoja .h-nums span { font-size: 2.3cqi; color: #6B7573; letter-spacing: 0.04em; }
+.hoja .h-graf { border: 1px solid #E8E3D8; border-radius: 1.4cqi; padding: 2.1cqi; }
+.hoja .h-graf svg { display: block; width: 100%; height: 19.3cqi; }
+.hoja .h-tabla { font-size: 2.7cqi; }
+.hoja .h-tabla .fila { display: grid; grid-template-columns: 1fr auto auto; gap: 2.9cqi; padding: 1.25cqi 0; border-bottom: 1px solid #EFEBE2; }
+.hoja .h-tabla .fila:last-child { border-bottom: 0; }
+.hoja .h-tabla .fila span:nth-child(2), .hoja .h-tabla .fila span:nth-child(3) { font-family: var(--font-reading); font-variant-numeric: tabular-nums; font-weight: 600; }
+.hoja .h-tabla .fila.mal span:nth-child(2) { color: #9E332B; }
+.hoja .h-pie { margin-top: auto; padding-top: 2.9cqi; border-top: 1px solid #DED9CD; display: flex; font-size: 2.3cqi; color: #6B7573; }
+.hoja .h-pie span:last-child { margin-left: auto; }

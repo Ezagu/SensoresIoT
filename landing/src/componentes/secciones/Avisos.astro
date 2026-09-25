@@ -1,0 +1,44 @@
+---
+// Qué te avisa el sistema: los tres casos que ya resuelve el backend (cruce,
+// vuelta a la normalidad y corte de conectividad), cada uno con el aviso tal
+// como llega.
+import Notificacion from '../datos/Notificacion.astro'
+---
+
+<div class="band-alt">
+  <section id="avisos" class="soft-sec stage">
+    <h2 class="say">Cuándo te avisamos.</h2>
+
+    <div class="casos">
+      <article class="caso">
+        <div class="caso__muestra">
+          <Notificacion canal="whatsapp" estado="critical" titulo="Cámara 1 superó 8,0 °C" cuerpo="Temperatura en 8,6 °C · Depósito norte" />
+        </div>
+        <div class="caso__texto">
+          <h3>Se sale de rango</h3>
+          <p>Vos definís el rango de cada sensor. Si la lectura se pasa y se mantiene, te llega el aviso.</p>
+        </div>
+      </article>
+
+      <article class="caso">
+        <div class="caso__muestra">
+          <Notificacion canal="mail" estado="normal" titulo="Cámara 1 volvió al rango" cuerpo="Temperatura en 7,4 °C · Depósito norte" cuando="17:41" />
+        </div>
+        <div class="caso__texto">
+          <h3>Vuelve a la normalidad</h3>
+          <p>Cuando el valor vuelve a su rango normal también te avisamos, para que sepas que ya se resolvió.</p>
+        </div>
+      </article>
+
+      <article class="caso">
+        <div class="caso__muestra">
+          <Notificacion canal="telegram" estado="critical" titulo="Cámara 1 dejó de reportar" cuerpo="Sin datos desde las 03:12 · Planta baja" cuando="03:27" />
+        </div>
+        <div class="caso__texto">
+          <h3>Deja de reportar</h3>
+          <p>Si el equipo se queda sin luz o sin internet, en 15 minutos te enterás. Cuando vuelve, te decimos cuánto tiempo estuvo desconectado.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+</div>
