@@ -383,7 +383,7 @@ export function Layout({ titulo }: { titulo: string }) {
                     es el subtítulo del dato que se está mirando, no un tercer
                     bloque de la barra. */}
                 <div className="flex min-w-0 items-baseline gap-2.5">
-                  <h1 className="truncate text-page">{encabezado}</h1>
+                  <h1 className="truncate text-heading-lg">{encabezado}</h1>
                   <div
                     ref={setNodoMeta}
                     className="hidden min-w-0 items-baseline gap-2 truncate text-note-lg text-text-muted md:flex md:empty:hidden"

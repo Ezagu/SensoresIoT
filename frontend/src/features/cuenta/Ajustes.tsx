@@ -28,7 +28,7 @@ export function Ajustes() {
         <header className="mb-1 flex items-center gap-3.5">
           <span
             aria-hidden="true"
-            className="flex size-11 shrink-0 items-center justify-center rounded-group border border-border bg-surface-2 font-display text-page font-bold text-text"
+            className="flex size-11 shrink-0 items-center justify-center rounded-group border border-border bg-surface-2 font-display text-body-lg font-bold text-text"
           >
             {iniciales(sesion?.nombre)}
           </span>

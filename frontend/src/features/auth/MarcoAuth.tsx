@@ -17,7 +17,7 @@ export function MarcoAuth({
           <Logo />
         </div>
 
-        <h1 className="text-hero mb-1">{titulo}</h1>
+        <h1 className="text-page mb-1">{titulo}</h1>
         {subtitulo && <p className="mt-1 mb-5 text-label-lg text-text-muted">{subtitulo}</p>}
 
         <div className="rounded-card border border-border bg-surface p-5">{children}</div>

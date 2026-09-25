@@ -3,33 +3,32 @@
 /* Los tokens se declaran en @theme para que Tailwind genere utilidades
    (bg-surface, text-text-muted, border-border…) y además queden como custom
    properties reasignables por tema más abajo. Los valores acá son el tema
-   claro: el diseño es light-first (papel cálido / tinta fría, ver
-   readme del sistema Bitácora). */
+   claro; el oscuro se reasigna en [data-theme='dark']. */
 @theme {
-  --color-bg: #fbfaf7;
-  --color-surface: #ffffff;
-  --color-surface-2: #f5f3ed;
-  /* Campo deshabilitado: más hundido que surface, para que el "pozo" del campo
-     activo (surface-2) no se lea como editable. Ver components/ui/Campo.tsx */
-  --color-surface-inert: #f5f3ed;
+  --color-bg: #f3f0e9;
+  --color-surface: #fbfaf6;
+  --color-surface-2: #e3e1db;
+  /* Campo deshabilitado: un tono propio, para que no se lea como editable.
+     Ver components/ui/Campo.tsx */
+  --color-surface-inert: #ece8df;
   /* Lo que flota sobre la página y se va a cerrar: modal, menú, popover. */
   --color-elevated: #ffffff;
-  --color-sidebar: #ffffff;
-  --color-border: #e8eced;
-  /* Un paso más oscuro que el hairline: lo que encierra un control (campo,
-     select, botón con marco, modal) tiene que verse como un borde, no como una
-     regla de separación. Sobre blanco, el hairline solo no se lee. */
-  --color-border-control: #dce1e3;
-  --color-border-strong: #c9d0d3;
+  --color-sidebar: #ece8df;
+  /* Reglas translúcidas: separan sin pintar un tono propio sobre cada fondo. */
+  --color-border: rgba(20, 32, 31, 0.07);
+  /* Lo que encierra un control (campo, botón con marco, tarjeta, modal). */
+  --color-border-control: rgba(20, 32, 31, 0.14);
+  --color-border-strong: rgba(20, 32, 31, 0.26);
 
-  /* Los tres escalones sostienen AAA (≥7:1) contra bg, surface y surface-2. */
-  --color-text: #121a1d;
-  --color-text-muted: #39454b;
-  --color-text-faint: #495359;
+  /* Los tres escalones sostienen AA (≥4.5:1) contra toda superficie, hover y
+     fondos de estado incluidos. AAA dejaba faint igual a muted. */
+  --color-text: #14201f;
+  --color-text-muted: #4c5a5c;
+  --color-text-faint: #576268;
 
-  /* accent es el tono claro para texto/íconos/foco; accent-strong el relleno
-     sólido donde va texto blanco encima (el claro no llega a 4.5:1 con blanco). */
-  --color-accent: #075462;
+  /* accent es el tono de texto/íconos/links; accent-strong el relleno sólido
+     con accent-ink encima. No son intercambiables. */
+  --color-accent: #146272;
   --color-accent-strong: #0a5c6b;
   /* El relleno primario baja un escalón al pasar el puntero y otro al apretar.
      Es todo el feedback que hay: nada escala, nada se hunde. */
@@ -37,52 +36,51 @@
   --color-accent-strong-active: #063f4b;
   --color-accent-ink: #ffffff;
   /* Control inactivo: relleno y texto propios, nunca opacidad sobre el activo. */
-  --color-disabled-text: #78848a;
+  --color-disabled-text: #7c898c;
 
   /* Estados de monitoreo. Un equipo tiene tres estados (en línea / con retraso /
-     sin reportar): "attention" es el ámbar propio de "con retraso", separado de
-     "warn" (advertencia, naranja) para que el buffer normal no se lea como falla. */
-  --color-ok: #144a31;
-  --color-attention: #6e4705;
+     sin reportar): "attention" es el ámbar de "con retraso", "danger" el rojo
+     de crítico y "warn" (naranja) una advertencia que no es estado. */
+  --color-ok: #206c49;
+  --color-attention: #855606;
   --color-warn: #7f3a0c;
-  --color-danger: #7c1613;
-  --color-offline: #3c484e;
+  --color-danger: #8f2c24;
+  --color-offline: #4c5a5c;
 
-  /* Tono del glifo/relleno de cada estado (más claro que el de texto).
-     El punto, la barra y la línea de umbral usan estos; el texto usa los de arriba. */
+  /* Tono del glifo/relleno de cada estado; el texto usa los de arriba. */
   --color-ok-mark: #268056;
-  --color-attention-mark: #b5780c;
+  --color-attention-mark: #8c5a06;
   --color-warn-mark: #c55f18;
   --color-danger-mark: #9e332b;
-  --color-offline-mark: #78848a;
+  --color-offline-mark: #4c5a5c;
 
-  /* Fondos de estado: opacos, calculados para sostener su propio texto a ≥7:1
-     (un velo translúcido sobre un fondo variable no garantiza contraste). */
-  --color-accent-soft: #edf5f6;
-  --color-ok-soft: #edf6f1;
-  --color-attention-soft: #fcf6e7;
-  --color-warn-soft: #fdf1e8;
-  --color-danger-soft: #fcedeb;
-  --color-offline-soft: #f2f5f5;
+  /* Fondos de estado: el wash del diseño ya compuesto sobre bg, opaco, para que
+     el contraste de su texto no dependa de lo que haya debajo. */
+  --color-accent-soft: #e0e4df;
+  --color-ok-soft: #e3e7dd;
+  --color-attention-soft: #efe8da;
+  --color-warn-soft: #f4e6db;
+  --color-danger-soft: #eee5de;
+  --color-offline-soft: #e9e7e0;
 
-  /* El cuarto token de cada estado: el borde de su cápsula. Sin él una pastilla
-     sobre su propio wash no tiene contorno y se pierde contra la superficie. */
-  --color-accent-border: #b9dfe5;
-  --color-ok-border: #d8ebe0;
-  --color-attention-border: #f8eacc;
-  --color-warn-border: #fae1cf;
-  --color-danger-border: #f8dbd8;
+  /* El cuarto token de cada estado: el borde de su cápsula. */
+  --color-accent-border: rgba(10, 92, 107, 0.3);
+  --color-ok-border: rgba(38, 128, 86, 0.3);
+  --color-attention-border: rgba(181, 120, 12, 0.34);
+  --color-warn-border: rgba(197, 95, 24, 0.3);
+  --color-danger-border: rgba(158, 51, 43, 0.26);
 
   /* Velo del drawer mobile y del ::backdrop del modal */
-  --color-overlay: rgba(11, 16, 18, 0.36);
+  --color-overlay: rgba(20, 32, 31, 0.34);
 
-  /* Datos: línea de promedio, segunda línea, grilla, eje, umbral y la franja
-     que marca un hueco en la serie. */
-  --color-chart-line: #146272;
-  --color-chart-line-2: #495359;
-  --color-chart-grid: #e8eced;
-  --color-chart-axis: #a5afb4;
-  --color-chart-band: #f2f5f5;
+  /* Datos: línea, segunda línea, área bajo la curva, grilla, eje, umbral y la
+     franja que marca un hueco en la serie. */
+  --color-chart-line: #0a5c6b;
+  --color-chart-line-2: #4c5a5c;
+  --color-chart-area: rgba(10, 92, 107, 0.1);
+  --color-chart-grid: rgba(20, 32, 31, 0.07);
+  --color-chart-axis: #576268;
+  --color-chart-band: #e3e1db;
   --color-chart-threshold: #9e332b;
 
   --font-display: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
@@ -91,48 +89,50 @@
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
 
   /* Se borra la escala default (text-xs, text-lg…) para que no haya tamaño sin
-     token. Los nombres se conservan; los valores pasan a la escala del sistema
-     (11 / 12 / 13 / 14 / 16 / 18 / 22 / 28 / 36), sin saltos de medio píxel. */
+     token. Los valores son la escala del diseño, medios píxeles incluidos. */
   --text-*: initial;
+  --text-micro: 10.5px;
   --text-tag: 11px;
-  --text-note: 11px;
-  --text-note-lg: 12px;
-  --text-label: 12px;
-  --text-label-lg: 12px;
+  --text-note: 12px;
+  --text-note-lg: 12.5px;
+  --text-label: 12.5px;
+  --text-label-lg: 13.5px;
   --text-body: 13px;
   --text-body-lg: 14px;
-  --text-heading: 14px;
-  --text-heading-lg: 16px;
-  --text-brand: 18px;
-  --text-page: 18px;
-  --text-page-lg: 22px;
-  --text-metric: 20px;
-  --text-hero: 28px;
-  --text-display: 36px;
+  --text-heading: 15px;
+  --text-heading-lg: 17px;
+  --text-brand: 15px;
+  --text-page: 30px;
+  --text-page-lg: 34px;
+  --text-metric: 21px;
+  --text-metric-lg: 30px;
+  --text-hero: 44px;
+  --text-display: 76px;
 
-  /* El interletrado de titular vive en @layer base; estos dos son los que se
-     aplican como utilidad: la etiqueta versalita y el wordmark. */
-  --tracking-micro: 0.08em;
-  --tracking-brand: -0.02em;
+  /* El interletrado de titular vive en @layer base; estos son los que se
+     aplican como utilidad: la micro-etiqueta y el wordmark en versalitas. */
+  --tracking-micro: 0.12em;
+  --tracking-brand: 0.16em;
 
-  --radius-card: 10px;
-  --radius-control: 7px;
+  --radius-card: 12px;
+  --radius-control: 5px;
   /* tile: cuadrado chico (ícono, mini-botón).
-     group: contenedor de un grupo de controles, un escalón por encima.
+     group: renglón o contenedor de un grupo de controles.
+     menu: lo que flota (menú, popover).
      chip: lo más chico del sistema (badge, ítem de segmentado, check). */
-  --radius-tile: 7px;
-  --radius-group: 10px;
+  --radius-tile: 6px;
+  --radius-group: 8px;
+  --radius-menu: 10px;
   --radius-chip: 4px;
 
   /* Dos niveles de elevación y nada más: lo que flota y se va a cerrar, y lo que
-     bloquea. El resto de la interfaz es plana — la jerarquía la hacen las reglas,
-     el espacio y el peso tipográfico. */
-  --shadow-overlay: 0 1px 2px rgba(11, 16, 18, 0.06), 0 8px 24px -8px rgba(11, 16, 18, 0.18);
-  --shadow-modal: 0 2px 4px rgba(11, 16, 18, 0.08), 0 24px 56px -16px rgba(11, 16, 18, 0.28);
+     bloquea. El resto de la interfaz es plana. */
+  --shadow-overlay: 0 1px 2px rgba(20, 32, 31, 0.06), 0 20px 48px -18px rgba(20, 32, 31, 0.25);
+  --shadow-modal: 0 1px 2px rgba(20, 32, 31, 0.06), 0 24px 56px -20px rgba(20, 32, 31, 0.28);
 
   /* El único bucle del sistema: el glifo de un estado crítico, y sólo el glifo.
      prefers-reduced-motion lo apaga con el resto, al final de este archivo. */
-  --animate-latido: latido 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-latido: latido 2.4s ease-in-out infinite;
 
   @keyframes latido {
     0%,
@@ -146,73 +146,87 @@
 }
 
 /* Tema oscuro: sólo se reasignan tokens, nunca reglas de componente. El
-   atributo está siempre puesto — lib/tema.ts resuelve "sistema" a light/dark
+   atributo está siempre puesto — usarTema resuelve "sistema" a light/dark
    antes de pintar, así que no hace falta duplicar esta paleta en un @media. */
 :root {
   color-scheme: light;
+  --selection: rgba(10, 92, 107, 0.18);
 }
 
 :root[data-theme='dark'] {
   color-scheme: dark;
+  --selection: rgba(75, 166, 180, 0.3);
 
-  --color-bg: #0b1012;
-  --color-surface: #101719;
-  --color-surface-2: #1b2529;
-  --color-surface-inert: #141b1e;
-  --color-elevated: #172023;
-  --color-sidebar: #101719;
-  --color-border: #1e282c;
-  --color-border-control: #273438;
-  --color-border-strong: #3c4a50;
+  --color-bg: #0e1618;
+  --color-surface: #131c1e;
+  --color-surface-2: #1c2426;
+  --color-surface-inert: #111a1c;
+  --color-elevated: #1b2628;
+  --color-sidebar: #111a1c;
+  --color-border: rgba(232, 238, 236, 0.065);
+  --color-border-control: rgba(232, 238, 236, 0.13);
+  --color-border-strong: rgba(232, 238, 236, 0.24);
 
-  --color-text: #edf0f0;
-  --color-text-muted: #b6c1c5;
-  --color-text-faint: #a6b2b7;
+  --color-text: #e8eeec;
+  --color-text-muted: #a3afb0;
+  --color-text-faint: #8f9a9d;
 
   --color-accent: #86c5ce;
-  --color-accent-strong: #62bcc9;
+  --color-accent-strong: #4ba6b4;
   /* En oscuro el relleno es claro, así que los escalones suben en vez de bajar. */
-  --color-accent-strong-hover: #7dcad5;
-  --color-accent-strong-active: #93d4dd;
+  --color-accent-strong-hover: #5bb2bf;
+  --color-accent-strong-active: #6cbdc9;
   --color-accent-ink: #04181d;
   --color-disabled-text: #5c686d;
 
-  --color-ok: #7cc6a2;
-  --color-attention: #e6bc6c;
+  --color-ok: #6fb491;
+  --color-attention: #dcad52;
   --color-warn: #efa477;
   --color-danger: #f09189;
-  --color-offline: #b6c1c5;
+  --color-offline: #a3afb0;
 
   --color-ok-mark: #6fb491;
   --color-attention-mark: #dcad52;
   --color-warn-mark: #e09566;
   --color-danger-mark: #e89a92;
-  --color-offline-mark: #7f8c91;
+  --color-offline-mark: #a3afb0;
 
-  --color-accent-soft: #0b2b33;
-  --color-ok-soft: #0e2620;
-  --color-attention-soft: #2a2010;
-  --color-warn-soft: #2d1a10;
-  --color-danger-soft: #2c1413;
-  --color-offline-soft: #171f22;
+  --color-accent-soft: #16292c;
+  --color-ok-soft: #182624;
+  --color-attention-soft: #21241d;
+  --color-warn-soft: #25201d;
+  --color-danger-soft: #212122;
+  --color-offline-soft: #182022;
 
-  --color-accent-border: #164854;
-  --color-ok-border: #1c3f33;
-  --color-attention-border: #453519;
-  --color-warn-border: #4a2a19;
-  --color-danger-border: #4c201d;
+  --color-accent-border: rgba(75, 166, 180, 0.42);
+  --color-ok-border: rgba(111, 180, 145, 0.34);
+  --color-attention-border: rgba(220, 173, 82, 0.36);
+  --color-warn-border: rgba(224, 149, 102, 0.34);
+  --color-danger-border: rgba(232, 154, 146, 0.34);
 
-  --color-overlay: rgba(0, 0, 0, 0.6);
+  --color-overlay: rgba(4, 10, 12, 0.66);
 
   --color-chart-line: #4ba6b4;
-  --color-chart-line-2: #a6b2b7;
-  --color-chart-grid: #1e282c;
-  --color-chart-axis: #3c4a50;
-  --color-chart-band: #141b1e;
+  --color-chart-line-2: #a3afb0;
+  --color-chart-area: rgba(75, 166, 180, 0.12);
+  --color-chart-grid: rgba(232, 238, 236, 0.065);
+  --color-chart-axis: #8f9a9d;
+  --color-chart-band: #1c2426;
   --color-chart-threshold: #e89a92;
 
-  --shadow-overlay: 0 1px 2px rgba(0, 0, 0, 0.5), 0 10px 28px -8px rgba(0, 0, 0, 0.6);
-  --shadow-modal: 0 2px 6px rgba(0, 0, 0, 0.55), 0 28px 64px -16px rgba(0, 0, 0, 0.7);
+  --shadow-overlay: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 60px -18px rgba(0, 0, 0, 0.7);
+  --shadow-modal: 0 2px 4px rgba(0, 0, 0, 0.4), 0 28px 64px -20px rgba(0, 0, 0, 0.7);
+}
+
+/* Micro-etiqueta en versalitas (HOY 19:08, ÚLTIMAS 2 H, ejes): el único uso
+   de la mono además de ids y links. */
+@utility micro {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 400;
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-text-faint);
 }
 
 /* Anima alto:auto con el truco de grid-template-rows (0fr/1fr): a diferencia de
@@ -249,8 +263,13 @@
   h3 {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.014em;
+    letter-spacing: -0.01em;
     text-wrap: pretty;
+  }
+
+  h1 {
+    letter-spacing: -0.026em;
+    line-height: 1.1;
   }
 
   /* Sin delay de doble-tap y sin el flash gris nativo, que no respeta
@@ -279,8 +298,7 @@
   }
 
   ::selection {
-    background: #b9dfe5;
-    color: #121a1d;
+    background: var(--selection);
   }
 
   /* Toda cifra medida: misma familia, tabular, peso 600. */
