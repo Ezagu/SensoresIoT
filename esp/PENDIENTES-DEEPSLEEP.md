@@ -163,11 +163,24 @@ corte es justo lo que el cliente va a querer reconstruir.
 - `fallosContacto` es `RTC_DATA_ATTR`, así que un arranque en frío lo resetea y
   reintenta ya (ver o).
 
-**h. Conexión rápida.** Guardar canal, BSSID e IP en RTC y usar
-`WiFi.begin(ssid, pass, canal, bssid)` + `WiFi.config(...)`. Baja la conexión de
-~5 s a ~1,5 s: la mejor relación esfuerzo/autonomía del firmware (~+40 %).
-Fallback a la conexión normal tras dos fallos seguidos. Es además lo que corre el
-punto de equilibrio de 3.a de 30 s a ~12 s.
+**h. Conexión rápida.** ✅ en `prueba_bmp.ino`. **Medido en placa: 3406 ms la
+normal, 206 ms la rápida con IP fija** — 16×, mucho mejor que el ~1,5 s estimado.
+Un despertar con contacto bajó de ~3,8 s a **630 ms** (POST incluido). Con eso el
+contacto deja de ser el 71 % del consumo de 3.b y el despertar de muestreo
+(116 ms cada 20 s) pasa a ser lo más caro: ver m. El equilibrio de 3.a cae a ~4 s,
+así que dormir gana con más margen todavía.
+- Canal, BSSID e IP en `RTC_DATA_ATTR` (`RedConocida`), grabados tras una conexión
+  normal exitosa.
+- **La config con canal/BSSID va sólo a RAM** (`esp_wifi_set_storage(WIFI_STORAGE_RAM)`),
+  no vía `WiFi.begin(ssid, pass, canal, bssid)`: ése la escribe en NVS en cada
+  despertar, 4320 veces por día a 20 s. La credencial de WiFiManager queda intacta.
+- **La IP fija se reutiliza hasta la mitad del lease** (T1 del RFC 2131, leído de
+  lwIP), nunca más: pasado el vencimiento el router puede habérsela dado a otro
+  equipo, y un conflicto de IP rompe la red del cliente, no sólo la nuestra. Pasado
+  T1 se hace DHCP con canal/BSSID igual, y eso renueva la IP recordada.
+- Si la rápida falla, se cae a la normal **en el mismo despertar** y se olvida la
+  red, en vez de esperar dos fallos: la causa típica (el router cambió de canal)
+  se resuelve con la normal, y esperar costaba contactos perdidos con el backoff.
 
 **i. Drenar varios chunks con la radio ya encendida.** ✅ en `prueba_bmp.ino`:
 lotes de 100 hasta vaciar o hasta el primer fallo. Medido en placa: 500 lecturas
