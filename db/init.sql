@@ -159,15 +159,18 @@ WITH NO DATA;
 -- ventana de refresh, Timescale registra la invalidación pero la policy nunca la
 -- procesa y el dato queda afuera del agregado PARA SIEMPRE (el raw lo tiene, pero
 -- medicion_repo._elegir_fuente manda cualquier rango > ~7 h al agregado horario).
--- La ventana tiene que cubrir el horizonte máximo del buffer del ESP con margen.
+-- La ventana tiene que cubrir el horizonte máximo del buffer del ESP con margen, y
+-- con la flash del firmware a batería ese horizonte es ANTIGUEDAD_MAXIMA (90 d).
+-- 85 y no 90: refrescar un tramo cuyo raw ya borró la retención lo recalcula vacío
+-- y borra las filas del agregado.
 -- Costo: sólo se recomputan los buckets marcados como invalidados, no toda la ventana.
 SELECT add_continuous_aggregate_policy('mediciones_por_hora',
-    start_offset => INTERVAL '3 days',
+    start_offset => INTERVAL '85 days',
     end_offset => INTERVAL '30 minutes',
     schedule_interval => INTERVAL '30 minutes');
 
 SELECT add_continuous_aggregate_policy('mediciones_por_dia',
-    start_offset => INTERVAL '30 days',
+    start_offset => INTERVAL '85 days',
     end_offset => INTERVAL '1 hour',
     schedule_interval => INTERVAL '3 hours');
 

@@ -243,7 +243,17 @@ de este lado: `arranqueFrio` lo cubre por ser `!= ESP_SLEEP_WAKEUP_TIMER`.
 
 ### P2 — cuando lo anterior ande
 
-**l. Volcado a flash.** El disparador útil **no** es "se llenó el buffer" (eso son
+**l. Volcado a flash.** ✅ en `prueba_bmp.ino`, falta validar en placa. Lo que lleva
+más de 30 min sin enviarse en RTC pasa a LittleFS (partición `spiffs`, 896 KB,
+~97 000 lecturas); conectado nunca se escribe. Cola de archivos `/cola/NNNNNNNN`
+de 450 lecturas (un bloque), se drena primero la flash y después la RTC — el orden
+es obligatorio por `ultima_evaluacion_at`. Lo ya fechado se guarda como epoch; lo
+sin fecha, con la corrida del cronómetro (`RTC_NOINIT` + contador en NVS, que sólo
+se escribe al volcar algo sin fecha), y se descarta si al enviarlo el cronómetro ya
+es otro: tras un power-on no hay forma de saber cuánto duró el apagón. Llena, se
+borra el segmento más viejo. Backend: migración 016 lleva la ventana de los CAGG a
+85 días (no 90: pasarse de la retención del raw borra agregados).
+Nota original: el disparador útil **no** es "se llenó el buffer" (eso son
 10 días sin conexión) sino **batería baja**: si la celda se agota, la RTC memory
 se borra entera y se pierden los últimos días justo en el evento que el cliente
 quiere entender. Ojo con el reloj: al volver la energía el cronómetro arranca de

@@ -12,6 +12,7 @@
 #include <esp_netif_net_stack.h>
 #include <lwip/dhcp.h>
 #include <algorithm>
+#include <LittleFS.h>
 #include <Adafruit_BMP085.h>
 
 // Global
@@ -111,8 +112,38 @@ const uint8_t MAX_POR_ENVIO     = 100;
 
 RTC_DATA_ATTR Lectura buffer[CAPACIDAD_BUFFER];
 
-RTC_DATA_ATTR uint16_t bufCola     = 0;              
+RTC_DATA_ATTR uint16_t bufCola     = 0;
 RTC_DATA_ATTR uint16_t bufCantidad = 0;
+
+// Flash (LittleFS sobre la partición spiffs de huge_app, 896 KB)
+// Sin conexión, lo que lleva más de SEG_VOLCADO en RTC pasa a flash: acota lo que
+// se pierde en un corte de luz, brownout o watchdog. Conectado, la RTC se vacía
+// antes y la flash no se escribe nunca.
+const uint32_t SEG_VOLCADO           = 1800;
+const uint16_t LECTURAS_POR_SEGMENTO = 450;   // 4 B de cabecera + 450 × 9 B: un bloque de 4 KB
+const uint8_t  PORCENTAJE_MAX_FLASH  = 90;
+const uint8_t  BIT_SIN_FECHA         = 0x80;  // en sensorIdx: time es local, no epoch
+
+// Una cola de archivos /cola/NNNNNNNN, del más viejo (segPrimero) al que se está
+// escribiendo (segSiguiente - 1).
+struct __attribute__((packed)) CabeceraSegmento {
+  uint32_t sesion;  // corrida del cronómetro de las lecturas sin fecha; 0 = ninguna
+};
+
+RTC_DATA_ATTR uint32_t segPrimero    = 0;
+RTC_DATA_ATTR uint32_t segSiguiente  = 0;
+RTC_DATA_ATTR uint16_t offsetLectura = 0;  // lecturas ya enviadas de segPrimero
+
+RTC_DATA_ATTR uint32_t descartadasSinFecha = 0;
+RTC_DATA_ATTR uint32_t perdidasPorFlashLlena = 0;
+
+// Una lectura volcada sin fecha sólo se puede fechar con el mismo cronómetro que la
+// midió, y un power-on lo reinicia. NOINIT sobrevive al watchdog, que no lo reinicia.
+const uint32_t MAGIC_SESION = 0x5E5105;
+RTC_NOINIT_ATTR uint32_t sesionMagic;
+RTC_NOINIT_ATTR uint32_t sesionActual;
+
+bool flashMontada = false;
 
 // Ventanas
 const uint8_t VENTANA_MUESTRAS = 12;
@@ -175,7 +206,12 @@ void setup() {
   segDesdeEnvio    += pasoActualSeg;
   segDesdeContacto += pasoActualSeg;
 
-  if (arranqueFrio) cargarRelojPpm();
+  if (arranqueFrio) {
+    cargarRelojPpm();
+    // Un cronómetro recién arrancado es un power-on o un brownout, no un watchdog.
+    if (ahoraLocal() < 60) sesionMagic = 0;
+    indexarFlash();
+  }
 
   // En frío los contadores RTC valen 0: sin esto el primer punto sale a los 5 min.
   bool tocaEnvio    = arranqueFrio || segDesdeEnvio >= intervaloEnvioSeg;
@@ -218,6 +254,10 @@ void setup() {
     Serial.print("[ESP] Se debe contactar a la API\n");
     cargarSecret();
     registrarResultadoContacto(enviarMediciones(arranqueFrio));
+  }
+
+  if (bufCantidad > 0 && (int32_t) (ahoraLocal() - buffer[bufCola].time) >= (int32_t) SEG_VOLCADO) {
+    volcarAFlash();
   }
 
   dormir();
@@ -333,22 +373,228 @@ uint16_t flushBuffer(JsonDocument& doc, uint16_t tope) {
 
   for (uint16_t i = 0; i < cantidad; i++) {
     Lectura& lectura = buffer[(bufCola + i) % CAPACIDAD_BUFFER];
-
-    JsonObject punto = mediciones.add<JsonObject>();
-    punto["sensor_id"] = SENSOR_IDS[lectura.sensorIdx];
-    punto["value"]     = lectura.value;
-
-    // Sin ancla se omite el campo y el backend le pone la de recepción.
-    uint32_t epoch = epochDeLectura(lectura.time);
-    if (epoch != 0) punto["time"] = isoUtc(epoch);
+    agregarPunto(mediciones, lectura.sensorIdx, lectura.value, epochDeLectura(lectura.time));
   }
 
   return cantidad;
 }
 
+void agregarPunto(JsonArray& mediciones, uint8_t sensorIdx, float value, uint32_t epoch) {
+  JsonObject punto = mediciones.add<JsonObject>();
+  punto["sensor_id"] = SENSOR_IDS[sensorIdx];
+  punto["value"]     = value;
+
+  // Sin ancla se omite el campo y el backend le pone la de recepción.
+  if (epoch != 0) punto["time"] = isoUtc(epoch);
+}
+
 void eliminarDelBuffer(uint16_t cantidad) {
   bufCola = (bufCola + cantidad) % CAPACIDAD_BUFFER;
   bufCantidad -= cantidad;
+}
+
+//-------------FLASH------------
+
+String rutaSegmento(uint32_t n) {
+  char ruta[20];
+  snprintf(ruta, sizeof(ruta), "/cola/%08lu", (unsigned long) n);
+  return String(ruta);
+}
+
+bool montarFlash() {
+  if (flashMontada) return true;
+
+  // formatOnFail: la partición llega vacía de fábrica, y una corrupta no tiene
+  // nada que se pueda rescatar.
+  flashMontada = LittleFS.begin(true);
+  if (!flashMontada) {
+    Serial.println("[FLASH] No se pudo montar LittleFS.");
+    return false;
+  }
+  if (!LittleFS.exists("/cola")) LittleFS.mkdir("/cola");
+  return true;
+}
+
+// Tras un arranque en frío la RTC no sabe qué quedó en flash.
+void indexarFlash() {
+  if (!montarFlash()) return;
+
+  uint32_t minimo = UINT32_MAX, maximo = 0;
+  File dir = LittleFS.open("/cola");
+  for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
+    uint32_t n = strtoul(f.name(), nullptr, 10);
+    if (n < minimo) minimo = n;
+    if (n > maximo) maximo = n;
+  }
+
+  if (minimo == UINT32_MAX) {
+    segPrimero = segSiguiente = 0;
+  } else {
+    segPrimero   = minimo;
+    segSiguiente = maximo + 1;
+  }
+  // Se reenvía el segmento entero: el índice único del backend descarta lo repetido.
+  offsetLectura = 0;
+
+  if (segSiguiente > segPrimero) {
+    Serial.printf("[FLASH] %lu segmentos pendientes, uso %u%%\n",
+                  (unsigned long) (segSiguiente - segPrimero), porcentajeFlash());
+  }
+}
+
+uint8_t porcentajeFlash() {
+  return LittleFS.usedBytes() * 100 / LittleFS.totalBytes();
+}
+
+uint32_t sesionParaVolcar() {
+  if (sesionMagic != MAGIC_SESION) {
+    Preferences p;
+    p.begin("reloj", false);
+    sesionActual = p.getUInt("sesion", 0) + 1;
+    p.putUInt("sesion", sesionActual);
+    p.end();
+    sesionMagic = MAGIC_SESION;
+  }
+  return sesionActual;
+}
+
+// 0 = hay que abrir un segmento nuevo.
+uint16_t lugarEnSegmentoActivo(uint32_t sesion) {
+  if (segSiguiente == segPrimero) return 0;
+
+  File f = LittleFS.open(rutaSegmento(segSiguiente - 1), "r");
+  if (!f) return 0;
+
+  CabeceraSegmento cab;
+  bool leida = f.read((uint8_t*) &cab, sizeof(cab)) == sizeof(cab);
+  size_t tamanio = f.size();
+  f.close();
+
+  // Lecturas sin fecha de otra corrida del cronómetro no pueden compartir cabecera.
+  if (!leida || (sesion != 0 && cab.sesion != sesion)) return 0;
+
+  uint16_t cantidad = (tamanio - sizeof(cab)) / sizeof(Lectura);
+  return cantidad < LECTURAS_POR_SEGMENTO ? LECTURAS_POR_SEGMENTO - cantidad : 0;
+}
+
+bool crearSegmento(uint32_t sesion) {
+  File f = LittleFS.open(rutaSegmento(segSiguiente), "w");
+  if (!f) return false;
+
+  CabeceraSegmento cab = {sesion};
+  bool ok = f.write((uint8_t*) &cab, sizeof(cab)) == sizeof(cab);
+  f.close();
+  if (ok) segSiguiente++;
+  return ok;
+}
+
+void borrarSegmentoPrimero() {
+  LittleFS.remove(rutaSegmento(segPrimero));
+  segPrimero++;
+  offsetLectura = 0;
+}
+
+// Llena, gana lo nuevo: igual que el buffer de RTC.
+void liberarEspacio() {
+  while (segSiguiente > segPrimero && porcentajeFlash() >= PORCENTAJE_MAX_FLASH) {
+    File f = LittleFS.open(rutaSegmento(segPrimero), "r");
+    if (f) {
+      perdidasPorFlashLlena += (f.size() - sizeof(CabeceraSegmento)) / sizeof(Lectura) - offsetLectura;
+      f.close();
+    }
+    borrarSegmentoPrimero();
+  }
+}
+
+void volcarAFlash() {
+  if (!montarFlash()) return;
+
+  // Todo lo de la RTC comparte cronómetro con el ancla: o se puede fechar todo o nada.
+  bool conFecha = anclaEpoch != 0;
+  uint32_t sesion = conFecha ? 0 : sesionParaVolcar();
+  uint16_t volcadas = 0;
+
+  while (bufCantidad > 0) {
+    liberarEspacio();
+
+    uint16_t lugar = lugarEnSegmentoActivo(sesion);
+    if (lugar == 0) {
+      if (!crearSegmento(sesion)) break;
+      lugar = LECTURAS_POR_SEGMENTO;
+    }
+
+    File f = LittleFS.open(rutaSegmento(segSiguiente - 1), "a");
+    if (!f) break;
+
+    bool ok = true;
+    for (uint16_t i = 0; i < lugar && bufCantidad > 0 && ok; i++) {
+      Lectura l = buffer[bufCola];
+      if (conFecha) l.time = epochDeLectura(l.time);
+      else          l.sensorIdx |= BIT_SIN_FECHA;
+
+      ok = f.write((uint8_t*) &l, sizeof(l)) == sizeof(l);
+      if (ok) {
+        eliminarDelBuffer(1);
+        volcadas++;
+      }
+    }
+    f.close();
+    if (!ok) break;
+  }
+
+  Serial.printf("[FLASH] Volcadas %u lecturas%s, %lu segmentos, uso %u%%\n",
+                volcadas, conFecha ? "" : " sin fecha",
+                (unsigned long) (segSiguiente - segPrimero), porcentajeFlash());
+}
+
+// 0 = no se puede fechar: sin fecha y de otra corrida del cronómetro.
+uint32_t epochDeFlash(const Lectura& l, uint32_t sesion) {
+  if (!(l.sensorIdx & BIT_SIN_FECHA)) return l.time;
+  if (sesionMagic != MAGIC_SESION || sesion != sesionActual) return 0;
+  return epochDeLectura(l.time);
+}
+
+// 1 = enviado, 0 = falló el POST, -1 = no había nada para mandar en este tramo.
+int8_t enviarLoteFlash() {
+  if (!montarFlash()) return 0;
+
+  File f = LittleFS.open(rutaSegmento(segPrimero), "r");
+  if (!f) {
+    borrarSegmentoPrimero();
+    return -1;
+  }
+
+  CabeceraSegmento cab;
+  if (f.read((uint8_t*) &cab, sizeof(cab)) != sizeof(cab)) {
+    f.close();
+    borrarSegmentoPrimero();
+    return -1;
+  }
+  f.seek(sizeof(cab) + offsetLectura * sizeof(Lectura));
+
+  JsonDocument doc;
+  JsonArray mediciones = doc["mediciones"].to<JsonArray>();
+  uint16_t leidas = 0, aEnviar = 0;
+  Lectura l;
+
+  while (aEnviar < MAX_POR_ENVIO && f.read((uint8_t*) &l, sizeof(l)) == sizeof(l)) {
+    leidas++;
+    uint32_t epoch = epochDeFlash(l, cab.sesion);
+    if (epoch == 0) {
+      descartadasSinFecha++;
+      continue;
+    }
+    agregarPunto(mediciones, l.sensorIdx & ~BIT_SIN_FECHA, l.value, epoch);
+    aEnviar++;
+  }
+  bool finDelSegmento = f.available() == 0;
+  f.close();
+
+  if (aEnviar > 0 && !postearMediciones(doc, aEnviar)) return 0;
+
+  offsetLectura += leidas;
+  if (finDelSegmento) borrarSegmentoPrimero();
+  return aEnviar > 0 ? 1 : -1;
 }
 
 //-------------API------------
@@ -379,30 +625,50 @@ bool enviarMediciones(bool permitirPortal) {
   // Un lote vacío no escribe ninguna fila y la trae antes de vaciarlo. Con un ancla
   // vieja (un corte) también: esa respuesta mide el drift sobre el corte mismo, y
   // lo acumulado se fecha con él en vez de con el anterior.
+  // Sin ancla no se drena nada: lo volcado sin fecha se descartaría por no poder
+  // fecharlo, cuando en realidad sólo faltaba esta respuesta.
   bool anclaVieja = anclaEpoch == 0 || (int32_t) (ahoraLocal() - anclaLocal) >= (int32_t) SEG_MIN_CALIBRACION;
-  if(anclaVieja && bufCantidad > 0) enviarLote(0);
+  if (anclaVieja && hayPendientes() && !enviarLote(0)) {
+    apagarWifi();
+    return false;
+  }
 
   uint32_t inicioMs      = millis();
-  uint16_t cantInicial   = bufCantidad;
-  uint8_t  lotesEnviados = 0;
+  uint16_t lotesEnviados = 0;
 
-  // El primer lote sale siempre: con el buffer vacío es el heartbeat.
-  bool ok = enviarLote(MAX_POR_ENVIO);
+  // El primer lote sale siempre: sin nada pendiente es el heartbeat.
+  bool ok = enviarSiguienteLote();
   if (ok) lotesEnviados++;
 
-  while (ok && bufCantidad > 0) {
+  while (ok && hayPendientes()) {
     esp_task_wdt_reset();
     if (rotacionPendiente) rotarSecret();
-    ok = enviarLote(MAX_POR_ENVIO);
+    ok = enviarSiguienteLote();
     if (ok) lotesEnviados++;
   }
 
-  Serial.printf("[HTTP] Drenaje: %u lotes, %u enviadas, %u restantes, %lums\n",
-                lotesEnviados, cantInicial - bufCantidad, bufCantidad,
-                (unsigned long) (millis() - inicioMs));
+  Serial.printf("[HTTP] Drenaje: %u lotes, restantes %u en RTC y %lu segmentos en flash, %lums"
+                " | descartadas sin fecha %lu, perdidas por flash llena %lu\n",
+                lotesEnviados, bufCantidad, (unsigned long) (segSiguiente - segPrimero),
+                (unsigned long) (millis() - inicioMs),
+                (unsigned long) descartadasSinFecha, (unsigned long) perdidasPorFlashLlena);
 
   apagarWifi();
   return lotesEnviados > 0;
+}
+
+bool hayPendientes() {
+  return bufCantidad > 0 || segSiguiente > segPrimero;
+}
+
+// Lo más viejo primero: el backend no evalúa alertas sobre lecturas anteriores a la
+// última que ya evaluó, así que la flash tiene que salir antes que la RTC.
+bool enviarSiguienteLote() {
+  while (segSiguiente > segPrimero) {
+    int8_t r = enviarLoteFlash();
+    if (r >= 0) return r == 1;
+  }
+  return enviarLote(MAX_POR_ENVIO);
 }
 
 // El primer fallo reintenta en la cadencia normal (casi siempre es transitorio);
@@ -433,6 +699,12 @@ bool enviarLote(uint16_t tope) {
   JsonDocument doc;
   uint16_t cantMediciones = flushBuffer(doc, tope);
 
+  if (!postearMediciones(doc, cantMediciones)) return false;
+  eliminarDelBuffer(cantMediciones);
+  return true;
+}
+
+bool postearMediciones(JsonDocument& doc, uint16_t cantMediciones) {
   String payload;
   serializeJson(doc, payload);
   HTTPClient http;
@@ -450,7 +722,6 @@ bool enviarLote(uint16_t tope) {
     Serial.printf("[HTTP] El backend respondió %d\n", httpCode);
   } else {
     ok = true;
-    eliminarDelBuffer(cantMediciones);
 
     JsonDocument respuesta;
     if (deserializarRespuestaHttp(http, respuesta)) {
