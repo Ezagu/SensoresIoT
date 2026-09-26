@@ -89,7 +89,7 @@ struct __attribute__((packed)) Lectura {
 };
 
 const uint16_t CAPACIDAD_BUFFER = 500;
-const uint8_t MAX_POR_ENVIO     = 50; 
+const uint8_t MAX_POR_ENVIO     = 100;
 
 RTC_DATA_ATTR Lectura buffer[CAPACIDAD_BUFFER];
 
@@ -305,12 +305,29 @@ void enviarMediciones(bool permitirPortal) {
   // Un lote vacío no escribe ninguna fila y la trae antes de vaciarlo.
   if(anclaEpoch == 0 && bufCantidad > 0) enviarLote(0);
 
-  enviarLote(MAX_POR_ENVIO);
+  uint32_t inicioMs      = millis();
+  uint16_t cantInicial   = bufCantidad;
+  uint8_t  lotesEnviados = 0;
+
+  // El primer lote sale siempre: con el buffer vacío es el heartbeat.
+  bool ok = enviarLote(MAX_POR_ENVIO);
+  if (ok) lotesEnviados++;
+
+  while (ok && bufCantidad > 0) {
+    esp_task_wdt_reset();
+    if (rotacionPendiente) rotarSecret();
+    ok = enviarLote(MAX_POR_ENVIO);
+    if (ok) lotesEnviados++;
+  }
+
+  Serial.printf("[HTTP] Drenaje: %u lotes, %u enviadas, %u restantes, %lums\n",
+                lotesEnviados, cantInicial - bufCantidad, bufCantidad,
+                (unsigned long) (millis() - inicioMs));
 
   apagarWifi();
 }
 
-void enviarLote(uint16_t tope) {
+bool enviarLote(uint16_t tope) {
   JsonDocument doc;
   uint16_t cantMediciones = flushBuffer(doc, tope);
 
@@ -318,19 +335,21 @@ void enviarLote(uint16_t tope) {
   serializeJson(doc, payload);
   HTTPClient http;
 
-  if(!setearClienteHttp(http, "/mediciones/")) return;
+  if(!setearClienteHttp(http, "/mediciones/")) return false;
 
   Serial.printf("[HTTP] POST con %u mediciones\n", cantMediciones);
 
   int httpCode = http.POST(payload);
+  bool ok = false;
 
   if (httpCode <= 0) {
     Serial.printf("[HTTP] Fallo de conexión: %s\n", http.errorToString(httpCode).c_str());
   } else if (httpCode != 200 && httpCode != 201) {
     Serial.printf("[HTTP] El backend respondió %d\n", httpCode);
   } else {
+    ok = true;
     eliminarDelBuffer(cantMediciones);
-    
+
     JsonDocument respuesta;
     if (deserializarRespuestaHttp(http, respuesta)) {
       aplicarConfiguracionesRespuestaApi(respuesta);
@@ -338,6 +357,7 @@ void enviarLote(uint16_t tope) {
   }
 
   http.end();
+  return ok;
 }
 
 void aplicarConfiguracionesRespuestaApi(JsonDocument& respuesta) {
@@ -399,7 +419,8 @@ void anclarHora(uint32_t epoch) {
 uint32_t epochDeLectura(uint32_t lecturaTime) {
   if (anclaEpoch == 0) return 0;
 
-  int64_t epoch = (int64_t) anclaEpoch + ((int64_t) lecturaTime - (int64_t) anclaLocal);
+  // Resta modular: una lectura anterior al power-on (o al wrap) sigue dando la edad correcta.
+  int64_t epoch = (int64_t) anclaEpoch + (int32_t) (lecturaTime - anclaLocal);
   return epoch > (int64_t) EPOCH_MIN ? (uint32_t) epoch : 0;
 }
 
