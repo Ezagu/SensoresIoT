@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
-import { BotonLink } from '@/components/ui/Boton'
+import { Boton, BotonLink } from '@/components/ui/Boton'
 import { HaceCuanto } from '@/components/ui/HaceCuanto'
 import { MarcaEstado, type Estado } from '@/components/ui/MarcaEstado'
-import { IconoCompartir, IconoControles } from '@/components/layout/iconos'
+import { IconoCompartir, IconoControles, IconoDocumento } from '@/components/layout/iconos'
 import type { Alerta, DispositivoDetalle } from '@/tipos'
 import { esDuenio, nombreDeDispositivo } from '@/utils/dispositivos'
 import { intervalo } from '@/utils/formato'
@@ -83,6 +83,7 @@ export function CabeceraEquipo({
   lastSeenAt,
   lastDataAt,
   ahora,
+  onInforme,
 }: {
   dispositivo: DispositivoDetalle
   sensores: SensorConMeta[]
@@ -91,6 +92,7 @@ export function CabeceraEquipo({
   lastSeenAt: string | null
   lastDataAt: string | null
   ahora: number
+  onInforme: () => void
 }) {
   const disparada = alertas.find((a) => a.activa && a.estado === 'disparada')
   const estado = estadoPrincipal(
@@ -134,6 +136,12 @@ export function CabeceraEquipo({
       </div>
 
       <div className="flex shrink-0 gap-2 md:pt-1">
+        {/* PENDIENTE (Tier 4.6): el modal abre, pero generar el PDF todavía no anda. */}
+        <Boton variante="acento" onClick={onInforme} className="flex-1 md:flex-none">
+          <IconoDocumento className="size-4" />
+          <span className="md:hidden">Informe</span>
+          <span className="hidden md:inline">Generar informe</span>
+        </Boton>
         {esDuenio(dispositivo.rol) && (
           <BotonLink
             variante="sutil"

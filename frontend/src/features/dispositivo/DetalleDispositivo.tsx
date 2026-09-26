@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TextoError } from '@/components/ui/TextoError'
@@ -14,6 +14,7 @@ import { BloqueAlertas } from './BloqueAlertas'
 import { CabeceraEquipo } from './CabeceraEquipo'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { LineaDeTiempo } from './LineaDeTiempo'
+import { ModalInforme } from './ModalInforme'
 import { estadoDeSensor, ListaSensores, SensorEnAlerta, type Ultima } from './SensoresEquipo'
 import {
   useAlertasDispositivo,
@@ -43,6 +44,7 @@ function EsqueletoDetalle() {
 
 export function DetalleDispositivo() {
   const { id = '' } = useParams<{ id: string }>()
+  const [informeAbierto, setInformeAbierto] = useState(false)
 
   const equipo = useDispositivo(id)
   const estado = useEstadoDispositivo(id)
@@ -146,6 +148,7 @@ export function DetalleDispositivo() {
         lastSeenAt={estado.datos?.last_seen_at ?? null}
         lastDataAt={estado.datos?.last_data_at ?? null}
         ahora={ahora}
+        onInforme={() => setInformeAbierto(true)}
       />
 
       {error && <TextoError>No pudimos actualizar: {error}</TextoError>}
@@ -214,6 +217,17 @@ export function DetalleDispositivo() {
           onCambio={refrescarAlertas}
         />
       </div>
+
+      {/* Montado sólo mientras está abierto: siembra estado de sus props. */}
+      {informeAbierto && (
+        <ModalInforme
+          abierto
+          onCerrar={() => setInformeAbierto(false)}
+          nombreEquipo={nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
+          sensores={sensoresBase}
+          intervaloSeg={dispositivo.intervalo_efectivo_seg}
+        />
+      )}
     </div>
   )
 }

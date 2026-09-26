@@ -7,7 +7,7 @@ import { TextoError } from '@/components/ui/TextoError'
 import { Vacio } from '@/components/ui/Vacio'
 import { Grafico } from '@/components/graficos/Grafico'
 import { LeyendaGrafico } from '@/components/graficos/LeyendaGrafico'
-import { IconoExportar } from '@/components/layout/iconos'
+import { IconoDocumento, IconoExportar } from '@/components/layout/iconos'
 import { useAhora } from '@/hooks/usarAhora'
 import { useRastro } from '@/hooks/usarCabecera'
 import { useDispositivos } from '@/hooks/usarDispositivos'
@@ -33,6 +33,7 @@ import { BloqueExport } from './BloqueExport'
 import { BloqueHistorial } from './BloqueHistorial'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { LineaDeTiempo } from './LineaDeTiempo'
+import { ModalInforme } from './ModalInforme'
 import { estadoDeSensor } from './SensoresEquipo'
 import {
   useAlertasDispositivo,
@@ -93,6 +94,7 @@ function EsqueletoSensor() {
 export function DetalleSensor() {
   const { id = '', sensorId = '' } = useParams<{ id: string; sensorId: string }>()
   const [exportAbierto, setExportAbierto] = useState(false)
+  const [informeAbierto, setInformeAbierto] = useState(false)
   const { ventana, elegir, zoomear, restablecer, hayZoom } = useVentanaConZoom(VENTANA_INICIAL)
   const enVivo = esTiempoReal(ventana)
 
@@ -243,14 +245,17 @@ export function DetalleSensor() {
             )}
           </p>
         </div>
-        <Boton
-          variante="sutil"
-          onClick={() => setExportAbierto(true)}
-          className="self-start md:self-auto"
-        >
-          <IconoExportar className="size-4" />
-          Exportar CSV
-        </Boton>
+        <div className="flex flex-wrap gap-2 self-start md:self-auto">
+          <Boton variante="sutil" onClick={() => setExportAbierto(true)}>
+            <IconoExportar className="size-4" />
+            Exportar CSV
+          </Boton>
+          {/* PENDIENTE (Tier 4.6): el modal abre, pero generar el PDF todavía no anda. */}
+          <Boton variante="acento" onClick={() => setInformeAbierto(true)}>
+            <IconoDocumento className="size-4" />
+            Informe de este período
+          </Boton>
+        </div>
       </div>
 
       {error && <TextoError>No pudimos actualizar: {error}</TextoError>}
@@ -401,6 +406,17 @@ export function DetalleSensor() {
           dispositivoId={dispositivo.id}
           abierto
           onCerrar={() => setExportAbierto(false)}
+        />
+      )}
+      {informeAbierto && (
+        <ModalInforme
+          abierto
+          onCerrar={() => setInformeAbierto(false)}
+          nombreEquipo={nombreDeDispositivo(dispositivo.id, dispositivo.nombre)}
+          sensores={sensores.datos}
+          intervaloSeg={dispositivo.intervalo_efectivo_seg}
+          sensoresIniciales={[sensor.id]}
+          rangoInicial={{ desde, hasta }}
         />
       )}
     </div>
