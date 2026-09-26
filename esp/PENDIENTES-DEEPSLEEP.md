@@ -192,6 +192,20 @@ conservación y el volcado del punto l. Definir si el % viaja como un sensor má
 o como campo del POST (esto último toca el backend).
 
 **p. Corregir el drift del oscilador por software, midiéndolo contra el servidor.**
+✅ en `prueba_bmp.ino` (`calibrarReloj()`), falta validarlo en placa. En la base se
+ve 297,8 s por cada 300 configurados, o sea −7300 ppm en esta unidad. El factor se
+guarda como ppm entero, se aplica al fechar (`aReal()`) **y** al sueño (`dormir()`,
+así 5 min son 5 min reales), y persiste en NVS (namespace `reloj`), sólo cuando
+cambia más de 50 ppm: es propiedad de la placa y un reset no tiene por qué tirarlo.
+- **Visto en la base**: durante el corte de la API del 25/9 (04:17–17:26 ART) los
+  puntos quedaron a 300 s exactos, contra 297–298 s conectado. Esa regularidad es
+  el síntoma: son segundos del cronómetro, no reales (~5,7 min de error en 13 h).
+- **Tras un corte de más de 1 h se re-ancla antes de drenar** (lote vacío): así la
+  respuesta mide el drift sobre el corte mismo y el buffer se fecha con eso. Sin
+  esto, el primer lote salía fechado con el ancla de antes del corte.
+- **Calibrar en banco antes de entregar**: la NVS sobrevive al reflasheo, así que
+  una hora conectado deja el drift guardado. Si no, un equipo que arranca en
+  campo sin WiFi fecha su primer corte sin corrección.
 El equipo puede aprender su propio error sin hardware nuevo: dos anclas separadas
 dan `factor = Δepoch_servidor / Δlocal`, y datar pasa a ser
 `anclaEpoch + (lectura − anclaLocal) × factor`. Con el 0,91 % medido, eso baja el

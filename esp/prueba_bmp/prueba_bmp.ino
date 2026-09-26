@@ -142,6 +142,17 @@ RTC_DATA_ATTR uint8_t fallosContacto = 0;
 RTC_DATA_ATTR uint32_t anclaEpoch = 0;
 RTC_DATA_ATTR uint32_t anclaLocal = 0;
 
+// Drift del oscilador interno, aprendido contra el servidor: cuántos segundos por
+// millón se adelanta (negativo) o atrasa el cronómetro local respecto del real.
+// Con anclas separadas menos de 1 h, la cuantización de 1 s mete más error que el
+// drift que se quiere medir.
+const uint32_t SEG_MIN_CALIBRACION = 3600;
+const int32_t  PPM_MAX_RELOJ       = 30000;
+
+RTC_DATA_ATTR uint32_t calibracionEpoch = 0;
+RTC_DATA_ATTR uint32_t calibracionLocal = 0;
+RTC_DATA_ATTR int32_t  relojPpm         = 0;
+
 RTC_DATA_ATTR int64_t proximoDespertarUs = 0;
 
 void setup() {
@@ -162,10 +173,12 @@ void setup() {
   ciclosDesdeEnvio++;
   ciclosDesdeContacto++;
 
-  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu | fallidas %lu | fallos contacto %u\n",
+  if (arranqueFrio) cargarRelojPpm();
+
+  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu (%ld ppm) | fallidas %lu | fallos contacto %u\n",
                 arranqueFrio ? "FRÍO" : "timer",
                 ciclosDesdeEnvio, intervaloEnvioSeg / intervaloMuestreoSeg,
-                anclaEpoch ? "sí" : "NO", bufCantidad, (unsigned long) ahoraLocal(),
+                anclaEpoch ? "sí" : "NO", bufCantidad, (unsigned long) ahoraLocal(), (long) relojPpm,
                 (unsigned long) lecturasFallidas, fallosContacto);
 
   // Sin sensor no tiene sentido gastar los ~30 ms de conversión en leer basura que
@@ -217,7 +230,9 @@ void armarWatchdog() {
 
 void dormir() {
   int64_t ahoraUs     = microsLocales();
-  int64_t intervaloUs = intervaloMuestreoSeg * 1000000LL;
+  // El timer del sueño corre con el mismo oscilador: 20 s reales son más o menos
+  // segundos locales según el drift.
+  int64_t intervaloUs = intervaloMuestreoSeg * 1000000LL * 1000000LL / (1000000LL + relojPpm);
 
   // Grilla absoluta: se duerme hasta un instante, no una duración. Así el costo del
   // boot —que corre antes de que millis() empiece a contar, y que no conviene
@@ -334,8 +349,11 @@ bool enviarMediciones(bool permitirPortal) {
   if(rotacionPendiente) rotarSecret();
 
   // La hora llega en la respuesta, así que sin ancla el buffer saldría sin fechar.
-  // Un lote vacío no escribe ninguna fila y la trae antes de vaciarlo.
-  if(anclaEpoch == 0 && bufCantidad > 0) enviarLote(0);
+  // Un lote vacío no escribe ninguna fila y la trae antes de vaciarlo. Con un ancla
+  // vieja (un corte) también: esa respuesta mide el drift sobre el corte mismo, y
+  // lo acumulado se fecha con él en vez de con el anterior.
+  bool anclaVieja = anclaEpoch == 0 || (int32_t) (ahoraLocal() - anclaLocal) >= (int32_t) SEG_MIN_CALIBRACION;
+  if(anclaVieja && bufCantidad > 0) enviarLote(0);
 
   uint32_t inicioMs      = millis();
   uint16_t cantInicial   = bufCantidad;
@@ -468,6 +486,63 @@ void anclarHora(uint32_t epoch) {
 
   anclaEpoch = epoch;
   anclaLocal = ahoraLocal();
+  calibrarReloj();
+}
+
+// Compara el tiempo que pasó según el servidor contra el del cronómetro, entre la
+// referencia y el ancla recién tomada.
+void calibrarReloj() {
+  if (calibracionEpoch == 0) {
+    calibracionEpoch = anclaEpoch;
+    calibracionLocal = anclaLocal;
+    return;
+  }
+
+  int64_t deltaLocal = (int32_t) (anclaLocal - calibracionLocal);
+  if (deltaLocal < SEG_MIN_CALIBRACION) return;
+
+  int64_t deltaReal = (int64_t) anclaEpoch - calibracionEpoch;
+  int64_t medido    = (deltaReal - deltaLocal) * 1000000LL / deltaLocal;
+
+  calibracionEpoch = anclaEpoch;
+  calibracionLocal = anclaLocal;
+
+  // Un salto del reloj del servidor o una referencia de otro arranque, no drift.
+  if (medido > PPM_MAX_RELOJ || medido < -PPM_MAX_RELOJ) {
+    Serial.printf("[RELOJ] Medición descartada: %lld ppm\n", medido);
+    return;
+  }
+
+  // Promedio con la anterior: amortigua la cuantización sin dejar de seguir la
+  // deriva térmica.
+  int32_t anterior = relojPpm;
+  relojPpm = anterior == 0 ? (int32_t) medido : (int32_t) ((anterior + medido) / 2);
+
+  Serial.printf("[RELOJ] Drift medido %lld ppm en %llds, aplicado %ld ppm\n",
+                medido, deltaLocal, (long) relojPpm);
+
+  if (abs(relojPpm - anterior) > 50) guardarRelojPpm();
+}
+
+void guardarRelojPpm() {
+  Preferences p;
+  p.begin("reloj", false);
+  p.putInt("ppm", relojPpm);
+  p.end();
+}
+
+// El drift es de la placa, no del arranque: sin esto un reset lo tira y el equipo
+// pasa la primera hora fechando con el cronómetro crudo.
+void cargarRelojPpm() {
+  Preferences p;
+  p.begin("reloj", true);
+  relojPpm = p.getInt("ppm", 0);
+  p.end();
+}
+
+// Segundos locales a segundos reales.
+int64_t aReal(int64_t segLocales) {
+  return segLocales + segLocales * relojPpm / 1000000LL;
 }
 
 // 0 = no se puede datar. Con signo a propósito: el ancla llega en la respuesta del
@@ -477,7 +552,7 @@ uint32_t epochDeLectura(uint32_t lecturaTime) {
   if (anclaEpoch == 0) return 0;
 
   // Resta modular: una lectura anterior al power-on (o al wrap) sigue dando la edad correcta.
-  int64_t epoch = (int64_t) anclaEpoch + (int32_t) (lecturaTime - anclaLocal);
+  int64_t epoch = (int64_t) anclaEpoch + aReal((int32_t) (lecturaTime - anclaLocal));
   return epoch > (int64_t) EPOCH_MIN ? (uint32_t) epoch : 0;
 }
 
