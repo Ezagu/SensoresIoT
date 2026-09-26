@@ -29,7 +29,13 @@ export function Verificar() {
 
   /* Un link sin token se resuelve en render: el estado guarda sólo el resultado
      de la request, no lo que ya se sabe sin pedir nada. */
-  const estado: Estado = !token ? 'error' : resultado === null ? 'verificando' : resultado.ok ? 'ok' : 'error'
+  const estado: Estado = !token
+    ? 'error'
+    : resultado === null
+      ? 'verificando'
+      : resultado.ok
+        ? 'ok'
+        : 'error'
   const error = !token ? SIN_TOKEN : resultado && !resultado.ok ? resultado.error : null
 
   return (
@@ -38,7 +44,10 @@ export function Verificar() {
       {estado === 'ok' && (
         <>
           <p className="text-label-lg text-text-muted">Ya podés iniciar sesión.</p>
-          <Link to="/login" className="mt-4 inline-block text-label-lg font-medium text-accent hover:underline">
+          <Link
+            to="/login"
+            className="mt-4 inline-block text-label-lg font-medium text-accent hover:underline"
+          >
             Ir a iniciar sesión
           </Link>
         </>
@@ -48,7 +57,10 @@ export function Verificar() {
           <p role="alert" className="text-label-lg text-danger">
             {error}
           </p>
-          <Link to="/login" className="mt-4 inline-block text-label-lg font-medium text-accent hover:underline">
+          <Link
+            to="/login"
+            className="mt-4 inline-block text-label-lg font-medium text-accent hover:underline"
+          >
             Volver
           </Link>
         </>

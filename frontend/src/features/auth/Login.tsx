@@ -6,7 +6,7 @@ import { esquemaLogin } from '@/utils/validacion'
 import { useFormulario } from '@/hooks/usarFormulario'
 import { Boton } from '@/components/ui/Boton'
 import { Campo, CampoPassword } from '@/components/ui/Campo'
-import { MarcoAuth } from './MarcoAuth'
+import { ContinuarConGoogle, MarcoAuth, PieAuth } from './MarcoAuth'
 import { TextoError } from '@/components/ui/TextoError'
 
 export function Login() {
@@ -41,8 +41,8 @@ export function Login() {
   }
 
   return (
-    <MarcoAuth titulo="Entrar a Bitácora" subtitulo="Monitoreá tus dispositivos y sus alertas.">
-      <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
+    <MarcoAuth titulo="Ingresar">
+      <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
         <Campo
           etiqueta="Email"
           type="email"
@@ -53,26 +53,29 @@ export function Login() {
         <CampoPassword
           etiqueta="Contraseña"
           autoComplete="current-password"
+          accesorio={
+            <Link to="/recuperar" className="text-note-lg font-medium text-accent hover:text-text">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          }
           {...campo('password')}
         />
 
-        {error && (
-          <TextoError>
-            {error}
-          </TextoError>
-        )}
+        {error && <TextoError>{error}</TextoError>}
 
-        <Boton type="submit" disabled={enviando} className="mt-1 w-full">
-          {enviando ? 'Entrando…' : 'Entrar'}
+        <Boton type="submit" disabled={enviando} className="mt-2 w-full">
+          {enviando ? 'Ingresando…' : 'Ingresar'}
         </Boton>
       </form>
 
-      <p className="mt-4 text-label-lg text-text-muted text-center">
-        ¿No tenés cuenta?{' '}
-        <Link to="/registro" className="font-medium text-accent hover:underline">
-          Crear una
+      <ContinuarConGoogle />
+
+      <PieAuth>
+        ¿Todavía no tenés cuenta?{' '}
+        <Link to="/registro" className="font-medium text-accent hover:text-text">
+          Crear cuenta
         </Link>
-      </p>
+      </PieAuth>
     </MarcoAuth>
   )
 }

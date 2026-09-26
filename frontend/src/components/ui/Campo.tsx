@@ -1,4 +1,9 @@
-import { useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react'
+import {
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+} from 'react'
 import { IconoOjo, IconoOjoTachado } from '@/components/layout/iconos'
 
 /* Sin alto: lo pone cada control, porque el <textarea> crece y el <input> no.
@@ -40,7 +45,9 @@ export function Etiqueta({
     <label
       htmlFor={id}
       className={
-        oculta ? 'sr-only' : `text-label font-medium ${disabled ? 'text-text-faint' : 'text-text-muted'}`
+        oculta
+          ? 'sr-only'
+          : `text-label font-medium ${disabled ? 'text-text-faint' : 'text-text-muted'}`
       }
     >
       {children}
@@ -79,16 +86,30 @@ type CampoProps = InputHTMLAttributes<HTMLInputElement> & {
   etiqueta: string
   /* El rótulo visible lo pone la fila de ajustes: acá queda sólo para lectores. */
   etiquetaOculta?: boolean
+  /* Algo en el renglón de la etiqueta, a la derecha (ej: "¿Olvidaste tu contraseña?"). */
+  accesorio?: ReactNode
   ayuda?: string
   error?: string
 }
 
-export function Campo({ id, etiqueta, ayuda, error, etiquetaOculta, className = '', ...props }: CampoProps) {
+export function Campo({
+  id,
+  etiqueta,
+  ayuda,
+  error,
+  etiquetaOculta,
+  accesorio,
+  className = '',
+  ...props
+}: CampoProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
-        {etiqueta}
-      </Etiqueta>
+      <div className="flex items-baseline justify-between gap-3">
+        <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
+          {etiqueta}
+        </Etiqueta>
+        {accesorio}
+      </div>
       <input
         id={id}
         name={id}
@@ -104,14 +125,26 @@ export function Campo({ id, etiqueta, ayuda, error, etiquetaOculta, className = 
 
 /* Contraseña con alternancia de visibilidad. El botón vive dentro del campo y
    es focusable, así que se llega por teclado sin salir del formulario. */
-export function CampoPassword({ id, etiqueta, ayuda, error, etiquetaOculta, className = '', ...props }: CampoProps) {
+export function CampoPassword({
+  id,
+  etiqueta,
+  ayuda,
+  error,
+  etiquetaOculta,
+  accesorio,
+  className = '',
+  ...props
+}: CampoProps) {
   const [visible, setVisible] = useState(false)
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
-        {etiqueta}
-      </Etiqueta>
+      <div className="flex items-baseline justify-between gap-3">
+        <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
+          {etiqueta}
+        </Etiqueta>
+        {accesorio}
+      </div>
       <div className="relative">
         <input
           id={id}
@@ -146,7 +179,15 @@ type AreaTextoProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   error?: string
 }
 
-export function AreaTexto({ id, etiqueta, ayuda, error, etiquetaOculta, className = '', ...props }: AreaTextoProps) {
+export function AreaTexto({
+  id,
+  etiqueta,
+  ayuda,
+  error,
+  etiquetaOculta,
+  className = '',
+  ...props
+}: AreaTextoProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>

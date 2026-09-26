@@ -16,11 +16,25 @@ export const esquemaLogin = z.object({
   password: z.string().min(1, 'Ingresá tu contraseña.'),
 })
 
-export const esquemaRegistro = z.object({
-  nombre: z.string().trim().min(2, 'Ingresá tu nombre.').max(80, 'Máximo 80 caracteres.'),
-  email,
-  password: z.string().min(8, 'Mínimo 8 caracteres.').max(128, 'Máximo 128 caracteres.'),
-})
+const passwordNueva = z.string().min(8, 'Mínimo 8 caracteres.').max(128, 'Máximo 128 caracteres.')
+
+export const esquemaRegistro = z
+  .object({
+    nombre: z.string().trim().min(2, 'Ingresá tu nombre.').max(80, 'Máximo 80 caracteres.'),
+    email,
+    password: passwordNueva,
+    confirmar: z.string().min(1, 'Repetí la contraseña.'),
+  })
+  .refine((v) => v.password === v.confirmar, { message: 'No coinciden.', path: ['confirmar'] })
+
+export const esquemaRecuperar = z.object({ email })
+
+export const esquemaNuevaClave = z
+  .object({
+    password: passwordNueva,
+    confirmar: z.string().min(1, 'Repetí la contraseña.'),
+  })
+  .refine((v) => v.password === v.confirmar, { message: 'No coinciden.', path: ['confirmar'] })
 
 /* z.coerce.number() coerce '' a 0, así que un campo vacío pasaría como válido:
    el .min(1) rechaza la cadena vacía antes de que se coercione. */

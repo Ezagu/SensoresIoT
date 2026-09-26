@@ -3,16 +3,18 @@ import { Link } from 'react-router-dom'
 import { api, mensajeDeError } from '@/services/api'
 import { esquemaRegistro } from '@/utils/validacion'
 import { useFormulario } from '@/hooks/usarFormulario'
-import { Boton } from '@/components/ui/Boton'
+import { BotonLink, Boton } from '@/components/ui/Boton'
 import { Campo, CampoPassword } from '@/components/ui/Campo'
-import { MarcoAuth } from './MarcoAuth'
 import { TextoError } from '@/components/ui/TextoError'
+import { ContinuarConGoogle, MarcoAuth, PieAuth } from './MarcoAuth'
+import { IconoCorreo } from './IconoCorreo'
 
 export function Registro() {
   const { campo, validar } = useFormulario(esquemaRegistro, {
     nombre: '',
     email: '',
     password: '',
+    confirmar: '',
   })
   const [error, setError] = useState<string | null>(null)
   const [enviadoA, setEnviadoA] = useState<string | null>(null)
@@ -27,7 +29,11 @@ export function Registro() {
 
     setEnviando(true)
     try {
-      await api.post('/auth/register', datos)
+      await api.post('/auth/register', {
+        nombre: datos.nombre,
+        email: datos.email,
+        password: datos.password,
+      })
       setEnviadoA(datos.email)
     } catch (err) {
       setError(mensajeDeError(err, 'No pudimos crear la cuenta.'))
@@ -38,24 +44,27 @@ export function Registro() {
 
   if (enviadoA) {
     return (
-      <MarcoAuth titulo="Revisá tu correo">
-        <p className="text-label-lg text-text-muted">
-          Te mandamos un link de verificación a <strong className="text-text">{enviadoA}</strong>.
-          Verificá la cuenta y después iniciá sesión.
-        </p>
-        <Link
-          to="/login"
-          className="mt-4 inline-block text-label-lg font-medium text-accent hover:underline"
-        >
-          Ir a iniciar sesión
-        </Link>
+      <MarcoAuth
+        titulo="Revisá tu correo."
+        encabezado={<IconoCorreo />}
+        subtitulo={
+          <>
+            Te mandamos un enlace de verificación a{' '}
+            <b className="font-semibold text-text">{enviadoA}</b>. Verificá la cuenta y después
+            ingresá.
+          </>
+        }
+      >
+        <BotonLink to="/login" variante="sutil" className="w-full">
+          Ir a ingresar
+        </BotonLink>
       </MarcoAuth>
     )
   }
 
   return (
-    <MarcoAuth titulo="Crear cuenta" subtitulo="Necesitás una para vincular tus dispositivos.">
-      <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
+    <MarcoAuth titulo="Crear cuenta">
+      <form onSubmit={enviar} className="flex flex-col gap-4" noValidate>
         <Campo etiqueta="Nombre" autoComplete="name" {...campo('nombre')} />
         <Campo
           etiqueta="Email"
@@ -67,27 +76,30 @@ export function Registro() {
         <CampoPassword
           etiqueta="Contraseña"
           autoComplete="new-password"
-          ayuda="Mínimo 8 caracteres."
+          ayuda="8 caracteres o más."
           {...campo('password')}
         />
+        <CampoPassword
+          etiqueta="Confirmar contraseña"
+          autoComplete="new-password"
+          {...campo('confirmar')}
+        />
 
-        {error && (
-          <TextoError>
-            {error}
-          </TextoError>
-        )}
+        {error && <TextoError>{error}</TextoError>}
 
-        <Boton type="submit" disabled={enviando} className="mt-1 w-full">
+        <Boton type="submit" disabled={enviando} className="mt-2 w-full">
           {enviando ? 'Creando…' : 'Crear cuenta'}
         </Boton>
       </form>
 
-      <p className="mt-4 text-center text-label-lg text-text-muted">
+      <ContinuarConGoogle />
+
+      <PieAuth>
         ¿Ya tenés cuenta?{' '}
-        <Link to="/login" className="font-medium text-accent hover:underline">
-          Entrar
+        <Link to="/login" className="font-medium text-accent hover:text-text">
+          Ingresar
         </Link>
-      </p>
+      </PieAuth>
     </MarcoAuth>
   )
 }

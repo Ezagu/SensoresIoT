@@ -6,6 +6,8 @@ import { Layout } from '@/components/layout/Layout'
 import { Login } from '@/features/auth/Login'
 import { Registro } from '@/features/auth/Registro'
 import { Verificar } from '@/features/auth/Verificar'
+import { NuevaClave, Recuperar, RecuperarEnviado } from '@/features/auth/Recuperar'
+import { NoEncontrada } from '@/features/NoEncontrada'
 import { Panel } from '@/features/panel/Panel'
 import { Vincular } from '@/features/dispositivo/Vincular'
 import { AjustesDispositivo } from '@/features/dispositivo/ajustes/AjustesDispositivo'
@@ -58,6 +60,9 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/registro" element={<Registro />} />
             <Route path="/verificar" element={<Verificar />} />
+            <Route path="/recuperar" element={<Recuperar />} />
+            <Route path="/recuperar/enviado" element={<RecuperarEnviado />} />
+            <Route path="/nueva-clave" element={<NuevaClave />} />
           </Route>
 
           <Route element={<Guardia />}>
@@ -108,7 +113,7 @@ export default function App() {
             <Route path="/dispositivos" element={<Navigate to="/" replace />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </ProveedorSesion>
     </BrowserRouter>
