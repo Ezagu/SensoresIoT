@@ -342,11 +342,15 @@ bool enviarMediciones(bool permitirPortal) {
   return lotesEnviados > 0;
 }
 
-// 10 → 20 → 40 min, tope 1 h.
+// El primer fallo reintenta en la cadencia normal (casi siempre es transitorio);
+// desde el segundo, 10 → 20 → 40 min, tope 1 h. No escala con la cadencia: lo que
+// cuesta un intento fallido es fijo, y sin red los datos se bufferizan igual.
 uint16_t esperaBackoffSeg() {
-  if (fallosContacto == 0) return 0;
-  uint32_t espera = (uint32_t) BACKOFF_BASE_SEG << min<uint8_t>(fallosContacto - 1, 8);
-  return espera > BACKOFF_MAX_SEG ? BACKOFF_MAX_SEG : espera;
+  uint16_t espera = 0;
+  for (uint8_t i = 1; i < fallosContacto && espera < BACKOFF_MAX_SEG; i++) {
+    espera = espera ? espera * 2 : BACKOFF_BASE_SEG;
+  }
+  return min(espera, BACKOFF_MAX_SEG);
 }
 
 void registrarResultadoContacto(bool ok) {
@@ -357,8 +361,9 @@ void registrarResultadoContacto(bool ok) {
   }
 
   if (fallosContacto < UINT8_MAX) fallosContacto++;
-  Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en %u min\n",
-                fallosContacto, esperaBackoffSeg() / 60);
+  uint16_t espera = esperaBackoffSeg();
+  if (espera == 0) Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en la cadencia normal\n", fallosContacto);
+  else             Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en %u min\n", fallosContacto, espera / 60);
 }
 
 bool enviarLote(uint16_t tope) {

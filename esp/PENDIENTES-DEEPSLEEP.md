@@ -149,6 +149,15 @@ secrets durante una rotación, así que el orden es seguro.
 equipo fuera de cobertura consume más que uno conectado y se vacía en días. Si
 falla: 10 → 20 → 40 min, tope 1 h. El muestreo y el buffer **no** se espacian — el
 corte es justo lo que el cliente va a querer reconstruir.
+- **No escala con la cadencia de envío, a propósito.** El costo de un intento
+  fallido es fijo (~1200 mA·s) y sin red los datos se bufferizan igual. Sin backoff
+  un equipo de 1 min duraría ~4 días sin red; con tope 1 h, ~77 días
+  cualquiera sea su cadencia.
+- **El primer fallo reintenta en la cadencia normal**: casi siempre es
+  transitorio y 10 min de hueco por un reinicio del router no se justifican. El
+  backoff arranca en el segundo fallo seguido.
+- El tope es la palanca contra la ventana de 15 min de «sin reportar»: con 1 h, el
+  mail de recuperación puede llegar hasta 1 h tarde. Con 30 min, ~58 días sin red.
 - Cuenta como fallo cualquier contacto sin un 2xx, WiFi o backend: los dos gastan
   radio sin traer nada. Un cruce de umbral saltea el backoff.
 - `fallosContacto` es `RTC_DATA_ATTR`, así que un arranque en frío lo resetea y
