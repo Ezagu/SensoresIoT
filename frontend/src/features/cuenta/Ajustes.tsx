@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Pill } from '@/components/ui/Pill'
 import { useSesion } from '@/features/auth/sesion'
-import { iniciales } from '@/components/layout/Layout'
+import { iniciales } from '@/components/layout/MenuCuenta'
 import { IndiceAjustes, type Seccion } from './ajustes/IndiceAjustes'
 import { SeccionApariencia } from './ajustes/SeccionApariencia'
 import { SeccionNotificaciones } from './ajustes/SeccionNotificaciones'

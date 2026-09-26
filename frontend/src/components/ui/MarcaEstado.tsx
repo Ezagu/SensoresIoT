@@ -27,7 +27,7 @@ const TINTA: Record<Estado, string> = {
   atencion: 'var(--color-attention-mark)',
   advertencia: 'var(--color-warn-mark)',
   critico: 'var(--color-danger-mark)',
-  'sin-reportar': 'var(--color-warn-mark)',
+  'sin-reportar': 'var(--color-offline-mark)',
   'sin-datos': 'var(--color-offline-mark)',
   inactivo: 'var(--color-offline-mark)',
 }
@@ -75,7 +75,7 @@ export function MarcaEstado({
     <svg
       viewBox="0 0 12 12"
       aria-hidden="true"
-      className={`block size-2.5 shrink-0 ${
+      className={`block size-2 shrink-0 ${
         latiendo && estado === 'critico' ? 'animate-latido' : ''
       } ${className}`}
     >

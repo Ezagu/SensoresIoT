@@ -60,7 +60,7 @@ export function DetalleDispositivo() {
   useRastro(
     dispositivo
       ? [
-          { etiqueta: 'Panel', a: '/' },
+          { etiqueta: 'Todos los equipos', a: '/' },
           { etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre) },
         ]
       : null,

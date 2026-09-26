@@ -1,6 +1,14 @@
 import type { Estado } from '@/components/ui/MarcaEstado'
 import type { DispositivoDetalle, DispositivoResumen } from '@/tipos'
-import { ETIQUETA_ESTADO, type EstadoDispositivo } from './tiempo'
+import { medida } from './formato'
+import { etiquetaDeTipo, etiquetarSensores } from './sensores'
+import {
+  duracion,
+  ETIQUETA_ESTADO,
+  estadoDispositivo,
+  lecturaDesactualizada,
+  type EstadoDispositivo,
+} from './tiempo'
 
 /* El dispositivo puede no tener nombre cargado: el id corto lo distingue del
    resto sin obligar a mostrar un UUID entero. */
@@ -61,4 +69,59 @@ export function puedeEditar(rol: DispositivoDetalle['rol']): boolean {
    variante de "editar", es la única acción que afecta a un tercero. */
 export function esDuenio(rol: DispositivoDetalle['rol']): boolean {
   return rol === 'owner' || rol === 'admin'
+}
+
+export type SituacionEquipo = {
+  glifo: Estado
+  texto: string
+  tono: 'danger' | 'attention' | 'dim' | 'faint'
+  /* Cuenta para "N requieren atención". "Con retraso" no: el equipo se pone al
+     día solo y el producto no lo trata como falla. */
+  requiereAtencion: boolean
+}
+
+/* El renglón de un equipo en una línea: qué le pasa, con el dato que lo prueba.
+   Lo comparten la barra lateral, el selector mobile y el panel. */
+export function situacionDeEquipo(d: DispositivoResumen, ahora: number): SituacionEquipo {
+  const conectividad = estadoDispositivo(d, ahora)
+  const etiquetas = etiquetarSensores(d.sensores)
+  const nombre = (id: string, tipo: string) => etiquetas.get(id)?.etiqueta ?? etiquetaDeTipo(tipo)
+  const desde = (iso: string | null) => (iso ? ` · ${duracion(iso, new Date(ahora).toISOString())}` : '')
+
+  if (!d.activo) return { glifo: 'inactivo', texto: 'Desactivado', tono: 'faint', requiereAtencion: false }
+
+  if (d.alertas_disparadas > 0) {
+    const s = d.sensores.find((x) => x.disparada)
+    const texto = s
+      ? `${nombre(s.id, s.tipo_nombre)}${s.ultimo_valor !== null ? ` ${medida(s.ultimo_valor, s.unidad)}` : ''}`
+      : 'Alerta disparada'
+    return { glifo: 'critico', texto, tono: 'danger', requiereAtencion: true }
+  }
+
+  switch (conectividad) {
+    case 'nunca':
+      return { glifo: 'sin-datos', texto: 'Nunca reportó', tono: 'faint', requiereAtencion: false }
+    case 'sin-reportar':
+      return { glifo: 'sin-reportar', texto: `Sin reportar${desde(d.last_seen_at)}`, tono: 'faint', requiereAtencion: true }
+    case 'con-retraso':
+      return { glifo: 'atencion', texto: `Con retraso${desde(d.last_data_at)}`, tono: 'dim', requiereAtencion: false }
+  }
+
+  /* En línea pero con un sensor mudo: el equipo habla y ese sensor no manda
+     nada (bus caído, sensor desconectado). */
+  const mudo = d.sensores.find((s) => lecturaDesactualizada(s.ultimo_at, d.intervalo_efectivo_seg, ahora))
+  if (mudo) {
+    return {
+      glifo: 'atencion',
+      texto: `${nombre(mudo.id, mudo.tipo_nombre)} sin lecturas${desde(mudo.ultimo_at)}`,
+      tono: 'attention',
+      requiereAtencion: true,
+    }
+  }
+
+  return { glifo: 'normal', texto: 'En orden', tono: 'faint', requiereAtencion: false }
+}
+
+export function porNombre(a: DispositivoResumen, b: DispositivoResumen) {
+  return nombreDeDispositivo(a.id, a.nombre).localeCompare(nombreDeDispositivo(b.id, b.nombre), 'es')
 }

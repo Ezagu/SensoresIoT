@@ -23,6 +23,10 @@ function guardado(): Tema {
   return 'sistema'
 }
 
+/* El menú de cuenta y Ajustes montan el hook a la vez: el cambio en uno tiene
+   que llegar al otro. */
+const EVENTO = 'bitacora-tema'
+
 export function useTema() {
   const [tema, setTema] = useState<Tema>(guardado)
   /* Con "sistema" el seguimiento del SO ya no lo hace el CSS, hay que leerlo */
@@ -33,12 +37,19 @@ export function useTema() {
   }, [tema, claroDelSistema])
 
   useEffect(() => {
+    const alCambiar = (e: Event) => setTema((e as CustomEvent<Tema>).detail)
+    window.addEventListener(EVENTO, alCambiar)
+    return () => window.removeEventListener(EVENTO, alCambiar)
+  }, [])
+
+  const cambiarTema = useCallback((t: Tema) => {
     try {
-      localStorage.setItem(CLAVE, tema)
+      localStorage.setItem(CLAVE, t)
     } catch {
       /* la preferencia no persiste, pero la sesión actual igual la respeta */
     }
-  }, [tema])
+    window.dispatchEvent(new CustomEvent(EVENTO, { detail: t }))
+  }, [])
 
-  return { tema, cambiarTema: useCallback((t: Tema) => setTema(t), []) }
+  return { tema, cambiarTema }
 }

@@ -66,7 +66,7 @@ export function DetalleSensor() {
   useRastro(
     dispositivo && sensor
       ? [
-          { etiqueta: 'Panel', a: '/' },
+          { etiqueta: 'Todos los equipos', a: '/' },
           {
             etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre),
             a: `/dispositivos/${dispositivo.id}`,
