@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cámara frigorífica 02</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul,ol{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--surface:#152021;--raise:#1A2527;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--warn-line:rgba(232,154,146,.34);--amber:#DCAD52;--amber-wash:rgba(220,173,82,.09);--ok:#6FB491;--shadow:0 2px 4px rgba(0,0,0,.4),0 24px 60px -18px rgba(0,0,0,.7);--scrim:rgba(4,10,12,.66)}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--surface:#FBFAF6;--raise:#FFFFFF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--warn-line:rgba(158,51,43,.26);--amber:#8C5A06;--amber-wash:rgba(181,120,12,.07);--ok:#268056;--shadow:0 1px 2px rgba(20,32,31,.06),0 20px 48px -18px rgba(20,32,31,.25);--scrim:rgba(20,32,31,.34)}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.dim{color:var(--dim)} .faint{color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+.g-pause{height:2px;width:9px;background:var(--faint);border-radius:1px}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit{animation:none}}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px 18px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row:hover{background:var(--soft)}
+.r-row.on{background:var(--accent-wash)}
+.r-row.on::before{content:"";position:absolute;left:-14px;top:12px;bottom:12px;width:2px;background:var(--accent)}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.late{color:var(--dim)}
+.r-all{margin-top:18px}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn:hover{border-color:var(--accent-line);color:var(--accent-2)}
+.link-btn svg.i{width:14px;height:14px}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.crumb a:hover{color:var(--text)}
+.crumb b{font-weight:500;color:var(--text)}
+.crumb .sep{color:var(--faint)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tbtn{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--dim);font-size:13px}
+.tbtn:hover{color:var(--text);background:var(--soft)}
+.count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-mark);color:var(--bg);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--dim);background:transparent;margin-left:6px}
+.content{flex:1;padding:40px 64px 64px;width:100%;max-width:1152px}
+.btn{height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;border-radius:5px;font-size:14px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:var(--accent-line)}
+.btn-accent{border-color:var(--accent-line);color:var(--accent-2)}
+.btn-accent:hover{background:var(--accent-wash)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px}
+.btn[disabled]{color:var(--faint);border-color:var(--soft);cursor:not-allowed}
+.ibtn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--dim)}
+.ibtn:hover{color:var(--text);border-color:var(--accent-line)}
+.ibtn.sm{width:32px;height:32px;border-color:transparent}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.tlink:hover{color:var(--text)}
+.tlink svg.i{width:14px;height:14px}
+
+/* cabecera del equipo */
+.dh{display:flex;align-items:flex-start;justify-content:space-between;gap:32px}
+.dh h1{font-size:34px;font-weight:600;letter-spacing:-.028em;line-height:1.1}
+.dh-state{margin-top:12px;display:flex;align-items:center;gap:10px;font-size:15px}
+.dh-state b{font-weight:600;color:var(--warn)}
+.dh-state span{color:var(--dim)}
+.dh-meta{margin-top:6px;font-size:12.5px;color:var(--faint)}
+.dh-actions{display:flex;gap:8px;align-items:center;padding-top:4px}
+
+/* instrumentos */
+.inst{margin-top:36px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.ins{padding:22px 28px 22px 0;display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:16px;align-items:end;position:relative;text-align:left;background:transparent;border:0;color:inherit}
+.ins + .ins{padding-left:28px;border-left:1px solid var(--line)}
+.ins.on::before{content:"";position:absolute;top:-1px;left:0;right:28px;height:2px;background:var(--warn-mark)}
+.ins:hover .k{color:var(--text)}
+.ins .k{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim);font-weight:500}
+.ins .v{margin-top:14px;display:flex;align-items:baseline;gap:6px}
+.ins .v b{font-size:52px;line-height:.95;letter-spacing:-.03em}
+.ins .v span{font-size:17px;color:var(--faint)}
+.ins .st{margin-top:10px;font-size:12.5px;color:var(--dim)}
+.ins.crit .v b,.ins.crit .st b{color:var(--warn)}
+.ins .st b{font-weight:600}
+
+/* evolución */
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.sec-h h2{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.sec-h h2 span{color:var(--faint);font-weight:500}
+.rng{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px}
+.rng button{height:28px;min-width:40px;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--dim);font-size:12.5px;font-weight:500;font-variant-numeric:tabular-nums}
+.rng button:hover{color:var(--text)}
+.rng button.on{background:var(--accent-wash);color:var(--accent-2)}
+.chart{margin-top:18px;position:relative}
+.chart .ylab{position:absolute;left:0;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;transform:translateY(-50%)}
+.chart .xl{display:flex;justify-content:space-between;padding:6px 0 0 34px}
+.chart .xl span{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+
+/* qué pasó + reglas */
+.duo{margin-top:56px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:64px}
+.tl{margin-top:18px;position:relative}
+.tl::before{content:"";position:absolute;left:52px;top:8px;bottom:8px;width:1px;background:var(--line)}
+.ev{display:grid;grid-template-columns:44px 18px minmax(0,1fr);gap:12px;padding:10px 0;align-items:start}
+.ev .t{font-size:13px;color:var(--dim);text-align:right;padding-top:1px}
+.ev .gw{display:flex;justify-content:center;padding-top:6px;background:var(--bg);position:relative;z-index:1;height:20px}
+.ev .b{font-size:14px;font-weight:500}
+.ev .d{font-size:12.5px;color:var(--dim);margin-top:2px}
+.ev .d .read{color:var(--text)}
+.ev.crit .b{color:var(--warn)}
+.ev .dot{width:6px;height:6px;border-radius:50%;background:var(--faint);margin-top:1px}
+.day{margin:14px 0 2px 64px}
+.rule{display:grid;grid-template-columns:18px minmax(0,1fr) auto 32px;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--soft)}
+.rule .b{font-size:14px;font-weight:500}
+.rule .d{font-size:12.5px;color:var(--dim);margin-top:2px}
+.rule .st{font-size:12.5px;font-weight:600}
+.rule .st.crit{color:var(--warn)} .rule .st.ok{color:var(--dim);font-weight:500}
+.gate{margin-top:16px;display:flex;align-items:center;gap:14px;font-size:12.5px;color:var(--dim)}
+.gate .tlink{font-size:12.5px}
+.k .pin{margin-left:auto}
+.pin{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:0;background:transparent;color:var(--faint);flex:none}
+.pin:hover{background:var(--soft);color:var(--text)}
+.pin.on{color:var(--accent-2)}
+.pin.on svg.i{fill:currentColor}
+.pin svg.i{width:15px;height:15px}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1480px;">
+
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-calma.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <a class="r-row r-all" href="Main.html"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="r-head">
+      <span class="micro">Equipos · 6</span>
+      <a class="link-btn" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a>
+    </div>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row on" href="Dispositivo.html" aria-current="page"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s crit">Temperatura 8,9 °C</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s late">Con retraso · 43 min</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">Sin reportar · 2 h 58 min</span></span></a>
+    <div class="rail-foot">Actualizado hace 12 s</div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><a href="Main.html">Todos los equipos</a><span class="sep">/</span><b>Cámara frigorífica 02</b></div>
+      <div class="top-r">
+        <a class="tbtn" href="Registro.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Registro<span class="count">2</span></a>
+        <button type="button" class="avatar" aria-label="Cuenta">LG</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 1. estado -->
+      <section class="dh">
+        <div>
+          <h1>Cámara frigorífica 02</h1>
+          <div class="dh-state"><span class="g g-crit" style="width: 10px; height: 10px;"></span><b>Temperatura sobre el umbral</b><span>desde las 18:42 · hace 26 min</span></div>
+          <div class="dh-meta">En línea · publica cada 5 min</div>
+        </div>
+        <div class="dh-actions">
+          <a class="btn btn-accent" href="Informe.html"><svg class="i" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg>Generar informe</a>
+          <button type="button" class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>Compartir</button>
+          <button type="button" class="ibtn" aria-label="Ajustes del equipo"><svg class="i" viewBox="0 0 24 24"><path d="M20 7h-9M14 17H5"></path><circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle></svg></button>
+        </div>
+      </section>
+
+      <!-- 2. sensores -->
+      <section class="inst" aria-label="Sensores">
+        <div class="ins crit on">
+          <div>
+            <div class="k"><span class="g g-crit"></span><a href="Sensor.html">Temperatura</a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar Temperatura de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+            <div class="v"><b class="read">8,9</b><span>°C</span></div>
+            <div class="st"><b>Fuera de rango</b> · umbral &gt; 8,0 °C</div>
+          </div>
+          <svg viewBox="0 0 220 60" width="220" height="60" aria-hidden="true">
+            <line x1="0" y1="18" x2="220" y2="18" stroke="var(--warn-mark)" stroke-dasharray="3 5" opacity=".55"></line>
+            <polyline points="0,44 20,45 40,44 60,34 80,44 100,45 120,44 140,22 150,14 160,26 175,43 190,44 200,34 210,12 220,9" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"></polyline>
+            <polyline points="145,18 150,14 155,18" fill="none" stroke="var(--warn-mark)" stroke-width="1.8"></polyline>
+            <polyline points="207,18 210,12 220,9" fill="none" stroke="var(--warn-mark)" stroke-width="1.8"></polyline>
+          </svg>
+        </div>
+        <div class="ins">
+          <div>
+            <div class="k"><span class="g g-ok"></span><a href="Sensor.html">Humedad</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Humedad"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+            <div class="v"><b class="read">71</b><span>%</span></div>
+            <div class="st">En rango · umbral &gt; 90 %</div>
+          </div>
+          <svg viewBox="0 0 220 60" width="220" height="60" aria-hidden="true">
+            <polyline points="0,30 20,28 40,31 60,29 80,27 100,30 120,32 140,29 160,33 180,36 200,38 220,39" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"></polyline>
+          </svg>
+        </div>
+      </section>
+
+      <!-- 3. evolución -->
+      <section style="margin-top: 52px;">
+        <div class="sec-h">
+          <h2>Temperatura <span>· últimas 24 h</span></h2>
+          <div style="display: flex; align-items: center; gap: 18px;">
+            <div class="rng" role="group" aria-label="Rango">
+              <button type="button">1 h</button><button type="button">6 h</button><button type="button" class="on" aria-pressed="true">24 h</button><button type="button">3 d</button><button type="button">7 d</button><button type="button">30 d</button>
+            </div>
+            <a class="tlink" href="Sensor.html">Abrir sensor<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+          </div>
+        </div>
+        <div class="chart">
+          <span class="ylab" style="top: 60px;">8 °C</span>
+          <span class="ylab" style="top: 140px;">4 °C</span>
+          <span class="ylab" style="top: 220px;">0 °C</span>
+          <svg viewBox="0 0 1000 240" width="990" height="240" preserveAspectRatio="none" style="display: block; margin-left: 34px;" aria-label="Temperatura, últimas 24 horas">
+            <line x1="0" y1="140" x2="1000" y2="140" stroke="var(--soft)"></line>
+            <line x1="0" y1="220" x2="1000" y2="220" stroke="var(--line)"></line>
+            <line x1="0" y1="60" x2="1000" y2="60" stroke="var(--warn-mark)" stroke-dasharray="5 7" opacity=".6"></line>
+            <rect x="686" y="0" width="30" height="220" fill="var(--warn-wash)"></rect>
+            <rect x="960" y="0" width="40" height="220" fill="var(--warn-wash)"></rect>
+            <polyline points="0,152 20,154 40,150 60,152 80,156 100,152 120,154 140,150 160,152 180,148 200,104 220,136 240,150 260,152 280,154 300,156 320,152 340,154 360,150 380,152 400,154 420,148 440,100 460,134 480,148 500,152 520,154 540,150 560,152 580,156 600,152 620,150 640,148 660,122 680,78 700,54 720,72 740,116 760,142 780,150 800,152 820,154 840,150 860,152 880,148 900,144 920,128 940,96 960,62 980,48 1000,42" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round"></polyline>
+            <polyline points="690,60 700,54 710,60" fill="none" stroke="var(--warn-mark)" stroke-width="2.2" stroke-linejoin="round"></polyline>
+            <polyline points="961,60 980,48 1000,42" fill="none" stroke="var(--warn-mark)" stroke-width="2.2" stroke-linejoin="round"></polyline>
+            <circle cx="1000" cy="42" r="4" fill="var(--warn-mark)"></circle>
+          </svg>
+          <div class="xl"><span>20:00</span><span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span><span>16:00</span><span>Ahora</span></div>
+        </div>
+      </section>
+
+      <!-- 4 + 5. alertas y lo que pasó -->
+      <section class="duo">
+        <div>
+          <div class="sec-h"><h2>Qué pasó</h2><a class="tlink" href="Registro.html">Registro completo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+          <ol class="tl">
+            <li class="ev crit"><span class="t read">18:42</span><span class="gw"><span class="g g-crit"></span></span><div><div class="b">Temperatura sobre 8,0 °C</div><div class="d"><span class="read">8,3 °C</span> · 3 lecturas seguidas</div></div></li>
+            <li class="ev"><span class="t read">18:42</span><span class="gw"><span class="dot"></span></span><div><div class="b">Aviso enviado</div><div class="d">Email a 3 personas</div></div></li>
+            <li class="ev"><span class="t read">12:48</span><span class="gw"><span class="g g-ok"></span></span><div><div class="b">Volvió a rango</div><div class="d"><span class="read">7,4 °C</span> · duró 38 min</div></div></li>
+            <li class="ev crit"><span class="t read">12:10</span><span class="gw"><span class="g g-crit" style="animation: none;"></span></span><div><div class="b">Temperatura sobre 8,0 °C</div><div class="d"><span class="read">8,2 °C</span> · email a 3 personas</div></div></li>
+            <li class="day micro">Ayer</li>
+            <li class="ev"><span class="t read">06:31</span><span class="gw"><span class="dot"></span></span><div><div class="b">Regla editada</div><div class="d">Temperatura alta: umbral de 7,5 a 8,0 °C</div></div></li>
+          </ol>
+        </div>
+        <div>
+          <div class="sec-h"><h2>Alertas</h2><button type="button" class="btn btn-sm" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Nueva regla</button></div>
+          <div style="margin-top: 8px;">
+            <div class="rule"><span class="g g-crit"></span><div><div class="b">Temperatura alta</div><div class="d read" style="font-weight: 500;">&gt; 8,0 °C · histéresis 0,5 · 3 lecturas</div></div><span class="st crit">Disparada</span><button type="button" class="ibtn sm" aria-label="Opciones de la regla"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></button></div>
+            <div class="rule"><span class="g g-ok"></span><div><div class="b">Humedad alta</div><div class="d read" style="font-weight: 500;">&gt; 90 % · histéresis 3 · 3 lecturas</div></div><span class="st ok">Normal</span><button type="button" class="ibtn sm" aria-label="Opciones de la regla"><svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></button></div>
+          </div>
+          <div class="gate"><span>Usás 2 de 2 reglas del plan Free.</span><a class="tlink" href="#">Sumar más con Premium</a></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>

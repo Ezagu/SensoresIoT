@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tu cuenta</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+button{cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-line:rgba(232,154,146,.34);--amber:#DCAD52;--ok:#6FB491}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-line:rgba(158,51,43,.26);--amber:#8C5A06;--ok:#268056}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.att{color:var(--amber)}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn svg.i{width:14px;height:14px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim)}
+.crumb b{font-weight:500;color:var(--text)}
+.top-r{margin-left:auto}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--accent-line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text);background:transparent}
+.btn{height:38px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;border-radius:5px;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:var(--accent-line)}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn-danger{border-color:var(--warn-line);color:var(--warn)}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tlink svg.i{width:14px;height:14px}
+.wrap{display:grid;grid-template-columns:180px minmax(0,1fr);gap:56px;padding:40px 64px 72px;max-width:1152px}
+.toc{display:flex;flex-direction:column;gap:2px;padding-top:70px}
+.toc a{height:34px;display:flex;align-items:center;padding:0 12px;border-radius:6px;font-size:13.5px;color:var(--dim)}
+.toc a.on{color:var(--text);background:var(--soft)}
+h1{font-size:30px;font-weight:600;letter-spacing:-.026em}
+.set{margin-top:44px;padding-top:28px;border-top:1px solid var(--line)}
+.set h2{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.rows{margin-top:14px}
+.kv{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:20px;align-items:center;min-height:56px;border-bottom:1px solid var(--soft)}
+.kv:last-child{border-bottom:0}
+.kv .k{font-size:13.5px;color:var(--dim)}
+.kv .v{font-size:14px;display:flex;align-items:center;gap:10px}
+.kv .v small{font-size:12.5px;color:var(--faint)}
+.inp{height:40px;width:340px;padding:0 12px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:5px;background:transparent;color:var(--dim);font-size:13px;font-weight:500}
+.seg button.on{background:var(--accent-wash);color:var(--accent-2)}
+.av-big{width:56px;height:56px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:var(--dim)}
+.plan{margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;padding:22px 24px;border:1px solid var(--line);border-radius:10px}
+.plan b{font-size:20px;font-weight:600;letter-spacing:-.015em}
+.plan ul{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.plan li{font-size:13.5px;color:var(--dim)}
+.plan li span{color:var(--text)}
+.plan .up{text-align:right;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.plan .up small{font-size:12.5px;color:var(--faint);max-width:32ch}
+.gl{display:inline-flex;align-items:center;gap:8px}
+.gl svg{width:16px;height:16px}
+.dz{margin-top:44px;padding:22px 24px;border:1px solid var(--warn-line);border-radius:10px;display:flex;align-items:center;gap:24px}
+.dz h2{font-size:15px;font-weight:600}
+.dz p{margin-top:4px;font-size:13px;color:var(--dim);max-width:58ch}
+.dz .btn{margin-left:auto}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint)}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1640px;">
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-variado.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <a class="r-row r-all" href="Panel-variado.html" style="margin-top: 18px;"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="r-head"><span class="micro">Equipos · 8</span><a class="link-btn" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a></div>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-crit"></span><span class="tx"><span class="n">Estación Campo Norte</span><span class="s crit">Batería 7 %</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-ok"></span><span class="tx"><span class="n">Estación Lote 4</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Equipo-complejo.html"><span class="g g-crit"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s crit">Humedad del suelo 18 %</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-ok"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">En orden</span></span></a>
+    <div class="rail-foot">Actualizado hace 12 s</div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><b>Tu cuenta</b></div>
+      <div class="top-r"><button type="button" class="avatar" aria-label="Cuenta" aria-current="page">LG</button></div>
+    </header>
+
+    <div class="wrap">
+      <nav class="toc" aria-label="Secciones">
+        <a class="on" href="#perfil">Perfil</a>
+        <a href="#avisos">Avisos</a>
+        <a href="#plan">Plan</a>
+        <a href="#seguridad">Seguridad</a>
+        <a href="#preferencias">Preferencias</a>
+        <a href="#cuenta" style="color: var(--warn); margin-top: 10px;">Eliminar cuenta</a>
+      </nav>
+
+      <main>
+        <h1>Tu cuenta</h1>
+
+        <section class="set" id="perfil" style="margin-top: 32px;">
+          <h2>Perfil</h2>
+          <div class="rows">
+            <div class="kv"><label class="k" for="nm">Nombre</label><span class="v"><input class="inp" id="nm" value="Laura Gómez"></span><span></span></div>
+            <div class="kv"><span class="k">Email</span><span class="v">lgomez@empresa.com <small>· verificado</small></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="set" id="avisos">
+          <h2>Avisos</h2>
+          <div class="rows">
+            <div class="kv"><span class="k">Llegan a</span><span class="v">lgomez@empresa.com <small>· por email</small></span><span></span></div>
+            <div class="kv"><span class="k">Equipos</span><span class="v">Recibís avisos de 7 de 8 <small>· silenciado: Oficina central</small></span><a class="tlink" href="#">Elegir equipos</a></div>
+          </div>
+        </section>
+
+        <section class="set" id="plan">
+          <h2>Plan</h2>
+          <div class="plan">
+            <div>
+              <b>Free</b>
+              <ul>
+                <li><span>15 días</span> visibles de historial. Se guarda todo.</li>
+                <li><span>2 reglas</span> de alerta por equipo.</li>
+                <li>Export CSV y aviso de «dejó de reportar» incluidos.</li>
+              </ul>
+            </div>
+            <div class="up">
+              <a class="btn btn-solid" href="#">Pasar a Premium</a>
+              <small>Historial completo y reglas sin tope. [PRECIO A CONFIRMAR]</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="set" id="seguridad">
+          <h2>Seguridad</h2>
+          <div class="rows">
+            <div class="kv"><span class="k">Contraseña</span><span class="v">Cambiada hace 3 meses</span><a class="btn" href="Nueva-clave.html">Cambiar</a></div>
+            <div class="kv"><span class="k">Google</span><span class="v gl"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.570-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>Sin vincular</span><a class="btn" href="#">Vincular</a></div>
+            <div class="kv"><span class="k">Sesiones</span><span class="v">Abierta en 2 dispositivos <small>· esta y un celular</small></span><button type="button" class="btn">Cerrar todas</button></div>
+          </div>
+        </section>
+
+        <section class="set" id="preferencias">
+          <h2>Preferencias</h2>
+          <div class="rows">
+            <div class="kv"><span class="k">Tema</span><span class="v"><span class="seg" role="group" aria-label="Tema"><button type="button" class="on" aria-pressed="true">Oscuro</button><button type="button">Claro</button><button type="button">Según el sistema</button></span></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="dz" id="cuenta">
+          <div>
+            <h2>Eliminar cuenta</h2>
+            <p>Perdés el acceso a tus equipos y a su historial. Las personas con quienes compartiste equipos también dejan de verlos.</p>
+          </div>
+          <button type="button" class="btn btn-danger">Eliminar cuenta</button>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+</body>
+</html>

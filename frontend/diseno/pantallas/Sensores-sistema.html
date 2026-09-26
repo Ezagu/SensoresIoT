@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Equipos de 1 a 6 sensores</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3{margin:0}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.pg{--bg:#0E1618;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--amber:#DCAD52;--ok:#6FB491}
+.pg[data-theme="claro"]{--bg:#F3F0E9;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--amber:#8C5A06;--ok:#268056}
+.pg{background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;padding:64px 0 80px}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px}
+.spk{display:block;fill:none;stroke:var(--accent);stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+
+.case{display:grid;grid-template-columns:200px minmax(0,1024px);padding:0 64px 0 0}
+.case + .case{margin-top:64px;padding-top:52px;border-top:1px solid var(--soft)}
+.tag{padding:6px 32px 0 64px;display:flex;flex-direction:column;gap:6px}
+.tag b{font-size:28px;font-weight:600;letter-spacing:-.02em}
+.tag span{font-size:12.5px;color:var(--faint);line-height:1.5}
+.dh h2{font-size:28px;font-weight:600;letter-spacing:-.025em;line-height:1.1}
+.dh-state{margin-top:10px;display:flex;align-items:center;gap:10px;font-size:14.5px}
+.dh-state span{color:var(--dim)}
+.dh-state b{font-weight:600}
+.dh-meta{margin-top:6px;font-size:12.5px;color:var(--faint);display:flex;gap:8px;align-items:center}
+.batmini{display:inline-flex;align-items:center;gap:6px}
+.batmini .b{width:18px;height:9px;border:1.2px solid currentColor;border-radius:2.5px;position:relative;padding:1px}
+.batmini .b::after{content:"";position:absolute;right:-3px;top:2px;width:1.5px;height:3px;background:currentColor;border-radius:1px}
+.batmini .b i{display:block;height:100%;background:currentColor;border-radius:1px}
+.batmini.crit{color:var(--warn)}
+
+.pin{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:0;background:transparent;color:var(--faint);flex:none}
+.pin:hover{background:var(--soft);color:var(--text)}
+.pin.on{color:var(--accent-2)}
+.pin.on svg.i{fill:currentColor}
+.k{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--dim);font-weight:500;min-height:32px}
+.st{margin-top:8px;display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)}
+.chart-l{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:12.5px;color:var(--dim)}
+
+/* 1 sensor: el equipo es ese sensor */
+.solo{margin-top:26px;display:grid;grid-template-columns:260px minmax(0,1fr);gap:40px;padding:22px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.solo .v{margin-top:10px;display:flex;align-items:baseline;gap:6px}
+.solo .v b{font-size:64px;line-height:.95;letter-spacing:-.03em}
+.solo .v span{font-size:18px;color:var(--faint)}
+.ax{display:flex;justify-content:space-between;margin-top:4px}
+.ax span{font-size:11px;color:var(--faint)}
+
+/* 2 a 4: fila de instrumentos */
+.row{margin-top:26px;display:grid;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.row.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.row.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.row.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ins{padding:16px 20px 18px 0;display:flex;flex-direction:column}
+.ins + .ins{padding-left:20px;border-left:1px solid var(--line)}
+.ins .v{margin-top:6px;display:flex;align-items:baseline;gap:5px}
+.row.c2 .v b{font-size:52px;line-height:.95;letter-spacing:-.03em}
+.row.c3 .v b{font-size:44px;line-height:.95;letter-spacing:-.03em}
+.row.c4 .v b{font-size:38px;line-height:.95;letter-spacing:-.028em}
+.ins .v span{font-size:16px;color:var(--faint)}
+.ins .spk{margin-top:14px}
+
+/* 5 o más: fijados arriba, el resto en lista */
+.sec-h{margin-top:30px;display:flex;align-items:baseline;justify-content:space-between}
+.sec-h h3{font-size:15px;font-weight:600}
+.sec-h h3 span{color:var(--faint);font-weight:500}
+.slist{margin-top:10px;border-top:1px solid var(--line)}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 120px 120px 110px 32px;align-items:center;gap:18px;min-height:54px;border-bottom:1px solid var(--soft)}
+.srow .n{font-size:14px;font-weight:500}
+.srow .s{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)}
+.srow .v{text-align:right;font-size:19px}
+.srow .v small{font-size:12px;color:var(--faint);font-weight:500;margin-left:3px}
+.batt-alert{margin-top:22px;display:flex;align-items:center;gap:16px;padding:16px 20px;border:1px solid rgba(232,154,146,.34);background:var(--warn-wash);border-radius:10px}
+.batt-alert b{font-size:22px;color:var(--warn);letter-spacing:-.02em}
+.batt-alert span{font-size:13.5px;color:var(--dim)}
+</style>
+<div class="pg" data-theme="oscuro" style="width: 1440px; height: 2160px;">
+
+  <!-- A · 1 sensor, enchufado -->
+  <section class="case">
+    <div class="tag"><b>A</b><span>1 sensor<br>Sin batería</span></div>
+    <div>
+      <div class="dh">
+        <h2>Sala de servidores</h2>
+        <div class="dh-state"><span class="g g-ok"></span><span>En orden</span></div>
+        <div class="dh-meta"><span>En línea por WiFi</span><span>·</span><span>1 sensor</span></div>
+      </div>
+      <div class="solo">
+        <div>
+          <div class="k"><span>Temperatura</span><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Temperatura"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <div class="v"><b class="read">19,2</b><span>°C</span></div>
+          <div class="st"><span class="g g-ok"></span>Normal · límite &gt; 27 °C</div>
+          <a class="tlink" href="Sensor.html" style="margin-top: 16px;">Abrir sensor<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+        </div>
+        <div>
+          <div class="chart-l"><span>Temperatura · °C</span><span class="micro">Últimas 24 h</span></div>
+          <svg viewBox="0 0 700 130" width="100%" height="130" preserveAspectRatio="none" aria-label="Temperatura, últimas 24 horas">
+            <line x1="0" y1="129" x2="700" y2="129" stroke="var(--line)" vector-effect="non-scaling-stroke"></line>
+            <line x1="0" y1="22" x2="700" y2="22" stroke="var(--warn-mark)" stroke-dasharray="5 7" opacity=".45" vector-effect="non-scaling-stroke"></line>
+            <polyline points="0,80 70,82 140,81 210,84 280,86 350,85 420,83 490,81 560,80 630,79 700,78" fill="none" stroke="var(--accent)" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
+          </svg>
+          <div class="ax"><span>19:00 ayer</span><span>01:00</span><span>07:00</span><span>13:00</span><span>Ahora</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- B · 2 sensores -->
+  <section class="case">
+    <div class="tag"><b>B</b><span>2 sensores<br>Sin batería</span></div>
+    <div>
+      <div class="dh">
+        <h2>Cámara frigorífica 01</h2>
+        <div class="dh-state"><span class="g g-ok"></span><span>En orden</span></div>
+        <div class="dh-meta"><span>En línea por WiFi</span><span>·</span><span>2 sensores</span></div>
+      </div>
+      <div class="row c2">
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">Temperatura</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Temperatura"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">3,4</b><span>°C</span></a>
+          <div class="st"><span class="g g-ok"></span>Normal</div>
+          <svg class="spk" viewBox="0 0 440 40" width="100%" height="40" preserveAspectRatio="none" aria-label="Temperatura, últimas 24 h"><polyline points="0,26 40,25 80,27 120,24 160,26 200,12 220,24 260,26 300,25 340,27 380,24 440,25" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">Humedad</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Humedad"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">84</b><span>%</span></a>
+          <div class="st"><span class="g g-ok"></span>Normal</div>
+          <svg class="spk" viewBox="0 0 440 40" width="100%" height="40" preserveAspectRatio="none" aria-label="Humedad, últimas 24 h"><polyline points="0,18 40,19 80,17 120,20 160,18 200,24 220,20 260,18 300,19 340,17 380,18 440,19" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- E · 3 sensores + batería + solar + LoRa -->
+  <section class="case">
+    <div class="tag"><b>E</b><span>3 sensores<br>Batería + solar<br>LoRa</span></div>
+    <div>
+      <div class="dh">
+        <h2>Estación Lote 4</h2>
+        <div class="dh-state"><span class="g g-ok"></span><span>En orden</span></div>
+        <div class="dh-meta"><span>En línea por LoRa</span><span>·</span><span>3 sensores</span><span>·</span><span class="batmini"><span class="b"><i style="width: 64%;"></i></span>Batería 64 % · Cargando con solar</span></div>
+      </div>
+      <div class="row c3">
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">Temperatura</a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar Temperatura de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">24,1</b><span>°C</span></a>
+          <div class="st"><span class="g g-ok"></span>Normal</div>
+          <svg class="spk" viewBox="0 0 300 40" width="100%" height="40" preserveAspectRatio="none" aria-label="Temperatura, últimas 24 h"><polyline points="0,34 40,33 80,30 120,22 160,14 200,10 240,12 300,18" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">Humedad</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Humedad"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">52</b><span>%</span></a>
+          <div class="st"><span class="g g-ok"></span>Normal</div>
+          <svg class="spk" viewBox="0 0 300 40" width="100%" height="40" preserveAspectRatio="none" aria-label="Humedad, últimas 24 h"><polyline points="0,8 40,10 80,14 120,22 160,30 200,32 240,28 300,20" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">UV</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar UV"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">7,4</b><span></span></a>
+          <div class="st"><span class="g g-ok"></span>Normal</div>
+          <svg class="spk" viewBox="0 0 300 40" width="100%" height="40" preserveAspectRatio="none" aria-label="UV, últimas 24 h"><polyline points="0,36 80,36 110,28 150,10 180,6 210,12 250,30 300,36" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- C · 4 sensores -->
+  <section class="case">
+    <div class="tag"><b>C</b><span>4 sensores<br>Sin batería</span></div>
+    <div>
+      <div class="dh">
+        <h2>Oficina central</h2>
+        <div class="dh-state"><span class="g g-ok"></span><span>En orden</span></div>
+        <div class="dh-meta"><span>En línea por WiFi</span><span>·</span><span>4 sensores</span></div>
+      </div>
+      <div class="row c4">
+        <div class="ins"><div class="k"><a href="Sensor.html">Temperatura</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Temperatura"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div><a class="v" href="Sensor.html"><b class="read">22,8</b><span>°C</span></a><div class="st"><span class="g g-ok"></span>Normal</div><svg class="spk" viewBox="0 0 200 36" width="100%" height="36" preserveAspectRatio="none" aria-label="Temperatura, últimas 24 h"><polyline points="0,30 25,28 50,22 75,14 100,10 125,9 150,12 175,18 200,24" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        <div class="ins"><div class="k"><a href="Sensor.html">Humedad</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Humedad"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div><a class="v" href="Sensor.html"><b class="read">44</b><span>%</span></a><div class="st"><span class="g g-ok"></span>Normal</div><svg class="spk" viewBox="0 0 200 36" width="100%" height="36" preserveAspectRatio="none" aria-label="Humedad, últimas 24 h"><polyline points="0,14 25,15 50,18 75,22 100,24 125,23 150,21 175,18 200,16" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        <div class="ins"><div class="k"><a href="Sensor.html">Presión</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Presión"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div><a class="v" href="Sensor.html"><b class="read">1.013</b><span>hPa</span></a><div class="st"><span class="g g-ok"></span>Normal</div><svg class="spk" viewBox="0 0 200 36" width="100%" height="36" preserveAspectRatio="none" aria-label="Presión, últimas 24 h"><polyline points="0,18 25,18 50,17 75,17 100,18 125,19 150,19 175,18 200,18" vector-effect="non-scaling-stroke"></polyline></svg></div>
+        <div class="ins"><div class="k"><a href="Sensor.html">CO₂</a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar CO₂"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div><a class="v" href="Sensor.html"><b class="read">612</b><span>ppm</span></a><div class="st"><span class="g g-ok"></span>Normal</div><svg class="spk" viewBox="0 0 200 36" width="100%" height="36" preserveAspectRatio="none" aria-label="CO₂, últimas 24 h"><polyline points="0,30 25,29 50,20 75,12 100,9 125,11 150,8 175,16 200,24" vector-effect="non-scaling-stroke"></polyline></svg></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D · 6 sensores + batería crítica -->
+  <section class="case">
+    <div class="tag"><b>D</b><span>6 sensores<br>Batería</span></div>
+    <div>
+      <div class="dh">
+        <h2>Estación Campo Norte</h2>
+        <div class="dh-state"><span class="g g-crit"></span><b style="color: var(--warn);">Batería casi agotada</b><span>· los 6 sensores en rango</span></div>
+        <div class="dh-meta"><span>En línea por WiFi</span><span>·</span><span>6 sensores</span></div>
+      </div>
+      <div class="batt-alert">
+        <span class="batmini crit" style="transform: scale(1.4); transform-origin: left center; margin-right: 10px;"><span class="b"><i style="width: 7%;"></i></span></span>
+        <b class="read">7 %</b><span>Descargando. Cambiala o cargala antes de que se apague.</span>
+      </div>
+
+      <div class="sec-h"><h3>Fijados <span>· 2</span></h3><span class="micro">Gráficos: últimas 24 h</span></div>
+      <div class="row c2" style="margin-top: 10px;">
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">Temperatura</a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar Temperatura de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">20,8</b><span>°C</span></a>
+          <div class="st"><span class="g g-ok"></span>Normal</div>
+          <svg class="spk" viewBox="0 0 440 40" width="100%" height="40" preserveAspectRatio="none" aria-label="Temperatura, últimas 24 h"><polyline points="0,34 60,33 120,28 180,18 240,10 300,8 360,14 440,22" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+        <div class="ins">
+          <div class="k"><a href="Sensor.html">Humedad del suelo</a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar Humedad del suelo de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+          <a class="v" href="Sensor.html"><b class="read">34</b><span>%</span></a>
+          <div class="st"><span class="g g-ok"></span>Normal · límite &lt; 25 %</div>
+          <svg class="spk" viewBox="0 0 440 40" width="100%" height="40" preserveAspectRatio="none" aria-label="Humedad del suelo, últimas 24 h"><polyline points="0,12 80,15 150,20 170,6 240,9 320,13 440,17" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+      </div>
+
+      <div class="sec-h"><h3>Otros sensores <span>· 4</span></h3></div>
+      <div class="slist">
+        <div class="srow"><a class="n" href="Sensor.html">Humedad</a><span class="s"><span class="g g-ok"></span>Normal</span><svg class="spk" viewBox="0 0 120 24" width="120" height="24" aria-label="Humedad, últimas 24 h"><polyline points="0,5 15,6 30,8 45,12 60,16 75,18 90,17 105,14 120,12"></polyline></svg><a class="v read" href="Sensor.html">61<small>%</small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Humedad"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+        <div class="srow"><a class="n" href="Sensor.html">Presión</a><span class="s"><span class="g g-ok"></span>Normal</span><svg class="spk" viewBox="0 0 120 24" width="120" height="24" aria-label="Presión, últimas 24 h"><polyline points="0,12 30,11 60,12 90,13 120,13"></polyline></svg><a class="v read" href="Sensor.html">1.014<small>hPa</small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Presión"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+        <div class="srow"><a class="n" href="Sensor.html">CO₂</a><span class="s"><span class="g g-ok"></span>Normal</span><svg class="spk" viewBox="0 0 120 24" width="120" height="24" aria-label="CO₂, últimas 24 h"><polyline points="0,14 30,15 60,13 90,12 120,14"></polyline></svg><a class="v read" href="Sensor.html">418<small>ppm</small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar CO₂"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+        <div class="srow"><a class="n" href="Sensor.html">UV</a><span class="s"><span class="g g-ok"></span>Normal</span><svg class="spk" viewBox="0 0 120 24" width="120" height="24" aria-label="UV, últimas 24 h"><polyline points="0,22 30,22 45,16 60,7 75,4 90,8 105,18 120,22"></polyline></svg><a class="v read" href="Sensor.html">5,1<small></small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar UV"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

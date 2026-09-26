@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ajustes — Invernadero Norte</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--warn-line:rgba(232,154,146,.34);--amber:#DCAD52;--ok:#6FB491}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--warn-line:rgba(158,51,43,.26);--amber:#8C5A06;--ok:#268056}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:var(--dim)}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row.on{background:var(--accent-wash)}
+.r-row.on::before{content:"";position:absolute;left:-14px;top:12px;bottom:12px;width:2px;background:var(--accent)}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.att{color:var(--amber)}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn svg.i{width:14px;height:14px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.crumb b{font-weight:500;color:var(--text)}
+.crumb .sep{color:var(--faint)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--dim);background:transparent}
+.btn{height:38px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;border-radius:5px;font-size:13.5px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:var(--accent-line)}
+.btn-danger{border-color:var(--warn-line);color:var(--warn)}
+.ibtn{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:0;background:transparent;color:var(--faint)}
+.ibtn:hover{color:var(--text);background:var(--soft)}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tlink svg.i{width:14px;height:14px}
+
+.wrap{display:grid;grid-template-columns:180px minmax(0,1fr);gap:56px;padding:40px 64px 72px;max-width:1152px}
+.toc{position:sticky;top:0;display:flex;flex-direction:column;gap:2px;padding-top:70px}
+.toc a{height:34px;display:flex;align-items:center;padding:0 12px;border-radius:6px;font-size:13.5px;color:var(--dim)}
+.toc a:hover{color:var(--text);background:var(--soft)}
+.toc a.on{color:var(--text);background:var(--soft)}
+.toc a.dz{color:var(--warn);margin-top:10px}
+h1{font-size:30px;font-weight:600;letter-spacing:-.026em}
+.h1s{margin-top:6px;font-size:13.5px;color:var(--dim);display:flex;align-items:center;gap:8px}
+.set{margin-top:44px;padding-top:28px;border-top:1px solid var(--line)}
+.set h2{font-size:17px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:baseline;gap:8px}
+.set h2 span{color:var(--faint);font-weight:500}
+.set .desc{margin-top:4px;font-size:13px;color:var(--faint);max-width:62ch}
+.kv{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:20px;align-items:center;min-height:56px;border-bottom:1px solid var(--soft)}
+.kv:last-child{border-bottom:0}
+.kv .k{font-size:13.5px;color:var(--dim)}
+.kv .v{font-size:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kv .v small{font-size:12.5px;color:var(--faint)}
+.rows{margin-top:14px}
+.opt{display:block;font-size:11.5px;color:var(--faint);margin-top:1px}
+.kv-top{align-items:start;padding:12px 0}
+.kv-top .k{padding-top:10px}
+.ta{height:auto;min-height:84px;padding:10px 12px;resize:vertical;line-height:1.45;font-family:inherit}
+.inp{height:40px;width:340px;padding:0 12px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:5px;background:transparent;color:var(--dim);font-size:13px;font-weight:500}
+.seg button.on{background:var(--accent-wash);color:var(--accent-2)}
+.seg button[disabled]{color:var(--faint);opacity:.5;cursor:not-allowed}
+.sel{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 10px 0 12px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:13.5px}
+.sel svg.i{width:14px;height:14px;color:var(--faint)}
+.bars{display:inline-flex;align-items:flex-end;gap:2px;height:12px}
+.bars i{display:block;width:3px;background:var(--dim);border-radius:1px}
+.bars i.off{background:var(--line)}
+table{width:100%;border-collapse:collapse;margin-top:14px}
+th{text-align:left;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:500;padding:0 0 8px;border-bottom:1px solid var(--line)}
+td{height:46px;border-bottom:1px solid var(--soft);font-size:14px}
+td.dim{color:var(--dim);font-size:13px}
+th.r,td.r{text-align:right}
+.pin{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:5px;border:0;background:transparent;color:var(--faint)}
+.pin.on{color:var(--accent-2)}
+.pin svg.i{width:15px;height:15px}
+.pin.on svg.i{fill:currentColor}
+.person{display:grid;grid-template-columns:36px minmax(0,1fr) 160px 34px;gap:14px;align-items:center;min-height:60px;border-bottom:1px solid var(--soft)}
+.person .av{width:32px;height:32px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:var(--dim)}
+.person .n{font-size:14px;font-weight:500}
+.person .e{font-size:12.5px;color:var(--faint)}
+.person .role{font-size:13.5px;color:var(--dim)}
+.invite{margin-top:14px;display:flex;align-items:center;gap:14px;font-size:13px;color:var(--dim)}
+.dz{margin-top:44px;padding:22px 24px;border:1px solid var(--warn-line);border-radius:10px;display:flex;align-items:center;gap:24px}
+.dz h2{font-size:15px;font-weight:600}
+.dz p{margin-top:4px;font-size:13px;color:var(--dim);max-width:58ch}
+.dz .btn{margin-left:auto}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint)}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1980px;">
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-variado.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <a class="r-row r-all" href="Panel-variado.html" style="margin-top: 18px;"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="r-head"><span class="micro">Equipos · 8</span><a class="link-btn" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a></div>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-crit"></span><span class="tx"><span class="n">Estación Campo Norte</span><span class="s crit">Batería 7 %</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-ok"></span><span class="tx"><span class="n">Estación Lote 4</span><span class="s">En orden</span></span></a>
+    <a class="r-row on" href="Equipo-complejo.html" aria-current="page"><span class="g g-crit"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s crit">Humedad del suelo 18 %</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Sensores-sistema.html"><span class="g g-ok"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">En orden</span></span></a>
+    <div class="rail-foot">Actualizado hace 12 s</div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><a href="Panel-variado.html">Todos los equipos</a><span class="sep">/</span><a href="Equipo-complejo.html">Invernadero Norte</a><span class="sep">/</span><b>Ajustes</b></div>
+      <div class="top-r"><button type="button" class="avatar" aria-label="Cuenta">LG</button></div>
+    </header>
+
+    <div class="wrap">
+      <nav class="toc" aria-label="Secciones">
+        <a class="on" href="#equipo">Equipo</a>
+        <a href="#conexion">Conectividad</a>
+        <a href="#energia">Energía</a>
+        <a href="#alertas">Alertas</a>
+        <a href="#acceso">Acceso</a>
+        <a class="dz" href="#desvincular">Desvincular</a>
+      </nav>
+
+      <main>
+        <h1>Ajustes</h1>
+        <p class="h1s"><span class="g g-ok"></span>Invernadero Norte · en línea, último contacto hace 12 s</p>
+
+        <section class="set" id="equipo" style="margin-top: 32px;">
+          <h2>Equipo</h2>
+          <div class="rows">
+            <div class="kv"><label class="k" for="nom">Nombre</label><span class="v"><input class="inp" id="nom" value="Invernadero Norte"></span><span></span></div>
+            <div class="kv"><label class="k" for="ubi">Ubicación <small class="opt">opcional</small></label><span class="v"><input class="inp" id="ubi" placeholder="Ej.: Lote 4, nave 2" value="Lote 4, nave norte"></span><span></span></div>
+            <div class="kv kv-top"><label class="k" for="desc">Descripción <small class="opt">opcional</small></label><span class="v"><textarea class="inp ta" id="desc" rows="3" placeholder="Para qué está, quién lo revisa, cualquier dato útil"></textarea></span><span></span></div>
+            <div class="kv"><span class="k">Identificador</span><span class="v"><span class="mono">B—07 · 7f3c9e21-4b1a-4c0e-9d2b-8e61f0c4a21e</span></span><button type="button" class="ibtn" aria-label="Copiar identificador"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="8" width="13" height="13" rx="2"></rect><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path></svg></button></div>
+            <div class="kv"><span class="k">Publicar cada</span><span class="v"><span class="seg" role="group" aria-label="Frecuencia de publicación"><button type="button">1 min</button><button type="button" class="on" aria-pressed="true">5 min</button><button type="button">15 min</button><button type="button">30 min</button></span><small>Mide cada 15 s. Publicar menos seguido estira la batería.</small></span><span></span></div>
+            <div class="kv"><span class="k">Tus avisos de este equipo</span><span class="v"><span class="seg" role="group" aria-label="Avisos"><button type="button" class="on" aria-pressed="true">Activados</button><button type="button">Silenciados</button></span></span><span></span></div>
+          </div>
+        </section>
+
+
+        <section class="set" id="conexion">
+          <h2>Conectividad</h2>
+          <div class="rows">
+            <div class="kv"><span class="k">Enlace</span><span class="v">LoRa, a través del gateway <b style="font-weight: 600;">Galpón</b> <small class="mono">GW—01</small></span><a class="tlink" href="#">Ver gateway</a></div>
+            <div class="kv"><span class="k">Señal</span><span class="v"><span class="bars" aria-hidden="true"><i style="height: 4px;"></i><i style="height: 7px;"></i><i style="height: 10px;"></i><i class="off" style="height: 12px;"></i></span>Buena <small class="read" style="font-weight: 500;">−97 dBm</small></span><span></span></div>
+            <div class="kv"><span class="k">Contacto</span><span class="v">Cada 5 min, publique o no <small>· así se detecta si deja de reportar</small></span><span></span></div>
+          </div>
+        </section>
+
+        <section class="set" id="energia">
+          <h2>Energía</h2>
+          <div class="rows">
+            <div class="kv"><span class="k">Batería</span><span class="v"><b class="read">72 %</b><small>· Descargando</small></span><span></span></div>
+            <div class="kv"><span class="k">Panel solar</span><span class="v">Conectado</span><span></span></div>
+          </div>
+        </section>
+
+        <section class="set" id="alertas">
+          <h2>Alertas</h2>
+          <div class="rows">
+            <div class="kv"><span class="k">Reglas</span><span class="v">3 reglas <small>· 1 disparada: Riego</small></span><a class="tlink" href="Equipo-complejo.html">Ver en el equipo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+          </div>
+        </section>
+
+        <section class="set" id="acceso">
+          <h2>Acceso <span>· 3 personas</span></h2>
+          <div class="rows">
+            <div class="person"><span class="av">LG</span><div><div class="n">Laura Gómez <span style="color: var(--faint); font-weight: 400;">(vos)</span></div><div class="e">lgomez@empresa.com</div></div><span class="role">Administra</span><span></span></div>
+            <div class="person"><span class="av">MR</span><div><div class="n">Martín Rey</div><div class="e">mrey@empresa.com</div></div><button type="button" class="sel">Edita<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button><button type="button" class="ibtn" aria-label="Quitar acceso a Martín Rey"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div>
+            <div class="person"><span class="av">SP</span><div><div class="n">Sofía Paz</div><div class="e">spaz@empresa.com</div></div><button type="button" class="sel">Sólo ve<svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button><button type="button" class="ibtn" aria-label="Quitar acceso a Sofía Paz"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></button></div>
+          </div>
+          <div class="invite">
+            <button type="button" class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>Compartir</button>
+            <span>Link para "Sólo ve" activo, vence en 5 días.</span><a class="tlink" href="#">Copiar</a><a class="tlink" href="#" style="color: var(--dim);">Revocar</a>
+          </div>
+        </section>
+
+        <section class="dz" id="desvincular">
+          <div>
+            <h2>Desvincular este equipo</h2>
+            <p>Dejás de verlo y de recibir sus avisos. Las mediciones no se borran: si lo volvés a vincular, el historial sigue ahí.</p>
+          </div>
+          <button type="button" class="btn btn-danger">Desvincular</button>
+        </section>
+      </main>
+    </div>
+  </div>
+</div>
+</body>
+</html>

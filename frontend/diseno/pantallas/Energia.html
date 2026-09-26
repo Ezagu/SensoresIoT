@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Batería — estados</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3{margin:0}
+.pg{--bg:#0E1618;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--amber:#DCAD52}
+.pg[data-theme="claro"]{--bg:#F3F0E9;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--amber:#8C5A06}
+.pg{background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;padding:64px 64px 80px 264px}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+svg.i{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+h1{font-size:34px;font-weight:600;letter-spacing:-.028em}
+.lede{margin-top:10px;font-size:15px;color:var(--dim);max-width:60ch;line-height:1.6}
+.states{margin-top:36px;border-top:1px solid var(--line)}
+.es{display:grid;grid-template-columns:180px 64px 96px minmax(0,1fr);gap:20px;align-items:center;min-height:72px;border-bottom:1px solid var(--soft)}
+.es .lbl{font-size:12.5px;color:var(--faint)}
+.cell{width:48px;height:22px;border:1.5px solid var(--dim);border-radius:5px;padding:2.5px;position:relative}
+.cell::after{content:"";position:absolute;right:-4.5px;top:6.5px;width:2.5px;height:6px;background:var(--dim);border-radius:1px}
+.cell i{display:block;height:100%;border-radius:1.5px;background:var(--text);opacity:.7}
+.es .pct{font-size:24px;letter-spacing:-.02em}
+.es .txt{font-size:14px;color:var(--dim);display:inline-flex;align-items:center;gap:6px}
+.es .txt b{color:var(--text);font-weight:500}
+.es.low .cell{border-color:var(--amber)} .es.low .cell::after{background:var(--amber)} .es.low .cell i{background:var(--amber);opacity:1}
+.es.low .pct{color:var(--amber)}
+.es.crit{background:var(--warn-wash);box-shadow:inset 2px 0 0 var(--warn-mark)}
+.es.crit .lbl{padding-left:14px}
+.es.crit .cell{border-color:var(--warn-mark)} .es.crit .cell::after{background:var(--warn-mark)} .es.crit .cell i{background:var(--warn-mark);opacity:1}
+.es.crit .pct{color:var(--warn)}
+.es.none .txt{color:var(--faint)}
+</style>
+<div class="pg" data-theme="oscuro" style="width: 1440px; height: 900px;">
+  <h1>Batería</h1>
+  <p class="lede">Sólo en equipos con batería: el porcentaje de la última lectura y hacia dónde va. Sube el tono únicamente cuando hay que hacer algo.</p>
+
+  <div class="states">
+    <div class="es"><span class="lbl">Descargando</span><span class="cell"><i style="width: 72%;"></i></span><b class="pct read">72 %</b><span class="txt">Descargando</span></div>
+    <div class="es"><span class="lbl">Estable</span><span class="cell"><i style="width: 72%;"></i></span><b class="pct read">72 %</b><span class="txt">Estable</span></div>
+    <div class="es"><span class="lbl">Cargando</span><span class="cell"><i style="width: 72%;"></i></span><b class="pct read">72 %</b><span class="txt"><svg class="i" viewBox="0 0 24 24"><path d="M13 3 5 13h6l-1 8 8-10h-6Z"></path></svg>Cargando</span></div>
+    <div class="es"><span class="lbl">Con panel solar</span><span class="cell"><i style="width: 72%;"></i></span><b class="pct read">72 %</b><span class="txt"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.6"></circle><path d="M12 3.5v1.8M12 18.7v1.8M3.5 12h1.8M18.7 12h1.8M6.2 6.2l1.3 1.3M16.5 16.5l1.3 1.3M17.8 6.2l-1.3 1.3M7.5 16.5l-1.3 1.3"></path></svg>Cargando con solar</span></div>
+    <div class="es low"><span class="lbl">Baja · menos de 20 %</span><span class="cell"><i style="width: 18%;"></i></span><b class="pct read">18 %</b><span class="txt">Descargando. <b>Conviene cargarla pronto.</b></span></div>
+    <div class="es crit"><span class="lbl">Crítica · menos de 10 %</span><span class="cell"><i style="width: 7%;"></i></span><b class="pct read">7 %</b><span class="txt">Descargando. <b style="color: var(--warn);">Cambiala o cargala antes de que se apague.</b></span></div>
+    <div class="es none"><span class="lbl">Sin batería</span><span></span><span></span><span class="txt">Equipos enchufados: no se muestra nada.</span></div>
+  </div>
+</div>
+</body>
+</html>

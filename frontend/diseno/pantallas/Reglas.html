@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Registro — reglas</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul,ol{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--amber:#DCAD52;--ok:#6FB491}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--amber:#8C5A06;--ok:#268056}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+.g-nd{border-radius:50%;border:1.5px dotted var(--faint)}
+.g-pause{height:2px;width:9px;background:var(--faint);border-radius:1px}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit{animation:none}}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px 18px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row:hover{background:var(--soft)}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.late{color:var(--dim)}
+.r-all{margin-top:18px}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn svg.i{width:14px;height:14px}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.crumb b{font-weight:500;color:var(--text)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tbtn{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--dim);font-size:13px}
+.tbtn.on{color:var(--text);background:var(--soft)}
+.count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-mark);color:var(--bg);font-size:11px;font-weight:700}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--dim);background:transparent;margin-left:6px}
+.content{flex:1;padding:44px 64px 64px;width:100%;max-width:1152px}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.tlink svg.i{width:14px;height:14px}
+h1.t1{font-size:34px;font-weight:600;letter-spacing:-.028em;line-height:1.1}
+.tabs{margin-top:24px;display:flex;gap:24px;border-bottom:1px solid var(--soft)}
+.tabs a{padding:0 0 11px;font-size:14px;color:var(--dim);font-weight:500;position:relative}
+.tabs a.on{color:var(--text)}
+.tabs a.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+.tabs a .mini{color:var(--faint);margin-left:6px;font-variant-numeric:tabular-nums}
+
+.cover{margin-top:30px;display:flex;align-items:flex-start;gap:14px;padding:18px 20px;border:1px solid var(--line);border-radius:10px}
+.cover p{font-size:14px;color:var(--dim);line-height:1.55}
+.cover p b{color:var(--text);font-weight:600}
+.lead{margin-top:30px;font-size:13px;color:var(--faint)}
+.grp{margin-top:28px}
+.grp-h{display:flex;align-items:center;gap:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.grp-h h2{font-size:15px;font-weight:600}
+.grp-h .s{font-size:12.5px;color:var(--faint)}
+.grp-h .tlink{margin-left:auto}
+.rule{display:grid;grid-template-columns:18px minmax(0,1.1fr) minmax(0,1.3fr) 120px;gap:16px;align-items:center;padding:13px 0;border-bottom:1px solid var(--soft)}
+.rule .b{font-size:14px;font-weight:500}
+.rule .c{font-size:13.5px;color:var(--dim)}
+.rule .st{font-size:12.5px;font-weight:600;text-align:right}
+.rule .st.crit{color:var(--warn)}
+.rule .st.ok{color:var(--dim);font-weight:500}
+.rule .st.idle{color:var(--faint);font-weight:500}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1100px;">
+
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-calma.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <a class="r-row r-all" href="Main.html"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="r-head">
+      <span class="micro">Equipos · 6</span>
+      <a class="link-btn" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a>
+    </div>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s crit">Temperatura 8,9 °C</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s late">Con retraso · 43 min</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">Sin reportar · 2 h 58 min</span></span></a>
+    <div class="rail-foot">Actualizado hace 12 s</div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><b>Registro</b></div>
+      <div class="top-r">
+        <a class="tbtn on" href="Registro.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Registro<span class="count">2</span></a>
+        <button type="button" class="avatar" aria-label="Cuenta">LG</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <h1 class="t1">Registro</h1>
+      <nav class="tabs">
+        <a href="Registro.html">Eventos</a>
+        <a class="on" href="Reglas.html" aria-current="page">Reglas<span class="mini">7</span></a>
+      </nav>
+
+      <div class="cover">
+        <span class="g g-nd" style="margin-top: 6px;"></span>
+        <p><b>Depósito seco y Oficina central no tienen reglas.</b> Sólo vas a recibir un aviso si dejan de reportar. Las reglas se crean desde cada equipo, al lado de su gráfico.</p>
+      </div>
+
+      <section class="grp">
+        <div class="grp-h"><span class="g g-crit"></span><h2>Cámara frigorífica 02</h2><span class="s">2 reglas</span><a class="tlink" href="Dispositivo.html">Editar en el equipo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+        <div class="rule"><span class="g g-crit"></span><span class="b">Temperatura alta</span><span class="c read" style="font-weight: 500;">Temperatura &gt; 8,0 °C · histéresis 0,5</span><span class="st crit">Disparada 18:42</span></div>
+        <div class="rule"><span class="g g-ok"></span><span class="b">Humedad alta</span><span class="c read" style="font-weight: 500;">Humedad &gt; 90 % · histéresis 3</span><span class="st ok">Normal</span></div>
+      </section>
+
+      <section class="grp">
+        <div class="grp-h"><span class="g g-ok"></span><h2>Cámara frigorífica 01</h2><span class="s">2 reglas</span><a class="tlink" href="Dispositivo.html">Editar en el equipo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+        <div class="rule"><span class="g g-ok"></span><span class="b">Temperatura alta</span><span class="c read" style="font-weight: 500;">Temperatura &gt; 8,0 °C · histéresis 0,5</span><span class="st ok">Normal</span></div>
+        <div class="rule"><span class="g g-ok"></span><span class="b">Congelamiento</span><span class="c read" style="font-weight: 500;">Temperatura &lt; 0,0 °C · histéresis 0,5</span><span class="st ok">Normal</span></div>
+      </section>
+
+      <section class="grp">
+        <div class="grp-h"><span class="g g-late"></span><h2>Invernadero Norte</h2><span class="s">2 reglas</span><a class="tlink" href="Dispositivo.html">Editar en el equipo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+        <div class="rule"><span class="g g-ok"></span><span class="b">Humedad alta</span><span class="c read" style="font-weight: 500;">Humedad &gt; 90 % · histéresis 3</span><span class="st ok">Normal</span></div>
+        <div class="rule"><span class="g g-pause"></span><span class="b">Helada</span><span class="c read" style="font-weight: 500;">Temperatura &lt; 2,0 °C · histéresis 1</span><span class="st idle">Pausada</span></div>
+      </section>
+
+      <section class="grp">
+        <div class="grp-h"><span class="g g-off"></span><h2>Sala de servidores</h2><span class="s">1 regla</span><a class="tlink" href="Dispositivo.html">Editar en el equipo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+        <div class="rule"><span class="g g-off"></span><span class="b">Sobretemperatura</span><span class="c read" style="font-weight: 500;">Temperatura &gt; 27,0 °C · histéresis 1</span><span class="st idle">Sin evaluar</span></div>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>

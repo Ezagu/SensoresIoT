@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Temperatura — Cámara frigorífica 02</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul,ol{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+button{cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--surface:#152021;--raise:#1A2527;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--warn-line:rgba(232,154,146,.34);--amber:#DCAD52;--amber-wash:rgba(220,173,82,.09);--ok:#6FB491;--area:rgba(75,166,180,.12);--shadow:0 2px 4px rgba(0,0,0,.4),0 24px 60px -18px rgba(0,0,0,.7);--scrim:rgba(4,10,12,.66)}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--surface:#FBFAF6;--raise:#FFFFFF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--warn-line:rgba(158,51,43,.26);--amber:#8C5A06;--amber-wash:rgba(181,120,12,.07);--ok:#268056;--area:rgba(10,92,107,.10);--shadow:0 1px 2px rgba(20,32,31,.06),0 20px 48px -18px rgba(20,32,31,.25);--scrim:rgba(20,32,31,.34)}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+.g-still{animation:none}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+.g-nd{border-radius:50%;border:1.5px dotted var(--faint)}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit{animation:none}}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px 18px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row:hover{background:var(--soft)}
+.r-row.on{background:var(--accent-wash)}
+.r-row.on::before{content:"";position:absolute;left:-14px;top:12px;bottom:12px;width:2px;background:var(--accent)}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.late{color:var(--dim)}
+.r-all{margin-top:18px}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn svg.i{width:14px;height:14px}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.crumb a:hover{color:var(--text)}
+.crumb b{font-weight:500;color:var(--text)}
+.crumb .sep{color:var(--faint)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tbtn{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--dim);font-size:13px}
+.count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-mark);color:var(--bg);font-size:11px;font-weight:700}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--dim);background:transparent;margin-left:6px}
+.content{flex:1;padding:36px 64px 64px;width:100%;max-width:1152px}
+.btn{height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;border-radius:5px;font-size:14px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:var(--accent-line)}
+.btn-accent{border-color:var(--accent-line);color:var(--accent-2)}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn-sm{height:32px;padding:0 12px;font-size:13px}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.tlink svg.i{width:14px;height:14px}
+
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--soft)}
+.tabs a{padding:0 0 10px;font-size:14px;color:var(--dim);font-weight:500;position:relative}
+.tabs a.on{color:var(--text)}
+.tabs a.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--accent)}
+.tabs a .mini{font-size:12.5px;color:var(--faint);font-weight:500;margin-left:6px;font-variant-numeric:tabular-nums}
+.tabs a.crit .mini{color:var(--warn)}
+.sh{margin-top:30px;display:flex;justify-content:space-between;align-items:flex-end;gap:32px}
+.big{display:flex;align-items:baseline;gap:8px}
+.big b{font-size:76px;line-height:.9;letter-spacing:-.035em;color:var(--warn)}
+.big span{font-size:22px;color:var(--faint)}
+.sh .state{margin-top:14px;display:flex;align-items:center;gap:10px;font-size:14.5px}
+.sh .state b{color:var(--warn);font-weight:600}
+.sh .state span{color:var(--dim)}
+.acts{display:flex;gap:8px}
+
+.bar{margin-top:40px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.rng{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px}
+.rng button{height:30px;min-width:42px;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--dim);font-size:13px;font-weight:500;font-variant-numeric:tabular-nums}
+.rng button:hover{color:var(--text)}
+.rng button.on{background:var(--accent-wash);color:var(--accent-2)}
+.rng button .key{display:inline-block;width:5px;height:5px;border-radius:50%;background:#A78BDA;margin-left:5px;vertical-align:2px}
+.cust{display:flex;align-items:center;gap:8px}
+.fld{display:flex;flex-direction:column;gap:3px}
+.fld label{font-size:11px;color:var(--faint)}
+.fld input{height:36px;width:156px;padding:0 10px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:13px;font-variant-numeric:tabular-nums}
+.fld input:focus{border-color:var(--accent-line)}
+.cust .arr{color:var(--faint);padding-top:16px}
+.bar .res{margin-left:auto;font-size:12px;color:var(--faint)}
+
+.stats{margin-top:30px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--line)}
+.stat{padding:16px 20px 0 0}
+.stat + .stat{padding-left:20px;border-left:1px solid var(--soft)}
+.stat .k{font-size:12px;color:var(--faint)}
+.stat .v{margin-top:4px;font-size:24px;letter-spacing:-.02em}
+.stat .v small{font-size:13px;color:var(--faint);font-weight:500;margin-left:3px}
+.stat .d{font-size:12px;color:var(--dim);margin-top:2px}
+.stat.crit .v{color:var(--warn)}
+
+.chart{margin-top:30px;position:relative}
+.chart .ylab{position:absolute;left:0;font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums;transform:translateY(-50%)}
+.chart .xl{position:relative;height:20px;margin-left:34px}
+.chart .xl span{position:absolute;top:6px;font-size:11px;color:var(--faint);transform:translateX(-50%);white-space:nowrap}
+.gapl{position:absolute;font-size:11px;color:var(--dim);white-space:nowrap}
+.hint{margin-top:10px;font-size:12px;color:var(--faint)}
+
+.duo{margin-top:52px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.sec-h h2{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.sec-h h2 span{color:var(--faint);font-weight:500}
+.tl{margin-top:16px;position:relative}
+.tl::before{content:"";position:absolute;left:80px;top:8px;bottom:8px;width:1px;background:var(--line)}
+.ev{display:grid;grid-template-columns:72px 18px minmax(0,1fr);gap:12px;padding:9px 0;align-items:start}
+.ev .t{font-size:12.5px;color:var(--dim);text-align:right;padding-top:1px}
+.ev .gw{display:flex;justify-content:center;padding-top:6px;background:var(--bg);position:relative;z-index:1;height:20px}
+.ev .b{font-size:14px;font-weight:500}
+.ev .d{font-size:12.5px;color:var(--dim);margin-top:2px}
+.ev.crit .b{color:var(--warn)}
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px}
+th{text-align:left;font-weight:600;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding:8px 0;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',ui-monospace,monospace}
+th.r,td.r{text-align:right}
+td{padding:8px 0;border-bottom:1px solid var(--soft);font-variant-numeric:tabular-nums}
+td.crit{color:var(--warn);font-weight:600}
+td .tag{font-size:12px;color:var(--warn)}
+.tfoot{margin-top:12px;display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--faint)}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1480px;">
+
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-calma.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <a class="r-row r-all" href="Main.html"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="r-head">
+      <span class="micro">Equipos · 6</span>
+      <a class="link-btn" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a>
+    </div>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row on" href="Dispositivo.html" aria-current="page"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s crit">Temperatura 8,9 °C</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s late">Con retraso · 43 min</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">Sin reportar · 2 h 58 min</span></span></a>
+    <div class="rail-foot">Actualizado hace 12 s</div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><a href="Main.html">Todos los equipos</a><span class="sep">/</span><a href="Dispositivo.html">Cámara frigorífica 02</a><span class="sep">/</span><b>Temperatura</b></div>
+      <div class="top-r">
+        <a class="tbtn" href="Registro.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Registro<span class="count">2</span></a>
+        <button type="button" class="avatar" aria-label="Cuenta">LG</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <nav class="tabs" aria-label="Sensores del equipo">
+        <a class="on crit" href="Sensor.html" aria-current="page">Temperatura<span class="mini">8,9 °C</span></a>
+        <a href="Sensor.html">Humedad<span class="mini">71 %</span></a>
+      </nav>
+
+      <section class="sh">
+        <div>
+          <div class="big"><b class="read">8,9</b><span>°C</span></div>
+          <div class="state"><span class="g g-crit" style="width: 10px; height: 10px;"></span><b>Fuera de rango</b><span>umbral &gt; 8,0 °C · desde las 18:42</span></div>
+        </div>
+        <div class="acts">
+          <button type="button" class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>Exportar CSV</button>
+          <a class="btn btn-accent" href="Informe.html"><svg class="i" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 13H8M16 17H8M10 9H8"></path></svg>Informe de este período</a>
+        </div>
+      </section>
+
+      <div class="bar">
+        <div class="rng" role="group" aria-label="Rango">
+          <button type="button">1 h</button><button type="button">6 h</button><button type="button">24 h</button><button type="button">3 d</button><button type="button">7 d</button><button type="button">30 d<span class="key" title="Tu plan muestra 15 días"></span></button><button type="button" class="on" aria-pressed="true">Personalizado</button>
+        </div>
+        <div class="cust">
+          <div class="fld"><label for="desde">Desde</label><input id="desde" value="18/09/2026 19:08"></div>
+          <span class="arr">→</span>
+          <div class="fld"><label for="hasta">Hasta</label><input id="hasta" value="25/09/2026 19:08"></div>
+        </div>
+        <span class="res">Promedio cada 2 h · 2.004 lecturas</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">Mínimo</div><div class="v read">2,6<small>°C</small></div><div class="d">sáb 19 · 04:10</div></div>
+        <div class="stat crit"><div class="k">Máximo</div><div class="v read">9,4<small>°C</small></div><div class="d">hoy · 18:58</div></div>
+        <div class="stat"><div class="k">Promedio</div><div class="v read">3,9<small>°C</small></div><div class="d">7 días</div></div>
+        <div class="stat crit"><div class="k">Sobre el umbral</div><div class="v read">1 h 44<small>min</small></div><div class="d">3 veces</div></div>
+        <div class="stat"><div class="k">Sin lecturas</div><div class="v read">4 h 20<small>min</small></div><div class="d">lun 21 · 22:00</div></div>
+      </div>
+
+      <div class="chart">
+        <span class="ylab" style="top: 70px;">8 °C</span>
+        <span class="ylab" style="top: 170px;">4 °C</span>
+        <span class="ylab" style="top: 270px;">0 °C</span>
+        <svg viewBox="0 0 1040 300" width="990" height="300" preserveAspectRatio="none" style="display: block; margin-left: 34px;" aria-label="Temperatura, 18 al 25 de septiembre">
+          <line x1="0" y1="170" x2="1040" y2="170" stroke="var(--soft)"></line>
+          <line x1="0" y1="270" x2="1040" y2="270" stroke="var(--line)"></line>
+          <line x1="30.1" y1="0" x2="30.1" y2="270" stroke="var(--soft)"></line>
+          <line x1="178.7" y1="0" x2="178.7" y2="270" stroke="var(--soft)"></line>
+          <line x1="327.3" y1="0" x2="327.3" y2="270" stroke="var(--soft)"></line>
+          <line x1="475.9" y1="0" x2="475.9" y2="270" stroke="var(--soft)"></line>
+          <line x1="624.5" y1="0" x2="624.5" y2="270" stroke="var(--soft)"></line>
+          <line x1="773.1" y1="0" x2="773.1" y2="270" stroke="var(--soft)"></line>
+          <line x1="921.7" y1="0" x2="921.7" y2="270" stroke="var(--soft)"></line>
+          <rect x="460" y="0" width="34" height="270" fill="var(--soft)"></rect>
+          <line x1="0" y1="70" x2="1040" y2="70" stroke="var(--warn-mark)" stroke-dasharray="5 7" opacity=".6"></line>
+          <polygon fill="var(--area)" points="0.0,172.0 12.4,170.9 24.8,166.9 37.1,167.3 49.5,167.2 61.9,94.5 74.3,161.2 86.7,163.2 99.0,165.2 111.4,171.2 123.8,170.9 136.2,174.8 148.6,177.2 161.0,178.8 173.3,178.4 185.7,172.8 198.1,172.6 210.5,101.3 222.9,169.5 235.2,172.0 247.6,169.1 260.0,164.9 272.4,162.8 284.8,161.2 297.1,161.0 309.5,167.6 321.9,164.9 334.3,166.1 346.7,169.4 359.0,103.9 371.4,173.6 383.8,178.0 396.2,172.7 408.6,173.5 421.0,175.5 433.3,176.4 445.7,170.3 458.1,170.9 458.1,194.7 445.7,194.0 433.3,200.1 421.0,199.3 408.6,197.3 396.2,196.4 383.8,201.8 371.4,197.3 359.0,142.7 346.7,193.1 334.3,189.9 321.9,188.7 309.5,191.3 297.1,184.7 284.8,184.9 272.4,186.6 260.0,188.7 247.6,192.8 235.2,195.7 222.9,193.2 210.5,140.1 198.1,196.4 185.7,196.5 173.3,202.1 161.0,202.5 148.6,200.9 136.2,198.6 123.8,194.7 111.4,195.0 99.0,188.9 86.7,187.0 74.3,184.9 61.9,133.3 49.5,190.9 37.1,191.1 24.8,190.7 12.4,194.7 0.0,195.7"></polygon>
+          <polygon fill="var(--area)" points="495.2,165.6 507.6,95.1 520.0,163.1 532.4,164.4 544.8,167.1 557.1,167.4 569.5,165.4 581.9,173.2 594.3,175.2 606.7,172.7 619.0,176.8 631.4,175.7 643.8,176.5 656.2,107.0 668.6,171.0 681.0,175.4 693.3,171.8 705.7,171.3 718.1,166.1 730.5,167.1 742.9,165.4 755.2,161.9 767.6,165.3 780.0,164.3 792.4,163.1 804.8,101.0 817.1,173.3 829.5,174.1 841.9,171.9 854.3,174.4 866.7,178.1 879.0,27.5 891.4,178.1 903.8,174.8 916.2,176.2 928.6,169.3 941.0,165.8 953.3,93.4 965.7,163.5 978.1,160.7 990.5,167.4 1002.9,52.5 1015.2,132.5 1027.6,32.5 1040.0,22.5 1040.0,61.2 1027.6,71.2 1015.2,156.2 1002.9,91.2 990.5,191.1 978.1,184.5 965.7,187.2 953.3,132.2 941.0,189.5 928.6,193.1 916.2,200.0 903.8,198.5 891.4,201.8 879.0,66.2 866.7,201.8 854.3,198.2 841.9,195.7 829.5,197.9 817.1,197.1 804.8,139.8 792.4,186.9 780.0,188.1 767.6,189.0 755.2,185.7 742.9,189.1 730.5,190.9 718.1,189.8 705.7,195.0 693.3,195.5 681.0,199.1 668.6,194.7 656.2,145.7 643.8,200.2 631.4,199.5 619.0,200.5 606.7,196.5 594.3,199.0 581.9,196.9 569.5,189.1 557.1,191.1 544.8,190.9 532.4,188.1 520.0,186.8 507.6,133.8 495.2,189.4"></polygon>
+          <polyline fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" points="0.0,184.5 12.4,183.4 24.8,179.4 37.1,179.8 49.5,179.7 61.9,122.0 74.3,173.7 86.7,175.7 99.0,177.7 111.4,183.7 123.8,183.4 136.2,187.3 148.6,189.7 161.0,191.3 173.3,190.9 185.7,185.3 198.1,185.1 210.5,128.8 222.9,182.0 235.2,184.5 247.6,181.6 260.0,177.4 272.4,175.3 284.8,173.7 297.1,173.5 309.5,180.1 321.9,177.4 334.3,178.6 346.7,181.9 359.0,131.4 371.4,186.1 383.8,190.5 396.2,185.2 408.6,186.0 421.0,188.0 433.3,188.9 445.7,182.8 458.1,183.4"></polyline>
+          <polyline fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" points="495.2,178.1 507.6,122.6 520.0,175.6 532.4,176.9 544.8,179.6 557.1,179.9 569.5,177.9 581.9,185.7 594.3,187.7 606.7,185.2 619.0,189.3 631.4,188.2 643.8,189.0 656.2,134.5 668.6,183.5 681.0,187.9 693.3,184.3 705.7,183.8 718.1,178.6 730.5,179.6 742.9,177.9 755.2,174.4 767.6,177.8 780.0,176.8 792.4,175.6 804.8,128.5 817.1,185.8 829.5,186.6 841.9,184.4 854.3,186.9 866.7,190.6 879.0,55.0 891.4,190.6 903.8,187.3 916.2,188.7 928.6,181.8 941.0,178.3 953.3,120.9 965.7,176.0 978.1,173.2 990.5,179.9 1002.9,80.0 1015.2,145.0 1027.6,60.0 1040.0,50.0"></polyline>
+          <polyline fill="none" stroke="var(--warn-mark)" stroke-width="2.2" stroke-linejoin="round" points="875,70 879.0,55.0 883,70"></polyline>
+          <polyline fill="none" stroke="var(--warn-mark)" stroke-width="2.2" stroke-linejoin="round" points="1024.5,70 1027.6,60.0 1040.0,50.0"></polyline>
+          <rect x="876" y="282" width="6" height="6" fill="var(--warn-mark)"></rect>
+          <rect x="1021" y="282" width="6" height="6" fill="var(--warn-mark)"></rect>
+          <rect x="1033" y="282" width="6" height="6" fill="var(--warn-mark)"></rect>
+          <circle cx="477" cy="285" r="3" fill="none" stroke="var(--dim)" stroke-width="1.3"></circle>
+        </svg>
+        <span class="gapl" style="left: 380px; top: 16px;">Sin lecturas · 4 h 20 min</span>
+        <div class="xl"><span style="left: 2.9%;">sáb 19</span><span style="left: 17.2%;">dom 20</span><span style="left: 31.5%;">lun 21</span><span style="left: 45.8%;">mar 22</span><span style="left: 60%;">mié 23</span><span style="left: 74.3%;">jue 24</span><span style="left: 88.6%;">vie 25</span></div>
+        <p class="hint">Arrastrá sobre el gráfico para acercar un tramo. Los huecos se muestran como huecos: no se completan.</p>
+      </div>
+
+      <section class="duo">
+        <div>
+          <div class="sec-h"><h2>Eventos <span>· este período</span></h2></div>
+          <ol class="tl">
+            <li class="ev crit"><span class="t read">hoy 18:42</span><span class="gw"><span class="g g-crit"></span></span><div><div class="b">Sobre 8,0 °C</div><div class="d">8,3 °C · email a 3 personas · sigue activa</div></div></li>
+            <li class="ev"><span class="t read">hoy 12:48</span><span class="gw"><span class="g g-ok"></span></span><div><div class="b">Volvió a rango</div><div class="d">7,4 °C · duró 38 min</div></div></li>
+            <li class="ev crit"><span class="t read">hoy 12:10</span><span class="gw"><span class="g g-crit g-still"></span></span><div><div class="b">Sobre 8,0 °C</div><div class="d">8,2 °C · email a 3 personas</div></div></li>
+            <li class="ev"><span class="t read">jue 17:50</span><span class="gw"><span class="g g-ok"></span></span><div><div class="b">Volvió a rango</div><div class="d">7,2 °C · duró 40 min</div></div></li>
+            <li class="ev crit"><span class="t read">jue 17:10</span><span class="gw"><span class="g g-crit g-still"></span></span><div><div class="b">Sobre 8,0 °C</div><div class="d">8,6 °C · email a 3 personas</div></div></li>
+            <li class="ev"><span class="t read">lun 22:00</span><span class="gw"><span class="g g-off"></span></span><div><div class="b">Sin lecturas 4 h 20 min</div><div class="d">Llegaron 52 lecturas del buffer a las 02:21</div></div></li>
+          </ol>
+        </div>
+        <div>
+          <div class="sec-h"><h2>Lecturas <span>· alrededor de las 18:42</span></h2><a class="tlink" href="#">Ver todas</a></div>
+          <table>
+            <thead><tr><th>Hora</th><th class="r">Valor</th><th class="r">Estado</th></tr></thead>
+            <tbody>
+              <tr><td>19:05</td><td class="r crit">8,9 °C</td><td class="r"><span class="tag">Sobre umbral</span></td></tr>
+              <tr><td>19:00</td><td class="r crit">8,8 °C</td><td class="r"><span class="tag">Sobre umbral</span></td></tr>
+              <tr><td>18:55</td><td class="r crit">8,8 °C</td><td class="r"><span class="tag">Sobre umbral</span></td></tr>
+              <tr><td>18:50</td><td class="r crit">8,7 °C</td><td class="r"><span class="tag">Sobre umbral</span></td></tr>
+              <tr><td>18:45</td><td class="r crit">8,5 °C</td><td class="r"><span class="tag">Sobre umbral</span></td></tr>
+              <tr><td>18:42:00</td><td class="r crit">8,3 °C</td><td class="r"><span class="tag">Dispara la alerta</span></td></tr>
+              <tr><td>18:41:45</td><td class="r crit">8,2 °C</td><td class="r"><span class="tag">2 de 3</span></td></tr>
+              <tr><td>18:41:30</td><td class="r crit">8,1 °C</td><td class="r"><span class="tag">1 de 3</span></td></tr>
+              <tr><td>18:35</td><td class="r">7,4 °C</td><td class="r" style="color: var(--dim);">En rango</td></tr>
+            </tbody>
+          </table>
+          <div class="tfoot"><span>9 de 2.004 lecturas del período</span><span>Exportá el período completo con CSV</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</body>
+</html>

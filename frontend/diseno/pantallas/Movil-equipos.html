@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mobile — selector de equipos</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3{margin:0}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.m{--bg:#0E1618;--rail:#111A1C;--raise:#182224;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--amber:#DCAD52;--ok:#6FB491;--scrim:rgba(4,10,12,.7)}
+.m[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--raise:#FFFFFF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--amber:#8C5A06;--ok:#268056;--scrim:rgba(20,32,31,.36)}
+.m{background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+.under{padding:0 16px}
+.under .bar{height:56px;display:flex;align-items:center;gap:8px}
+.under .tick{width:3px;height:13px;background:var(--accent)}
+.under .name{font-weight:600;font-size:14px;letter-spacing:.16em}
+.under .ph{height:52px;border-radius:10px;border:1px solid var(--line);margin-top:12px}
+.under .say{margin-top:28px;font-weight:600;font-size:30px;line-height:1.08;letter-spacing:-.028em}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--raise);border-top-left-radius:16px;border-top-right-radius:16px;border-top:1px solid var(--line);padding:8px 12px 22px}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
+.sh-h{display:flex;align-items:center;justify-content:space-between;padding:4px 8px 10px}
+.sh-h h2{font-size:17px;font-weight:600}
+.x{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--dim);border-radius:8px}
+.row{display:flex;align-items:center;gap:14px;min-height:56px;padding:0 12px;border-radius:10px;position:relative}
+.row.on{background:var(--accent-wash)}
+.row .tx{display:flex;flex-direction:column;line-height:1.3}
+.row .n{font-size:15px;font-weight:500}
+.row .s{font-size:12.5px;color:var(--faint)}
+.row .s.crit{color:var(--warn)}
+.row .s.late{color:var(--dim)}
+.sep{height:1px;background:var(--soft);margin:8px 12px}
+.new{margin-top:12px;height:48px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:6px;border:1px solid var(--accent-line);background:transparent;color:var(--accent-2);font-size:15px;font-weight:500}
+</style>
+<div class="m" data-theme="oscuro" style="width: 390px; height: 844px;">
+  <div class="under" aria-hidden="true">
+    <div class="bar"><span class="tick"></span><span class="name">BITÁCORA</span></div>
+    <div class="ph"></div>
+    <div class="say">2 equipos requieren atención.</div>
+  </div>
+  <div class="scrim"></div>
+
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="eq-t">
+    <div class="grab"></div>
+    <div class="sh-h"><h2 id="eq-t">Equipos</h2><a class="x" href="Movil-panel.html" aria-label="Cerrar"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></a></div>
+    <a class="row on" href="Movil-panel.html" aria-current="page"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="sep"></div>
+    <a class="row" href="Movil-dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="row" href="Movil-dispositivo.html"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s crit">Temperatura 8,9 °C</span></span></a>
+    <a class="row" href="Movil-dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="row" href="Movil-dispositivo.html"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s late">Con retraso · 43 min</span></span></a>
+    <a class="row" href="Movil-dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="row" href="Movil-dispositivo.html"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">Sin reportar · 2 h 58 min</span></span></a>
+    <a class="new" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular dispositivo</a>
+  </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Ingresar — tablet</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2{margin:0}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+button{cursor:pointer}
+.au{--bg:#0E1618;--raise:#1B2628;--panel:#131C1E;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--ok:#6FB491;--shadow:0 2px 4px rgba(0,0,0,.4),0 28px 64px -20px rgba(0,0,0,.7)}
+.au[data-theme="claro"]{--bg:#F3F0E9;--raise:#FFFFFF;--panel:#FBFAF6;--line:rgba(20,32,31,.16);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--ok:#268056;--shadow:0 1px 2px rgba(20,32,31,.06),0 24px 56px -20px rgba(20,32,31,.28)}
+.au{position:relative;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.mark{position:absolute;left:36px;top:30px;display:flex;align-items:center;gap:9px;z-index:1}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.panel{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:480px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:40px;box-shadow:var(--shadow)}
+.panel h1{font-size:30px;font-weight:600;letter-spacing:-.026em;line-height:1.1}
+.fields{margin-top:26px;display:flex;flex-direction:column;gap:16px}
+.fld{display:flex;flex-direction:column;gap:7px}
+.fld .lr{display:flex;justify-content:space-between;align-items:baseline}
+.fld label{font-size:13px;font-weight:500;color:var(--dim)}
+.inp{position:relative}
+.inp input{height:46px;width:100%;padding:0 14px;border-radius:5px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:15px}
+.inp input:focus{outline:none;border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-wash)}
+.inp .eye{position:absolute;right:2px;top:1px;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--faint)}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500}
+.btn{height:48px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:10px;border-radius:5px;font-size:15px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text)}
+.btn:hover{border-color:var(--accent-line)}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent;margin-top:8px}
+.btn-solid:hover{background:var(--accent-2)}
+.or{margin:20px 0;display:flex;align-items:center;gap:14px;color:var(--faint);font-size:12.5px}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--soft)}
+.gl svg{width:18px;height:18px}
+.foot{margin-top:24px;font-size:14px;color:var(--dim);text-align:center}
+.foot a{color:var(--accent-2);font-weight:500}
+</style>
+<div class="au" data-theme="oscuro" style="width: 834px; height: 1112px;">
+  <a class="mark" href="Panel-variado.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+
+  <main class="panel">
+    <h1>Ingresar</h1>
+    <div class="fields">
+      <div class="fld"><label for="em">Email</label><div class="inp"><input id="em" type="email" autocomplete="email" value="lgomez@empresa.com"></div></div>
+      <div class="fld">
+        <div class="lr"><label for="pw">Contraseña</label><a class="tlink" href="Recuperar.html">¿Olvidaste tu contraseña?</a></div>
+        <div class="inp"><input id="pw" type="password" autocomplete="current-password" value="contraseña"><button type="button" class="eye" aria-label="Mostrar contraseña"><svg class="i" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"></path><circle cx="12" cy="12" r="3"></circle></svg></button></div>
+      </div>
+      <a class="btn btn-solid" href="Panel-variado.html">Ingresar</a>
+    </div>
+    <div class="or">o</div>
+    <button type="button" class="btn gl"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>Continuar con Google</button>
+    <p class="foot">¿Todavía no tenés cuenta? <a href="Registro-cuenta.html">Crear cuenta</a></p>
+  </main>
+</div>
+</body>
+</html>

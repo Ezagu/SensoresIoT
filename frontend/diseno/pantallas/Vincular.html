@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Vincular dispositivo</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul,ol{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+button{cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--surface:#152021;--raise:#1A2527;--plate:#131C1E;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--amber:#DCAD52;--ok:#6FB491}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--surface:#FBFAF6;--raise:#FFFFFF;--plate:#F0ECE3;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--amber:#8C5A06;--ok:#268056}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit,.wave{animation:none}}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px 18px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.late{color:var(--dim)}
+.r-all{margin-top:18px}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn.on{border-color:var(--accent-line);background:var(--accent-wash);color:var(--accent-2)}
+.link-btn svg.i{width:14px;height:14px}
+.r-new{margin:4px 0;border:1px dashed var(--accent-line);color:var(--accent-2)}
+.r-new .g-new{width:8px;height:8px;border-radius:50%;border:1.5px dashed var(--accent)}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint)}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.crumb b{font-weight:500;color:var(--text)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tbtn{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--dim);font-size:13px}
+.count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-mark);color:var(--bg);font-size:11px;font-weight:700}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--dim);background:transparent;margin-left:6px}
+.btn{height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;border-radius:5px;font-size:14px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);white-space:nowrap}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn-ghost{border-color:transparent;color:var(--dim)}
+
+.wrap{flex:1;display:grid;grid-template-columns:minmax(0,560px) minmax(0,1fr);gap:72px;padding:56px 64px 64px;max-width:1152px}
+h1.t1{font-size:40px;font-weight:600;letter-spacing:-.03em;line-height:1.05}
+.lede{margin-top:14px;font-size:16px;color:var(--dim);line-height:1.6;max-width:44ch}
+.steps{margin-top:40px;display:flex;flex-direction:column}
+.st{display:grid;grid-template-columns:32px minmax(0,1fr);gap:18px;position:relative;padding-bottom:30px}
+.st::before{content:"";position:absolute;left:15.5px;top:34px;bottom:4px;width:1px;background:var(--line)}
+.st:last-child::before{display:none}
+.num{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--faint);font-variant-numeric:tabular-nums}
+.st.done .num{border-color:var(--accent-line);color:var(--accent-2);background:var(--accent-wash)}
+.st.now .num{border-color:var(--accent);color:var(--accent-ink);background:var(--accent)}
+.st h2{font-size:16px;font-weight:600;padding-top:5px}
+.st.todo h2{color:var(--faint)}
+.st .d{margin-top:4px;font-size:13.5px;color:var(--dim);line-height:1.55}
+.st .d b{color:var(--text);font-weight:600}
+.done-val{margin-top:10px;display:flex;align-items:center;gap:12px;font-size:13.5px}
+.done-val .code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12.5px;color:var(--dim)}
+.done-val .tlink{color:var(--accent-2);font-size:12.5px}
+.fld{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.fld label{font-size:12.5px;color:var(--dim);font-weight:500}
+.fld input{height:42px;width:100%;padding:0 12px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px}
+.wait{margin-top:14px;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--accent-line);border-radius:8px;background:var(--accent-wash)}
+.wait .t{font-size:13.5px;font-weight:500}
+.wait .s{font-size:12.5px;color:var(--dim)}
+.wave{animation:onda 2200ms ease-out infinite}
+.wave.w2{animation-delay:280ms}.wave.w3{animation-delay:560ms}
+@keyframes onda{0%{opacity:.12}30%{opacity:.9}100%{opacity:.12}}
+.acts{display:flex;gap:10px;margin-top:8px;padding-left:50px}
+
+.fig{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;border-radius:18px;background:var(--surface);border:1px solid var(--soft);padding:40px}
+.fig svg{color:var(--text)}
+.fig .cap{font-size:13px;color:var(--dim);text-align:center;max-width:34ch;line-height:1.55}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1000px;">
+
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-calma.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <a class="r-row r-all" href="Main.html"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></a>
+    <div class="r-head">
+      <span class="micro">Equipos · 6</span>
+      <a class="link-btn on" href="Vincular.html" aria-current="page"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a>
+    </div>
+    <div class="r-row r-new"><span class="g-new"></span><span class="tx"><span class="n">Depósito 3</span><span class="s" style="color: var(--accent-2);">Vinculando…</span></span></div>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s crit">Temperatura 8,9 °C</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s late">Con retraso · 43 min</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">Sin reportar · 2 h 58 min</span></span></a>
+    <div class="rail-foot">Actualizado hace 12 s</div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><b>Vincular dispositivo</b></div>
+      <div class="top-r">
+        <a class="tbtn" href="Registro.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Registro<span class="count">2</span></a>
+        <button type="button" class="avatar" aria-label="Cuenta">LG</button>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <div>
+        <h1 class="t1">Sumá un equipo.</h1>
+        <p class="lede">Tres pasos. El primer dato llega a los pocos segundos de conectarlo.</p>
+
+        <ol class="steps">
+          <li class="st done">
+            <span class="num"><svg class="i" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M20 6 9 17l-5-5"></path></svg></span>
+            <div>
+              <h2>Código del equipo</h2>
+              <div class="done-val"><span class="code">7f3c9e21-…-a21e</span><a class="tlink" href="#">Cambiar</a></div>
+              <div class="fld"><label for="nom">Nombre</label><input id="nom" value="Depósito 3"></div>
+            </div>
+          </li>
+          <li class="st now">
+            <span class="num">2</span>
+            <div>
+              <h2>Conectalo a tu WiFi</h2>
+              <p class="d">Enchufalo. Desde el celular, conectate a la red <b>SensoresIoT-Setup</b> y elegí tu WiFi en la página que se abre.</p>
+              <div class="wait">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path class="wave w3" d="M3.5 9.5a12 12 0 0 1 17 0"></path><path class="wave w2" d="M6.5 12.8a7.6 7.6 0 0 1 11 0"></path><path class="wave" d="M9.6 16a3.4 3.4 0 0 1 4.8 0"></path><circle cx="12" cy="19" r="1" fill="var(--accent)"></circle></svg>
+                <div><div class="t">Esperando que el equipo se conecte</div><div class="s">Esta página se actualiza sola.</div></div>
+              </div>
+            </div>
+          </li>
+          <li class="st todo">
+            <span class="num">3</span>
+            <div>
+              <h2>Primera lectura</h2>
+              <p class="d">Durante la primera media hora reporta cada 15 segundos, para que veas el gráfico moverse enseguida.</p>
+            </div>
+          </li>
+        </ol>
+        <div class="acts"><a class="btn btn-ghost" href="Main.html">Terminar después</a></div>
+      </div>
+
+      <figure class="fig" style="margin: 0;">
+        <svg viewBox="0 0 320 260" width="320" height="260" fill="none" aria-label="El código está en la etiqueta de la base del equipo">
+          <rect x="60" y="40" width="200" height="150" rx="16" fill="var(--raise)" stroke="currentColor" stroke-opacity=".5" stroke-width="1.2"></rect>
+          <rect x="80" y="60" width="160" height="110" rx="8" fill="var(--plate)" stroke="currentColor" stroke-opacity=".2"></rect>
+          <path d="M96 150h18M96 156h18M96 162h18" stroke="currentColor" stroke-opacity=".3"></path>
+          <circle cx="222" cy="78" r="3.5" fill="var(--accent)"></circle>
+          <circle cx="222" cy="78" r="8" fill="var(--accent)" opacity=".15"></circle>
+          <path d="M150 190v26" stroke="currentColor" stroke-opacity=".35"></path>
+          <rect x="112" y="206" width="96" height="36" rx="4" fill="var(--bg)" stroke="var(--accent)" stroke-width="1.3"></rect>
+          <path d="M122 218h56M122 227h40" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round"></path>
+          <rect x="186" y="214" width="14" height="14" rx="1" stroke="var(--accent)" stroke-width="1.2"></rect>
+          <text x="240" y="232" font-family="IBM Plex Mono, monospace" font-size="10" letter-spacing="1" fill="currentColor" opacity=".55">CÓDIGO</text>
+        </svg>
+        <p class="cap">El código está en la etiqueta de la base. Si el equipo ya estaba vinculado a otra cuenta, pedile a esa persona que te comparta el acceso.</p>
+      </figure>
+    </div>
+  </div>
+</div>
+</body>
+</html>

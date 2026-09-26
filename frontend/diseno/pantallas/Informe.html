@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Generar informe</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul,ol{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button,input{font-family:inherit}
+button{cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--surface:#152021;--raise:#182224;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--amber:#DCAD52;--ok:#6FB491;--shadow:0 2px 6px rgba(0,0,0,.55),0 28px 64px -16px rgba(0,0,0,.7);--scrim:rgba(4,10,12,.7)}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--surface:#FBFAF6;--raise:#FFFFFF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--amber:#8C5A06;--ok:#268056;--shadow:0 2px 4px rgba(11,16,18,.08),0 24px 56px -16px rgba(11,16,18,.28);--scrim:rgba(20,32,31,.36)}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row.on{background:var(--accent-wash)}
+.r-row .tx{display:flex;flex-direction:column;gap:1px}
+.r-row .n{font-size:14px;font-weight:500}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.bg-main{flex:1;padding:100px 64px}
+.bg-main h1{font-size:34px;font-weight:600;letter-spacing:-.028em}
+.bg-main .ln{height:12px;border-radius:3px;background:var(--soft);margin-top:18px}
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+
+.dlg{position:absolute;left:170px;top:84px;width:1100px;height:832px;background:var(--raise);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:grid;grid-template-columns:minmax(0,1fr) 440px;overflow:hidden}
+.form{padding:34px 40px 0;display:flex;flex-direction:column}
+.dlg-h{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
+.dlg-h h2{font-size:26px;font-weight:600;letter-spacing:-.022em}
+.dlg-h p{margin-top:6px;font-size:14px;color:var(--dim);line-height:1.55;max-width:46ch}
+.x{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:0;background:transparent;color:var(--dim)}
+.x:hover{background:var(--soft);color:var(--text)}
+.blk{margin-top:26px}
+.blk > .lbl{font-size:13px;font-weight:600;margin-bottom:10px;display:block}
+.sel{height:42px;width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:14px}
+.sel .l{display:flex;align-items:center;gap:10px}
+.chk{display:flex;gap:8px;flex-wrap:wrap}
+.chip{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--dim);font-size:13px;font-weight:500}
+.chip.on{border-color:var(--accent-line);background:var(--accent-wash);color:var(--text)}
+.chip.on svg.i{color:var(--accent-2)}
+.chip svg.i{width:14px;height:14px}
+.seg{display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:7px;width:max-content}
+.seg button{height:32px;padding:0 14px;border:0;border-radius:5px;background:transparent;color:var(--dim);font-size:13px;font-weight:500}
+.seg button.on{background:var(--accent-wash);color:var(--accent-2)}
+.per{margin-top:10px;font-size:13px;color:var(--dim)}
+.per b{color:var(--text)}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid var(--soft)}
+.opt:last-child{border-bottom:0}
+.opt .t{font-size:14px}
+.opt .t small{display:block;font-size:12px;color:var(--faint)}
+.sw{width:36px;height:20px;border-radius:999px;background:var(--soft);border:1px solid var(--line);position:relative;flex:none;padding:0}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--faint)}
+.sw.on{background:var(--accent);border-color:transparent}
+.sw.on::after{left:18px;background:var(--accent-ink)}
+.foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:18px 0 24px;border-top:1px solid var(--soft)}
+.foot .sch{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--dim)}
+.btn{height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 18px;border-radius:5px;font-size:14px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text)}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn-ghost{border-color:transparent;color:var(--dim)}
+
+.prev{background:var(--surface);border-left:1px solid var(--soft);padding:34px 36px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.prev .cap{align-self:stretch;display:flex;justify-content:space-between}
+.page{width:360px;height:509px;background:#FBFAF6;color:#14201F;border-radius:3px;box-shadow:0 1px 2px rgba(0,0,0,.2),0 16px 40px -14px rgba(0,0,0,.45);padding:26px 26px 18px;display:flex;flex-direction:column;font-size:8px;line-height:1.4}
+.pg-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px;border-bottom:1px solid rgba(20,32,31,.14)}
+.pg-top .wm{display:flex;align-items:center;gap:5px;font-weight:600;letter-spacing:.16em;font-size:8.5px}
+.pg-top .wm i{display:inline-block;width:2px;height:8px;background:#0A5C6B}
+.pg-top span{font-family:'IBM Plex Mono',monospace;font-size:6.5px;letter-spacing:.1em;color:#66737A}
+.pg-t{margin-top:14px;font-size:15px;font-weight:600;letter-spacing:-.02em}
+.pg-s{margin-top:2px;color:#4C5A5C;font-size:8px}
+.pg-stats{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(20,32,31,.14);padding-top:8px}
+.pg-stats div{display:flex;flex-direction:column;gap:1px}
+.pg-stats span{color:#66737A;font-size:6.5px}
+.pg-stats b{font-size:11px;font-variant-numeric:tabular-nums}
+.pg-stats b.w{color:#8F2C24}
+.pg-h{margin-top:14px;font-size:8.5px;font-weight:600}
+.pg-ev{display:grid;grid-template-columns:44px 1fr 40px;gap:6px;padding:4px 0;border-bottom:1px solid rgba(20,32,31,.07);font-size:7.5px}
+.pg-ev .t{color:#4C5A5C;font-variant-numeric:tabular-nums}
+.pg-ev .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.pg-ev .v.w{color:#8F2C24}
+.pg-foot{margin-top:auto;display:flex;justify-content:space-between;color:#66737A;font-size:6.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.06em}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1000px;">
+
+  <nav class="rail" aria-hidden="true">
+    <div class="mark"><span class="tick"></span><span class="name">BITÁCORA</span></div>
+    <div class="r-row" style="margin-top: 18px;"><span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span></div>
+    <div class="r-row" style="margin-top: 40px;"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span></span></div>
+    <div class="r-row on"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span></span></div>
+    <div class="r-row"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span></span></div>
+    <div class="r-row"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span></span></div>
+    <div class="r-row"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span></span></div>
+    <div class="r-row"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span></span></div>
+  </nav>
+  <div class="bg-main" aria-hidden="true">
+    <h1>Cámara frigorífica 02</h1>
+    <div class="ln" style="width: 360px;"></div>
+    <div class="ln" style="width: 100%; height: 180px; margin-top: 48px;"></div>
+    <div class="ln" style="width: 100%; height: 280px; margin-top: 40px;"></div>
+  </div>
+  <div class="scrim"></div>
+
+  <section class="dlg" role="dialog" aria-modal="true" aria-labelledby="inf-t">
+    <div class="form">
+      <div class="dlg-h">
+        <div>
+          <h2 id="inf-t">Generar informe</h2>
+          <p>Un PDF listo para presentar: gráfico por sensor, mínimos y máximos, y el registro de avisos del período.</p>
+        </div>
+        <a class="x" href="Dispositivo.html" aria-label="Cerrar"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"></path></svg></a>
+      </div>
+
+      <div class="blk">
+        <span class="lbl">Equipo</span>
+        <button type="button" class="sel"><span class="l"><span class="g g-crit"></span>Cámara frigorífica 02</span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></button>
+      </div>
+
+      <div class="blk">
+        <span class="lbl">Sensores</span>
+        <div class="chk">
+          <button type="button" class="chip on" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>Temperatura</button>
+          <button type="button" class="chip on" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"></path></svg>Humedad</button>
+        </div>
+      </div>
+
+      <div class="blk">
+        <span class="lbl">Período</span>
+        <div class="seg" role="group" aria-label="Período"><button type="button" class="on">Semana pasada</button><button type="button">Mes pasado</button><button type="button">Personalizado</button></div>
+        <p class="per"><b class="read">lun 14 sep 00:00 – dom 20 sep 23:59</b> · 2.016 lecturas por sensor</p>
+      </div>
+
+      <div class="blk">
+        <span class="lbl">Incluye</span>
+        <div>
+          <div class="opt"><span class="t">Gráfico por sensor, con umbrales</span><button type="button" class="sw on" role="switch" aria-checked="true" aria-label="Gráfico por sensor"></button></div>
+          <div class="opt"><span class="t">Mínimo, máximo, promedio y tiempo fuera de rango</span><button type="button" class="sw on" role="switch" aria-checked="true" aria-label="Estadísticas"></button></div>
+          <div class="opt"><span class="t">Registro de avisos del período</span><button type="button" class="sw on" role="switch" aria-checked="true" aria-label="Registro de avisos"></button></div>
+          <div class="opt"><span class="t">Tabla de lecturas<small>Suma unas 40 páginas</small></span><button type="button" class="sw" role="switch" aria-checked="false" aria-label="Tabla de lecturas"></button></div>
+        </div>
+      </div>
+
+      <div class="foot">
+        <label class="sch"><button type="button" class="sw" role="switch" aria-checked="false" aria-label="Enviar todos los lunes"></button>Mandarlo por email todos los lunes</label>
+        <span style="flex: 1;"></span>
+        <a class="btn btn-ghost" href="Dispositivo.html">Cancelar</a>
+        <button type="button" class="btn btn-solid"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path><path d="M12 15V3"></path></svg>Generar PDF</button>
+      </div>
+    </div>
+
+    <aside class="prev" aria-label="Vista previa">
+      <div class="cap"><span class="micro">Vista previa</span><span class="micro">2 páginas</span></div>
+      <div class="page">
+        <div class="pg-top"><span class="wm"><i></i>BITÁCORA</span><span>INFORME DE MONITOREO</span></div>
+        <div class="pg-t">Cámara frigorífica 02</div>
+        <div class="pg-s">14 al 20 de septiembre de 2026 · Temperatura y humedad</div>
+        <div class="pg-stats">
+          <div><span>Mínimo</span><b>2,6 °C</b></div>
+          <div><span>Máximo</span><b class="w">8,6 °C</b></div>
+          <div><span>Promedio</span><b>3,8 °C</b></div>
+          <div><span>Fuera de rango</span><b class="w">40 min</b></div>
+        </div>
+        <svg viewBox="0 0 308 96" width="308" height="96" style="margin-top: 12px;" aria-hidden="true">
+          <line x1="0" y1="22" x2="308" y2="22" stroke="#9E332B" stroke-dasharray="3 4" stroke-width=".8" opacity=".7"></line>
+          <line x1="0" y1="92" x2="308" y2="92" stroke="rgba(20,32,31,.14)" stroke-width=".8"></line>
+          <polyline fill="none" stroke="#0A5C6B" stroke-width="1.1" points="0,62 12,61 24,60 36,62 44,44 52,60 64,62 76,63 88,61 100,63 108,46 116,61 128,62 140,61 152,63 164,60 172,45 180,62 192,63 204,61 216,62 228,63 236,18 244,62 256,61 268,60 280,62 288,45 296,61 308,62"></polyline>
+          <text x="0" y="17" font-size="6" fill="#8F2C24" font-family="IBM Plex Mono, monospace">UMBRAL 8,0 °C</text>
+        </svg>
+        <svg viewBox="0 0 308 50" width="308" height="50" style="margin-top: 6px;" aria-hidden="true">
+          <polyline fill="none" stroke="#0A5C6B" stroke-width="1.1" opacity=".7" points="0,24 30,22 60,26 90,25 120,21 150,23 180,27 210,24 240,20 270,22 308,25"></polyline>
+        </svg>
+        <div class="pg-h">Avisos del período</div>
+        <div class="pg-ev"><span class="t">jue 17 17:10</span><span>Temperatura sobre 8,0 °C · email a 3 personas</span><span class="v w">8,6 °C</span></div>
+        <div class="pg-ev"><span class="t">jue 17 17:50</span><span>Volvió a rango · duró 40 min</span><span class="v">7,2 °C</span></div>
+        <div class="pg-ev"><span class="t">lun 14 03:02</span><span>Sin lecturas 25 min · recuperadas del buffer</span><span class="v">—</span></div>
+        <div class="pg-foot"><span>Generado el 25/09/2026 19:10</span><span>1 / 2</span></div>
+      </div>
+    </aside>
+  </section>
+</div>
+</body>
+</html>

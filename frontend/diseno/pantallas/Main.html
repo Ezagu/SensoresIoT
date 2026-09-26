@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Panel — requiere atención</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3,ul,ol{margin:0;padding:0}
+li{list-style:none}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.app{--bg:#0E1618;--rail:#111A1C;--surface:#152021;--raise:#1A2527;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--warn-line:rgba(232,154,146,.34);--amber:#DCAD52;--amber-wash:rgba(220,173,82,.09);--ok:#6FB491;--shadow:0 2px 4px rgba(0,0,0,.4),0 24px 60px -18px rgba(0,0,0,.7);--scrim:rgba(4,10,12,.66)}
+.app[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--surface:#FBFAF6;--raise:#FFFFFF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--warn-line:rgba(158,51,43,.26);--amber:#8C5A06;--amber-wash:rgba(181,120,12,.07);--ok:#268056;--shadow:0 1px 2px rgba(20,32,31,.06),0 20px 48px -18px rgba(20,32,31,.25);--scrim:rgba(20,32,31,.34)}
+.app{display:flex;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;position:relative}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.dim{color:var(--dim)} .faint{color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+/* glifos de estado: una forma por estado */
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+.g-nd{border-radius:50%;border:1.5px dotted var(--faint)}
+.g-pause{height:2px;width:9px;background:var(--faint);border-radius:1px}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit{animation:none}}
+/* rail de equipos */
+.rail{width:288px;flex:none;background:var(--rail);border-right:1px solid var(--soft);display:flex;flex-direction:column;padding:18px 14px 18px}
+.mark{display:flex;align-items:center;gap:9px;height:40px;padding:0 10px}
+.mark .tick{width:3px;height:14px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:15px;letter-spacing:.16em}
+.r-row{display:flex;align-items:center;gap:12px;padding:9px 10px;border-radius:8px;min-height:52px;position:relative}
+.r-row:hover{background:var(--soft)}
+.r-row.on{background:var(--accent-wash)}
+.r-row.on::before{content:"";position:absolute;left:-14px;top:12px;bottom:12px;width:2px;background:var(--accent)}
+.r-row .tx{display:flex;flex-direction:column;min-width:0;gap:1px}
+.r-row .n{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-row .s{font-size:12px;color:var(--faint)}
+.r-row .s.crit{color:var(--warn)}
+.r-row .s.late{color:var(--dim)}
+.r-all{margin-top:18px}
+.r-all .sum{display:flex;gap:3px;margin-left:auto}
+.r-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 10px;margin:22px 0 6px}
+.link-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:12.5px;font-weight:500}
+.link-btn:hover{border-color:var(--accent-line);color:var(--accent-2)}
+.link-btn svg.i{width:14px;height:14px}
+.link-btn.on{border-color:var(--accent-line);background:var(--accent-wash);color:var(--accent-2)}
+.rail-foot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--soft);font-size:12px;color:var(--faint);display:flex;justify-content:space-between}
+/* columna principal */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:16px;padding:0 48px;border-bottom:1px solid var(--soft)}
+.crumb{font-size:13px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.crumb b{font-weight:500;color:var(--text)}
+.crumb .sep{color:var(--faint)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tbtn{height:36px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--dim);font-size:13px}
+.tbtn:hover{color:var(--text);background:var(--soft)}
+.tbtn.on{color:var(--text);background:var(--soft)}
+.count{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--warn-mark);color:var(--bg);font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+.avatar{width:34px;height:34px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--dim);background:transparent;margin-left:6px}
+.avatar:hover{border-color:var(--accent-line);color:var(--text)}
+.content{flex:1;padding:48px 64px 64px;width:100%;max-width:1152px}
+/* botones */
+.btn{height:40px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 16px;border-radius:5px;font-size:14px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);white-space:nowrap}
+.btn:hover{border-color:var(--accent-line)}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn-solid:hover{background:var(--accent-2)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px}
+.ibtn{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid var(--line);background:transparent;color:var(--dim)}
+.ibtn:hover{color:var(--text);border-color:var(--accent-line)}
+.tlink{color:var(--accent-2);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.tlink:hover{color:var(--text)}
+.tlink svg.i{width:14px;height:14px}
+
+/* ── panel ── */
+.estado{display:flex;flex-direction:column;gap:14px}
+.estado .when{display:flex;align-items:center;gap:10px}
+.say{font-weight:600;font-size:44px;line-height:1.04;letter-spacing:-.03em}
+.say .soft{color:var(--faint)}
+.inc{margin-top:40px;display:grid;grid-template-columns:minmax(0,1fr) 360px 220px;gap:40px;align-items:stretch;padding:28px 30px;border:1px solid var(--warn-line);background:var(--warn-wash);border-radius:12px;position:relative}
+.inc-kick{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;color:var(--warn);letter-spacing:.01em}
+.inc-title{margin-top:14px;font-size:24px;font-weight:600;letter-spacing:-.02em}
+.inc-what{margin-top:4px;font-size:14px;color:var(--dim)}
+.inc-read{margin-top:22px;display:flex;align-items:baseline;gap:8px}
+.inc-read .v{font-size:60px;line-height:.95;color:var(--warn);letter-spacing:-.03em}
+.inc-read .u{font-size:18px;color:var(--faint)}
+.inc-read .lim{margin-left:14px;font-size:13px;color:var(--dim)}
+.inc-chart{display:flex;flex-direction:column;justify-content:flex-end;gap:8px}
+.inc-chart .ax{display:flex;justify-content:space-between}
+.inc-side{display:flex;flex-direction:column;gap:6px;border-left:1px solid var(--warn-line);padding-left:28px}
+.inc-side p{font-size:13px;color:var(--dim);line-height:1.5}
+.inc-side p b{color:var(--text);font-weight:500}
+.inc-side .btn{margin-top:auto}
+.inc2{margin-top:14px;display:flex;align-items:center;gap:16px;padding:18px 22px 18px 30px;border:1px solid var(--line);border-radius:12px}
+.inc2 .n{font-size:15px;font-weight:600}
+.inc2 .d{font-size:13px;color:var(--dim)}
+.inc2 .tlink{margin-left:auto}
+.grp-h{margin:56px 0 6px;display:flex;align-items:baseline;justify-content:space-between}
+.grp-h h2{font-size:15px;font-weight:600}
+.grp-h h2 span{color:var(--faint);font-weight:500;margin-left:6px}
+.dv{display:grid;grid-template-columns:18px minmax(0,280px) minmax(0,1fr) 20px;align-items:center;gap:20px;min-height:76px;padding:0 12px 0 16px;margin:0 -12px 0 -16px;border-radius:8px;border-bottom:1px solid var(--soft)}
+.dv:last-child{border-bottom:0}
+.dv:hover{background:var(--soft)}
+.dv .n{font-size:15px;font-weight:500}
+.dv .meta{font-size:12px;color:var(--faint);margin-top:2px}
+.dv .meta.late{color:var(--dim)}
+.vals{display:flex;align-items:baseline;gap:26px;white-space:nowrap}
+.rv{display:inline-flex;align-items:baseline;gap:7px}
+.rv .k{font-size:12.5px;color:var(--faint)}
+.rv b{font-size:17px}
+.rv small{font-size:12px;color:var(--faint);font-weight:500}
+.dv.late .rv b{color:var(--dim)}
+.more{font-size:12.5px;color:var(--faint)}
+.dv .chev{color:var(--faint)}
+.chart-l{display:flex;justify-content:space-between;align-items:baseline}
+.app{--amber-line:rgba(220,173,82,.36)}.app[data-theme="claro"]{--amber-line:rgba(181,120,12,.34)}
+.cards{margin-top:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;padding:18px 20px 16px}
+.card:hover{border-color:var(--accent-line)}
+.card.att{border-color:var(--amber-line)}
+.c-h{display:flex;align-items:center;gap:10px}
+.c-h .n{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-h .chev{color:var(--faint)}
+.c-s{margin-top:2px;padding-left:18px;font-size:12.5px;color:var(--faint)}
+.c-s.att{color:var(--amber)}
+.sv{margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:16px}
+.t{padding:11px 0 2px;border-top:1px solid var(--soft);min-width:0}
+.t.solo{grid-column:1 / -1}
+.t .k{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.t .k svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--faint)}
+.t .v{margin-top:3px;display:flex;align-items:baseline;gap:5px}
+.t .v b{font-size:21px}
+.t.solo .v b{font-size:30px}
+.t .v small{font-size:12px;color:var(--faint);font-weight:500}
+.t.stale .v b{color:var(--faint)}
+.t .ago{font-size:12px;color:var(--amber);margin-left:4px}
+.c-f{margin-top:auto;padding-top:14px;font-size:12px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-f b{color:var(--dim);font-weight:500}
+</style>
+<div class="app" data-theme="oscuro" style="width: 1440px; height: 1240px;">
+
+  <nav class="rail" aria-label="Equipos">
+    <a class="mark" href="Panel-calma.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+
+    <a class="r-row r-all on" href="Main.html">
+      <span class="tx"><span class="n">Todos los equipos</span><span class="s crit">2 requieren atención</span></span>
+    </a>
+
+    <div class="r-head">
+      <span class="micro">Equipos · 6</span>
+      <a class="link-btn" href="Vincular.html"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"></path></svg>Vincular</a>
+    </div>
+
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Cámara frigorífica 01</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-crit"></span><span class="tx"><span class="n">Cámara frigorífica 02</span><span class="s crit">Temperatura 8,9 °C</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Depósito seco</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-late"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s late">Con retraso · 43 min</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-ok"></span><span class="tx"><span class="n">Oficina central</span><span class="s">En orden</span></span></a>
+    <a class="r-row" href="Dispositivo.html"><span class="g g-off"></span><span class="tx"><span class="n">Sala de servidores</span><span class="s">Sin reportar · 2 h 58 min</span></span></a>
+
+    <div class="rail-foot"><span>Actualizado hace 12 s</span></div>
+  </nav>
+
+  <div class="main">
+    <header class="top">
+      <div class="crumb"><b>Todos los equipos</b></div>
+      <div class="top-r">
+        <a class="tbtn" href="Registro.html"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>Registro<span class="count">2</span></a>
+        <button type="button" class="avatar" aria-label="Cuenta">LG</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="estado">
+        <div class="when"><span class="g g-crit" style="width: 10px; height: 10px;"></span><span class="micro">Hoy 19:08</span></div>
+        <h1 class="say">2 equipos requieren atención. <span class="soft">Los otros 4, en orden.</span></h1>
+      </section>
+
+      <article class="inc">
+        <div>
+          <div class="inc-kick"><span>Alerta activa desde las 18:42</span></div>
+          <h2 class="inc-title">Cámara frigorífica 02</h2>
+          <p class="inc-what">Temperatura sobre el umbral hace 26 min.</p>
+          <p class="inc-what" style="font-size: 12.5px; color: var(--faint);">2 sensores · última lectura hace 5 s</p>
+          <div class="inc-read"><span class="v read">8,9</span><span class="u">°C</span><span class="lim">umbral <b class="read" style="color: var(--text);">&gt; 8,0 °C</b></span></div>
+        </div>
+        <div class="inc-chart">
+          <div class="chart-l"><span style="font-size: 12.5px; color: var(--dim);">Temperatura · °C</span><span class="micro">Últimas 2 h</span></div>
+          <svg viewBox="0 0 360 110" width="360" height="110" aria-label="Temperatura, últimas 2 horas">
+            <line x1="0" y1="35" x2="360" y2="35" stroke="var(--warn-mark)" stroke-width="1" stroke-dasharray="4 6" opacity=".6"></line>
+            <polyline points="0,91 20,89 40,92 60,90 80,88 100,91 120,90 140,92 160,89 180,90 216,72.5 246,50 270,35" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" opacity=".7"></polyline>
+            <polyline points="270,35 282,31 306,26 336,25 360,24" fill="none" stroke="var(--warn-mark)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+            <circle cx="360" cy="24" r="3.5" fill="var(--warn-mark)"></circle>
+            <rect x="279" y="100" width="6" height="6" fill="var(--warn-mark)"></rect>
+          </svg>
+          <div class="ax"><span class="micro">17:08</span><span class="micro">18:08</span><span class="micro">Ahora</span></div>
+        </div>
+        <div class="inc-side">
+          <span class="micro">Aviso</span>
+          <p><b>Email a 3 personas</b> a las 18:42.</p>
+          <p>La humedad sigue en rango: 71 %.</p>
+          <a class="btn btn-solid" href="Dispositivo.html">Ver equipo<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+        </div>
+      </article>
+
+      <article class="inc2">
+        <span class="g g-off" style="width: 10px; height: 10px;"></span>
+        <div>
+          <div class="n">Sala de servidores</div>
+          <div class="d">Sin reportar desde las 16:10. Se avisó por email a 2 personas.</div>
+        </div>
+        <a class="tlink" href="Dispositivo.html">Ver equipo<svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      </article>
+
+      <div class="grp-h"><h2>Sin alertas<span>4</span></h2></div>
+      <div class="cards">
+        <a class="card" href="Dispositivo.html"><div class="c-h"><span class="g g-late"></span><span class="n">Invernadero Norte</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">Con retraso · última lectura hace 43 min</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">26,1</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">71</b><small>%</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5h6.8a2.6 2.6 0 1 0-2.6-2.6"></path><path d="M3.5 13.5h11.2a2.6 2.6 0 1 1-2.6 2.6"></path><path d="M3.5 18.5h5.6"></path></svg>CO₂</div><div class="v"><b class="read">560</b><small>ppm</small></div></div></div></a>
+        <a class="card" href="Dispositivo.html"><div class="c-h"><span class="g g-ok"></span><span class="n">Cámara frigorífica 01</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">En línea · hace 12 s</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">3,4</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">84</b><small>%</small></div></div></div></a>
+        <a class="card" href="Dispositivo.html"><div class="c-h"><span class="g g-ok"></span><span class="n">Depósito seco</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">En línea · hace 40 s</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">21,6</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"></circle><path d="M12 13l4.2-3.4M12 5.5v1.4"></path></svg>Presión</div><div class="v"><b class="read">1009</b><small>hPa</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">48</b><small>%</small></div></div></div></a>
+        <a class="card" href="Sensores-sistema.html"><div class="c-h"><span class="g g-ok"></span><span class="n">Oficina central</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">En línea · hace 1 min</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">22,8</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">44</b><small>%</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5h6.8a2.6 2.6 0 1 0-2.6-2.6"></path><path d="M3.5 13.5h11.2a2.6 2.6 0 1 1-2.6 2.6"></path><path d="M3.5 18.5h5.6"></path></svg>CO₂</div><div class="v"><b class="read">612</b><small>ppm</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"></circle><path d="M12 13l4.2-3.4M12 5.5v1.4"></path></svg>Presión</div><div class="v"><b class="read">1016</b><small>hPa</small></div></div></div></a>
+      </div>
+    </main>
+  </div>
+</div>
+</body>
+</html>

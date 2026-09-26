@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mobile — panel</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3{margin:0}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.m{--bg:#0E1618;--rail:#111A1C;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--warn-line:rgba(232,154,146,.34);--amber:#DCAD52;--ok:#6FB491}
+.m[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--warn-line:rgba(158,51,43,.26);--amber:#8C5A06;--ok:#268056}
+.m{background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;display:flex;flex-direction:column}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-ok{border-radius:50%;background:var(--ok)}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+.g-late{width:7px;height:7px;background:var(--amber);transform:rotate(45deg)}
+.g-off{border-radius:50%;border:1.5px solid var(--dim)}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit{animation:none}}
+.bar{height:56px;display:flex;align-items:center;gap:6px;padding:0 8px 0 16px;border-bottom:1px solid var(--soft)}
+.mark{display:flex;align-items:center;gap:8px}
+.mark .tick{width:3px;height:13px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:14px;letter-spacing:.16em}
+.ib{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--dim);position:relative;border-radius:8px}
+.ib .dot{position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:2px;background:var(--warn-mark)}
+.av{width:32px;height:32px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:var(--dim);background:transparent;margin:0 6px}
+.picker{margin:12px 16px 0;height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--rail)}
+.picker .tx{display:flex;flex-direction:column;line-height:1.25}
+.picker .n{font-size:14.5px;font-weight:600}
+.picker .s{font-size:12px;color:var(--warn)}
+.picker svg.i{margin-left:auto;color:var(--faint)}
+.pad{padding:28px 16px 32px}
+.say{font-weight:600;font-size:30px;line-height:1.08;letter-spacing:-.028em}
+.say .soft{color:var(--faint)}
+.inc{margin-top:24px;border:1px solid var(--warn-line);background:var(--warn-wash);border-radius:12px;padding:18px}
+.inc .k{font-size:12px;font-weight:600;color:var(--warn)}
+.inc h2{margin-top:10px;font-size:19px;font-weight:600;letter-spacing:-.015em}
+.inc .w{font-size:13px;color:var(--dim);margin-top:2px}
+.inc .rd{margin-top:14px;display:flex;align-items:baseline;gap:6px}
+.inc .rd b{font-size:44px;line-height:.95;color:var(--warn);letter-spacing:-.03em}
+.inc .rd span{font-size:15px;color:var(--faint)}
+.inc .rd em{font-style:normal;margin-left:auto;font-size:12.5px;color:var(--dim)}
+.inc svg.ch{display:block;margin-top:12px}
+.inc .ntf{margin-top:10px;font-size:12.5px;color:var(--dim)}
+.btn{height:46px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:6px;font-size:15px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text);margin-top:14px}
+.btn-solid{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.inc2{margin-top:10px;display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;min-height:64px}
+.inc2 .n{font-size:14.5px;font-weight:600}
+.inc2 .d{font-size:12.5px;color:var(--dim)}
+.inc2 svg.i{margin-left:auto;color:var(--faint)}
+.gh{margin:36px 0 4px;display:flex;justify-content:space-between;align-items:baseline}
+.gh h2{font-size:14px;font-weight:600}
+.gh h2 span{color:var(--faint);font-weight:500;margin-left:4px}
+.dev{display:grid;grid-template-columns:14px minmax(0,1fr) 16px;gap:12px;align-items:center;min-height:76px;padding:10px 0;border-bottom:1px solid var(--soft)}
+.dev:last-child{border-bottom:0}
+.dev .n{font-size:14.5px;font-weight:500}
+.dev .s{font-size:12px;color:var(--faint);margin-top:1px}
+.dev .vals{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--faint)}
+.dev .vals b{color:var(--text);font-size:14.5px;margin-left:4px}
+.dev.late .vals b{color:var(--dim)}
+.chart-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-size:12px;color:var(--dim)}
+.dev svg.i{width:16px;height:16px;color:var(--faint)}
+.m{--amber-line:rgba(220,173,82,.36)}.m[data-theme="claro"]{--amber-line:rgba(181,120,12,.34)}
+.cards{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+.card{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px}
+.card.att{border-color:var(--amber-line)}
+.c-h{display:flex;align-items:center;gap:10px}
+.c-h .n{flex:1;min-width:0;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-h .chev{color:var(--faint)}
+.c-s{margin-top:2px;padding-left:18px;font-size:12.5px;color:var(--faint)}
+.c-s.att{color:var(--amber)}
+.sv{margin-top:12px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:14px}
+.t{padding:10px 0 2px;border-top:1px solid var(--soft);min-width:0}
+.t.solo{grid-column:1 / -1}
+.t .k{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--dim);white-space:nowrap}
+.t .k svg{width:14px;height:14px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;color:var(--faint)}
+.t .v{margin-top:2px;display:flex;align-items:baseline;gap:5px}
+.t .v b{font-size:20px}
+.t.solo .v b{font-size:26px}
+.t .v small{font-size:12px;color:var(--faint);font-weight:500}
+.t.stale .v b{color:var(--faint)}
+.t .ago{font-size:12px;color:var(--amber);margin-left:4px}
+.c-f{margin-top:auto;padding-top:12px;font-size:12px;color:var(--faint)}
+.c-f b{color:var(--dim);font-weight:500}
+</style>
+<div class="m" data-theme="oscuro" style="width: 390px; height: 1660px;">
+  <header class="bar">
+    <a class="mark" href="Movil-panel.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <span style="flex: 1;"></span>
+    <a class="ib" href="Registro.html" aria-label="Registro, 2 activos"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span class="dot"></span></a>
+    <button type="button" class="av" aria-label="Cuenta">LG</button>
+  </header>
+
+  <a class="picker" href="Movil-equipos.html" aria-haspopup="dialog">
+    <span class="tx"><span class="n">Todos los equipos</span><span class="s">2 requieren atención</span></span>
+    <svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
+  </a>
+
+  <main class="pad">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;"><span class="g g-crit"></span><span class="micro">Hoy 19:08</span></div>
+    <h1 class="say">2 equipos requieren atención. <span class="soft">Los otros 4, en orden.</span></h1>
+
+    <article class="inc">
+      <div class="k">Alerta activa desde las 18:42</div>
+      <h2>Cámara frigorífica 02</h2>
+      <div class="w">Temperatura sobre el umbral hace 26 min.</div>
+      <div class="rd"><b class="read">8,9</b><span>°C</span><em>umbral <b class="read" style="font-size: 12.5px; color: var(--text);">&gt; 8,0 °C</b></em></div>
+      <div class="chart-l"><span>Temperatura · °C</span><span class="micro">Últimas 2 h</span></div>
+      <svg class="ch" viewBox="0 0 356 70" width="100%" height="70" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="0" y1="22" x2="356" y2="22" stroke="var(--warn-mark)" stroke-dasharray="4 6" opacity=".6"></line>
+        <polyline points="0,58 20,57 40,59 60,57 80,56 100,58 120,57 140,59 160,57 178,58 214,46 244,32 267,22" fill="none" stroke="var(--accent)" stroke-width="1.8" opacity=".7"></polyline>
+        <polyline points="267,22 280,19 304,16 332,15 356,14" fill="none" stroke="var(--warn-mark)" stroke-width="2"></polyline>
+      </svg>
+      <div class="ntf">Email a 3 personas a las 18:42.</div>
+      <a class="btn btn-solid" href="Movil-dispositivo.html">Ver equipo</a>
+    </article>
+
+    <a class="inc2" href="Movil-dispositivo.html">
+      <span class="g g-off" style="width: 10px; height: 10px;"></span>
+      <div><div class="n">Sala de servidores</div><div class="d">Sin reportar desde las 16:10</div></div>
+      <svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg>
+    </a>
+
+    <div class="gh"><h2>Sin alertas<span>4</span></h2></div>
+    <div class="cards">
+      <a class="card" href="Dispositivo.html"><div class="c-h"><span class="g g-late"></span><span class="n">Invernadero Norte</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">Con retraso · última lectura hace 43 min</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">26,1</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">71</b><small>%</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5h6.8a2.6 2.6 0 1 0-2.6-2.6"></path><path d="M3.5 13.5h11.2a2.6 2.6 0 1 1-2.6 2.6"></path><path d="M3.5 18.5h5.6"></path></svg>CO₂</div><div class="v"><b class="read">560</b><small>ppm</small></div></div></div></a>
+      <a class="card" href="Dispositivo.html"><div class="c-h"><span class="g g-ok"></span><span class="n">Cámara frigorífica 01</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">En línea · hace 12 s</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">3,4</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">84</b><small>%</small></div></div></div></a>
+      <a class="card" href="Dispositivo.html"><div class="c-h"><span class="g g-ok"></span><span class="n">Depósito seco</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">En línea · hace 40 s</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">21,6</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"></circle><path d="M12 13l4.2-3.4M12 5.5v1.4"></path></svg>Presión</div><div class="v"><b class="read">1009</b><small>hPa</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">48</b><small>%</small></div></div></div></a>
+      <a class="card" href="Sensores-sistema.html"><div class="c-h"><span class="g g-ok"></span><span class="n">Oficina central</span><svg class="i chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></div><div class="c-s">En línea · hace 1 min</div><div class="sv"><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 13.6V6.5a2 2 0 1 0-4 0v7.1a4 4 0 1 0 4 0Z"></path><path d="M17 8h3M17 12h2"></path></svg>Temperatura</div><div class="v"><b class="read">22,8</b><small>°C</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.6 7.9 8.5a6 6 0 1 0 8.2 0L12 3.6Z"></path></svg>Humedad</div><div class="v"><b class="read">44</b><small>%</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5h6.8a2.6 2.6 0 1 0-2.6-2.6"></path><path d="M3.5 13.5h11.2a2.6 2.6 0 1 1-2.6 2.6"></path><path d="M3.5 18.5h5.6"></path></svg>CO₂</div><div class="v"><b class="read">612</b><small>ppm</small></div></div><div class="t"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7.5"></circle><path d="M12 13l4.2-3.4M12 5.5v1.4"></path></svg>Presión</div><div class="v"><b class="read">1016</b><small>hPa</small></div></div></div></a>
+    </div>
+  </main>
+</div>
+</body>
+</html>

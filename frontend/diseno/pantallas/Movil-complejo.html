@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mobile — Invernadero Norte</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2,h3{margin:0}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.m{--bg:#0E1618;--rail:#111A1C;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-mark:#E89A92;--warn-wash:rgba(232,154,146,.085);--amber:#DCAD52;--ok:#6FB491}
+.m[data-theme="claro"]{--bg:#F3F0E9;--rail:#ECE8DF;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-mark:#9E332B;--warn-wash:rgba(158,51,43,.06);--amber:#8C5A06;--ok:#268056}
+.m{background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden;display:flex;flex-direction:column}
+.read{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.015em}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.g{display:inline-block;width:8px;height:8px;flex:none}
+.g-crit{background:var(--warn-mark);border-radius:1.5px;animation:pulso 2400ms ease-in-out infinite}
+@keyframes pulso{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.g-crit{animation:none}}
+.bar{height:56px;display:flex;align-items:center;gap:6px;padding:0 8px 0 16px;border-bottom:1px solid var(--soft)}
+.mark{display:flex;align-items:center;gap:8px}
+.mark .tick{width:3px;height:13px;background:var(--accent)}
+.mark .name{font-weight:600;font-size:14px;letter-spacing:.16em}
+.ib{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;color:var(--dim);position:relative}
+.ib .dot{position:absolute;top:10px;right:10px;width:7px;height:7px;border-radius:2px;background:var(--warn-mark)}
+.av{width:32px;height:32px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:var(--dim);background:transparent;margin:0 6px}
+.picker{margin:12px 16px 0;height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--rail)}
+.picker .tx{display:flex;flex-direction:column;line-height:1.25}
+.picker .n{font-size:14.5px;font-weight:600}
+.picker .s{font-size:12px;color:var(--faint)}
+.picker svg.i{margin-left:auto;color:var(--faint)}
+.pad{padding:24px 16px 32px}
+.st{display:flex;align-items:center;gap:10px;font-size:15px}
+.st b{color:var(--warn);font-weight:600}
+.st2{margin-top:4px;font-size:12.5px;color:var(--faint)}
+.acts{margin-top:16px;display:grid;grid-template-columns:1fr 1fr 44px;gap:8px}
+.btn{height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:6px;font-size:14px;font-weight:500;border:1px solid var(--line);background:transparent;color:var(--text)}
+.btn-accent{border-color:var(--accent-line);color:var(--accent-2)}
+.btn svg.i{width:16px;height:16px}
+.lead{display:block;margin-top:24px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);position:relative}
+.lead::before{content:"";position:absolute;top:-1px;left:0;width:72px;height:2px;background:var(--warn-mark)}
+.lead .k{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);font-weight:500}
+.lead .row{display:flex;align-items:baseline;gap:6px;margin-top:10px}
+.lead .row b{font-size:48px;line-height:.95;letter-spacing:-.03em;color:var(--warn)}
+.lead .row span{font-size:15px;color:var(--faint)}
+.lead .row em{margin-left:auto;font-style:normal;font-size:12.5px;color:var(--dim)}
+.lead svg.ch{display:block;margin-top:12px}
+.sec-h{margin-top:30px;display:flex;align-items:baseline;justify-content:space-between}
+.sec-h h2{font-size:15px;font-weight:600}
+.sec-h h2 span{color:var(--faint);font-weight:500}
+.grp{margin-top:18px;display:flex;justify-content:space-between;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 48px 88px 16px;align-items:center;gap:10px;min-height:52px;border-bottom:1px solid var(--soft)}
+.srow .n{font-size:14.5px;font-weight:500}
+.srow .v{text-align:right;font-size:17px}
+.srow .v small{font-size:11.5px;color:var(--faint);font-weight:500;margin-left:2px}
+.srow svg.i{width:16px;height:16px;color:var(--faint)}
+.srow.crit{background:var(--warn-wash);box-shadow:inset 2px 0 0 var(--warn-mark);padding-left:10px;margin:0 -16px;padding-right:16px;padding-left:26px}
+.srow.crit .n,.srow.crit .v{color:var(--warn)}
+.spk{display:block;fill:none;stroke:var(--accent);stroke-width:1.4;stroke-linejoin:round}
+.en{margin-top:30px;display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:12px;align-items:center;padding:16px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cell{width:40px;height:19px;border:1.5px solid var(--dim);border-radius:5px;padding:2px;position:relative}
+.cell::after{content:"";position:absolute;right:-4px;top:5px;width:2.5px;height:6px;background:var(--dim);border-radius:1px}
+.cell i{display:block;height:100%;background:var(--text);opacity:.7;border-radius:1.5px}
+.en b{font-size:20px;letter-spacing:-.02em}
+.en span{font-size:12.5px;color:var(--dim);line-height:1.35}
+.chart-l{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;font-size:12px;color:var(--dim)}
+.list{margin-top:8px;border-top:1px solid var(--line)}
+.list .srow{display:grid;grid-template-columns:minmax(0,1fr) auto 40px;align-items:center;gap:8px;min-height:60px;border-bottom:1px solid var(--soft)}
+.list .srow .n{display:flex;flex-direction:column;font-size:14.5px;font-weight:500}
+.list .srow .s{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);font-weight:400}
+.list .srow .v{font-size:18px;text-align:right}
+.list .srow .v small{font-size:11.5px;color:var(--faint);font-weight:500;margin-left:2px}
+.list .srow.crit{background:var(--warn-wash);box-shadow:inset 2px 0 0 var(--warn-mark);margin:0 -16px;padding:0 6px 0 26px}
+.list .srow.crit .n,.list .srow.crit .v,.list .srow.crit .s{color:var(--warn)}
+.pin{width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;border:0;background:transparent;color:var(--faint)}
+.pin.on{color:var(--accent-2)}
+.pin.on svg.i{fill:currentColor}
+.pin svg.i{width:16px;height:16px}
+</style>
+<div class="m" data-theme="oscuro" style="width: 390px; height: 1160px;">
+  <header class="bar">
+    <a class="mark" href="Panel-variado.html"><span class="tick"></span><span class="name">BITÁCORA</span></a>
+    <span style="flex: 1;"></span>
+    <a class="ib" href="Registro.html" aria-label="Registro, 3 activos"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg><span class="dot"></span></a>
+    <button type="button" class="av" aria-label="Cuenta">LG</button>
+  </header>
+  <a class="picker" href="Movil-equipos.html" aria-haspopup="dialog"><span class="g g-crit"></span><span class="tx"><span class="n">Invernadero Norte</span><span class="s">Cambiar de equipo</span></span><svg class="i" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg></a>
+
+  <main class="pad">
+    <div class="st"><span class="g g-crit" style="width: 10px; height: 10px;"></span><b>Humedad del suelo bajo el umbral</b></div>
+    <div class="st2">Desde las 16:20 · LoRa · 7 sensores · batería 72 %, descargando</div>
+    <div class="acts">
+      <a class="btn btn-accent" href="Informe.html"><svg class="i" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M16 13H8M16 17H8"></path></svg>Informe</a>
+      <button type="button" class="btn"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>Compartir</button>
+      <a class="btn" href="Movil-ajustes-equipo.html" aria-label="Ajustes del equipo"><svg class="i" viewBox="0 0 24 24"><path d="M20 7h-9M14 17H5"></path><circle cx="17" cy="17" r="3"></circle><circle cx="7" cy="7" r="3"></circle></svg></a>
+    </div>
+
+    <a class="lead" href="Sensor.html">
+      <div class="k"><span class="g g-crit"></span>Humedad del suelo</div>
+      <div class="row"><b class="read">18</b><span>%</span><em>límite <b class="read" style="font-size: 12.5px; color: var(--text);">&lt; 25 %</b></em></div>
+      <div class="chart-l"><span>Humedad del suelo · %</span><span class="micro">24 h</span></div>
+      <svg class="ch" viewBox="0 0 700 150" width="100%" height="84" preserveAspectRatio="none" aria-hidden="true">
+        <line x1="0" y1="87.5" x2="700" y2="87.5" stroke="var(--warn-mark)" stroke-dasharray="5 7" opacity=".6" vector-effect="non-scaling-stroke"></line>
+        <polyline points="0,55 117,60 233,67.5 318,75 326,45 408,55 525,75 618,87.5" fill="none" stroke="var(--accent)" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline>
+        <polyline points="618,87.5 671,101.3 700,105" fill="none" stroke="var(--warn-mark)" stroke-width="2.2" vector-effect="non-scaling-stroke"></polyline>
+      </svg>
+    </a>
+
+    <div class="sec-h"><h2>Fijados <span>· 3</span></h2></div>
+    <div class="list">
+    <div class="srow"><a class="n" href="Sensor.html"><span>Temperatura</span><span class="s"><span class="g g-ok"></span>Normal</span></a><a class="v read" href="Sensor.html">20,8<small>°C</small></a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar Temperatura de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    <div class="srow"><a class="n" href="Sensor.html"><span>Humedad</span><span class="s"><span class="g g-ok"></span>Normal</span></a><a class="v read" href="Sensor.html">61<small>%</small></a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar Humedad de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    <div class="srow"><a class="n" href="Sensor.html"><span>CO₂</span><span class="s"><span class="g g-ok"></span>Normal</span></a><a class="v read" href="Sensor.html">520<small>ppm</small></a><button type="button" class="pin on" aria-pressed="true" aria-label="Quitar CO₂ de fijados"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    </div>
+    <div class="sec-h"><h2>Otros sensores <span>· 4</span></h2></div>
+    <div class="list">
+    <div class="srow"><a class="n" href="Sensor.html"><span>Presión</span><span class="s"><span class="g g-ok"></span>Normal</span></a><a class="v read" href="Sensor.html">1.018<small>hPa</small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Presión"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    <div class="srow crit"><a class="n" href="Sensor.html"><span>Humedad del suelo</span><span class="s"><span class="g g-crit" style="animation:none"></span>Fuera de rango</span></a><a class="v read" href="Sensor.html">18<small>%</small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Humedad del suelo"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    <div class="srow"><a class="n" href="Sensor.html"><span>UV</span><span class="s"><span class="g g-ok"></span>Normal</span></a><a class="v read" href="Sensor.html">6,2<small></small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar UV"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    <div class="srow"><a class="n" href="Sensor.html"><span>Temperatura del suelo</span><span class="s"><span class="g g-ok"></span>Normal</span></a><a class="v read" href="Sensor.html">17,9<small>°C</small></a><button type="button" class="pin" aria-pressed="false" aria-label="Fijar Temperatura del suelo"><svg class="i" viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z"></path></svg></button></div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Mobile — tu cuenta</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:'Instrument Sans','Helvetica Neue',Helvetica,Arial,sans-serif}
+p,h1,h2{margin:0}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.m{--bg:#0E1618;--line:rgba(232,238,236,.13);--soft:rgba(232,238,236,.065);--text:#E8EEEC;--dim:#A3AFB0;--faint:#7C898C;--accent:#4BA6B4;--accent-2:#86C5CE;--accent-ink:#04181D;--accent-wash:rgba(75,166,180,.13);--accent-line:rgba(75,166,180,.42);--warn:#F09189;--warn-line:rgba(232,154,146,.34)}
+.m[data-theme="claro"]{--bg:#F3F0E9;--line:rgba(20,32,31,.14);--soft:rgba(20,32,31,.07);--text:#14201F;--dim:#4C5A5C;--faint:#66737A;--accent:#0A5C6B;--accent-2:#146272;--accent-ink:#FFFFFF;--accent-wash:rgba(10,92,107,.08);--accent-line:rgba(10,92,107,.30);--warn:#8F2C24;--warn-line:rgba(158,51,43,.26)}
+.m{background:var(--bg);color:var(--text);font-size:14px;line-height:1.45;overflow:hidden}
+.micro{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-wash),0 0 0 1px var(--accent-line)}
+svg.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.bar{height:56px;display:flex;align-items:center;gap:4px;padding:0 16px 0 4px;border-bottom:1px solid var(--soft)}
+.back{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;color:var(--dim)}
+.bar b{font-size:15px;font-weight:600}
+.pad{padding:24px 16px 40px}
+.who{display:flex;align-items:center;gap:14px}
+.av{width:56px;height:56px;border-radius:999px;border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:var(--dim)}
+.who b{display:block;font-size:18px;font-weight:600}
+.who span{font-size:13px;color:var(--faint)}
+.plan{margin-top:24px;padding:18px;border:1px solid var(--line);border-radius:10px}
+.plan .h{display:flex;align-items:baseline;justify-content:space-between}
+.plan b{font-size:18px;font-weight:600}
+.plan p{margin-top:6px;font-size:13px;color:var(--dim);line-height:1.5}
+.btn{margin-top:14px;height:46px;width:100%;display:inline-flex;align-items:center;justify-content:center;border-radius:5px;font-size:15px;font-weight:500;background:var(--accent);color:var(--accent-ink);border:0}
+.grp{margin-top:28px}
+.grp > .micro{display:block;padding-bottom:6px}
+.row{display:flex;align-items:center;gap:12px;min-height:56px;border-bottom:1px solid var(--soft)}
+.row:first-of-type{border-top:1px solid var(--line)}
+.row .k{font-size:14.5px}
+.row .v{margin-left:auto;font-size:13.5px;color:var(--dim);text-align:right}
+.row svg.i{color:var(--faint)}
+.dz{margin-top:32px;height:50px;width:100%;border-radius:6px;border:1px solid var(--warn-line);background:transparent;color:var(--warn);font-size:15px;font-weight:500}
+.out{margin-top:10px;height:50px;width:100%;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--text);font-size:15px;font-weight:500}
+</style>
+<div class="m" data-theme="oscuro" style="width: 390px; height: 1180px;">
+  <header class="bar">
+    <a class="back" href="Movil-panel.html" aria-label="Volver"><svg class="i" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path d="m15 18-6-6 6-6"></path></svg></a>
+    <b>Tu cuenta</b>
+  </header>
+  <main class="pad">
+    <div class="who"><span class="av">LG</span><div><b>Laura Gómez</b><span>lgomez@empresa.com</span></div></div>
+
+    <div class="plan">
+      <div class="h"><b>Plan Free</b><span class="micro">Actual</span></div>
+      <p>15 días visibles de historial y 2 reglas por equipo. Se guarda todo.</p>
+      <a class="btn" href="#">Pasar a Premium</a>
+    </div>
+
+    <div class="grp">
+      <span class="micro">Perfil</span>
+      <a class="row" href="#"><span class="k">Nombre</span><span class="v">Laura Gómez</span><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      <div class="row"><span class="k">Email</span><span class="v">verificado</span></div>
+    </div>
+    <div class="grp">
+      <span class="micro">Avisos</span>
+      <a class="row" href="#"><span class="k">Equipos que te avisan</span><span class="v">7 de 8</span><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+    </div>
+    <div class="grp">
+      <span class="micro">Seguridad</span>
+      <a class="row" href="Nueva-clave.html"><span class="k">Contraseña</span><span class="v">hace 3 meses</span><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      <a class="row" href="#"><span class="k">Google</span><span class="v">Sin vincular</span><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+      <a class="row" href="#"><span class="k">Sesiones abiertas</span><span class="v">2</span><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+    </div>
+    <div class="grp">
+      <span class="micro">Preferencias</span>
+      <a class="row" href="#"><span class="k">Tema</span><span class="v">Oscuro</span><svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"></path></svg></a>
+    </div>
+
+    <button type="button" class="out">Cerrar sesión</button>
+    <button type="button" class="dz">Eliminar cuenta</button>
+  </main>
+</div>
+</body>
+</html>
