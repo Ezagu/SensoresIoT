@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Grafico } from '@/components/graficos/Grafico'
 import { Sparkline } from '@/components/graficos/Sparkline'
 import { MarcaEstado, type Estado } from '@/components/ui/MarcaEstado'
-import { IconoChevron } from '@/components/layout/iconos'
+import { IconoChevron, IconoPin } from '@/components/layout/iconos'
 import type { Alerta } from '@/tipos'
 import { reglaDestacada, umbralesDeSensor } from '@/utils/alertas'
 import { medida, numero } from '@/utils/formato'
@@ -118,28 +118,29 @@ export function SensorEnAlerta({
   )
 }
 
-/* El resto de los sensores en renglones parejos: nombre, estado, tendencia de
-   24 h y valor. Ancho fijo para estado, tendencia y valor, así las columnas se
-   leen de arriba a abajo. */
+/* Todos los sensores del equipo, el que está en alerta incluido (arriba sube
+   además con su gráfico). Ancho fijo para estado, tendencia y valor, así las
+   columnas se leen de arriba a abajo. */
 export function ListaSensores({
-  titulo,
   dispositivoId,
   sensores,
   alertas,
   ultimas,
   estados,
+  puedeFijar,
 }: {
-  titulo: string
   dispositivoId: string
   sensores: SensorConDatos[]
   alertas: Alerta[]
   ultimas: Map<string, Ultima>
   estados: Map<string, EstadoSensor>
+  /* Dueño y editor fijan; el viewer ve los fijados pero no los cambia. */
+  puedeFijar: boolean
 }) {
   return (
     <section aria-labelledby="titulo-sensores">
       <h2 id="titulo-sensores" className="text-heading-lg">
-        {titulo} <span className="font-medium text-text-faint">· {sensores.length}</span>
+        Sensores <span className="font-medium text-text-faint">· {sensores.length}</span>
       </h2>
       <ul className="mt-2.5 border-t border-border-control">
         {sensores.map((s) => {
@@ -148,12 +149,15 @@ export function ListaSensores({
           const lim = estado.critico ? limite(alertas, s.id, s.unidad) : null
           const grilla = s.datos ? serieDeGrafico(s.datos) : []
           return (
-            <li key={s.id}>
+            <li
+              key={s.id}
+              className={`grid grid-cols-[minmax(0,1fr)_2rem] items-center gap-x-2 border-b border-border ${
+                estado.critico ? 'border-l-2 border-l-danger-mark bg-danger-soft pl-3' : ''
+              }`}
+            >
               <Link
                 to={`/dispositivos/${dispositivoId}/sensores/${s.id}`}
-                className={`grid min-h-14 grid-cols-[minmax(0,1fr)_auto_1rem] items-center gap-x-4 border-b border-border py-2 pl-0.5 transition-colors duration-130 hover:bg-border md:grid-cols-[minmax(0,1fr)_8.75rem_7.5rem_7.5rem_1rem] md:gap-x-4.5 ${
-                  estado.critico ? 'border-l-2 border-l-danger-mark bg-danger-soft pl-3' : ''
-                }`}
+                className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-2 pl-0.5 transition-colors duration-130 hover:bg-border md:grid-cols-[minmax(0,1fr)_8.75rem_7.5rem_7.5rem] md:gap-x-4.5"
               >
                 <span className="flex min-w-0 flex-col">
                   <span
@@ -202,8 +206,21 @@ export function ListaSensores({
                     {s.unidad}
                   </small>
                 </span>
-                <IconoChevron className="size-3.5 text-text-faint" />
               </Link>
+              {/* PENDIENTE (backend de fijados): el botón está a la vista pero no guarda nada. */}
+              {puedeFijar ? (
+                <button
+                  type="button"
+                  disabled
+                  aria-label={`Fijar ${s.etiqueta} (pendiente de backend)`}
+                  title="Fijar: pendiente de backend"
+                  className="flex size-8 cursor-not-allowed items-center justify-center rounded-control text-text-faint"
+                >
+                  <IconoPin className="size-3.75" />
+                </button>
+              ) : (
+                <span />
+              )}
             </li>
           )
         })}

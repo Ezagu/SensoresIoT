@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { AvisoPendiente } from '@/components/ui/AvisoPendiente'
 import { Boton } from '@/components/ui/Boton'
 import { Interruptor } from '@/components/ui/Interruptor'
 import { Segmentado } from '@/components/ui/Segmentado'
@@ -151,13 +152,11 @@ export function ModalInforme({
             </button>
           </div>
 
-          <p
-            role="note"
-            className="mt-5 rounded-group border border-attention-border bg-attention-soft px-3.5 py-2.5 text-body text-attention"
-          >
-            Pendiente: la generación del PDF y el envío programado todavía no están en el backend
-            (Tier 4.6).
-          </p>
+          <div className="mt-5">
+            <AvisoPendiente>
+              la generación del PDF y el envío programado todavía no están en el backend (Tier 4.6).
+            </AvisoPendiente>
+          </div>
 
           <div className="mt-6.5">
             <span className="mb-2.5 block text-body font-semibold">Equipo</span>

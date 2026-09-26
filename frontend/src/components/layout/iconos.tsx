@@ -231,3 +231,9 @@ export const IconoDocumento = ({ className }: Props) => (
     <path d="M14 3v5h5M9 13h6M9 17h6" />
   </svg>
 )
+
+export const IconoPin = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M12 17v5M9 3h6l-1 7 3 3H7l3-3Z" />
+  </svg>
+)

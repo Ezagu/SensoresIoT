@@ -15,6 +15,7 @@ import { CabeceraEquipo } from './CabeceraEquipo'
 import { ErrorDeCarga, Navegable } from './ErrorDeCarga'
 import { LineaDeTiempo } from './LineaDeTiempo'
 import { ModalInforme } from './ModalInforme'
+import { SeccionBateria, SeccionFijados } from './SeccionesPendientes'
 import { estadoDeSensor, ListaSensores, SensorEnAlerta, type Ultima } from './SensoresEquipo'
 import {
   useAlertasDispositivo,
@@ -135,7 +136,6 @@ export function DetalleDispositivo() {
     ]),
   )
   const enAlerta = conDatos.filter((s) => estados.get(s.id)!.critico)
-  const resto = conDatos.filter((s) => !estados.get(s.id)!.critico)
   const { desdeMs, hastaMs } = bordesDeVentana(ULTIMAS_24H, ahora)
 
   return (
@@ -167,21 +167,21 @@ export function DetalleDispositivo() {
         ))}
       </div>
 
-      <div className={enAlerta.length > 0 ? 'mt-12' : ''}>
+      <div className={`flex flex-col gap-12 ${enAlerta.length > 0 ? 'mt-12' : ''}`}>
+        <SeccionFijados />
         {conDatos.length === 0 ? (
           <Vacio titulo="Este equipo todavía no tiene sensores" />
         ) : (
-          resto.length > 0 && (
-            <ListaSensores
-              titulo={enAlerta.length > 0 ? 'Otros sensores' : 'Sensores'}
-              dispositivoId={dispositivo.id}
-              sensores={resto}
-              alertas={alertas}
-              ultimas={ultimas}
-              estados={estados}
-            />
-          )
+          <ListaSensores
+            dispositivoId={dispositivo.id}
+            sensores={conDatos}
+            alertas={alertas}
+            ultimas={ultimas}
+            estados={estados}
+            puedeFijar={puedeEditarDispositivo(dispositivo.rol)}
+          />
         )}
+        <SeccionBateria />
       </div>
 
       <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-16">
