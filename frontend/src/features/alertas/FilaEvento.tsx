@@ -13,22 +13,15 @@ function personas(n: number) {
   return `${n} ${n === 1 ? 'persona' : 'personas'}`
 }
 
-/* A quién se avisó. "No se pudo" sólo con destinatarios y ningún envío; cero
-   destinatarios es lo normal para las transiciones intermedias de un lote (se
-   avisa la última de cada regla) o para un equipo que todos silenciaron. */
+/* A quién le llegó el mail. Un envío fallido no se le muestra al usuario: no
+   tiene cómo arreglarlo, es un problema del backend. */
 function Notificacion({ evento }: { evento: AlertaEvento }) {
-  const { destinatarios, notificados } = evento
   return (
     <div className="flex flex-col gap-0.5 text-body text-text-muted">
-      {destinatarios === 0 ? (
-        <span>Sin aviso por email</span>
-      ) : notificados === 0 ? (
-        <span className="text-danger">No se pudo avisar (0 de {destinatarios})</span>
+      {evento.notificados > 0 ? (
+        <span>Email a {personas(evento.notificados)}</span>
       ) : (
-        <span>
-          Email a {personas(notificados)}
-          {notificados < destinatarios && ` de ${destinatarios}`}
-        </span>
+        <span>Sin aviso por email</span>
       )}
       {evento.tardio && (
         <span

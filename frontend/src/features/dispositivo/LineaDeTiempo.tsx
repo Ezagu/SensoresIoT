@@ -9,11 +9,10 @@ function personas(n: number) {
   return `${n} ${n === 1 ? 'persona' : 'personas'}`
 }
 
-/* Sólo "no se pudo" con destinatarios y ningún envío: de un lote se notifica
-   la última transición de cada regla, y el resto tiene 0 destinatarios. */
+/* Sólo lo que llegó: un envío fallido es un problema del backend, no algo que
+   el usuario pueda resolver. */
 function aviso(e: AlertaEvento): string | null {
-  if (e.destinatarios === 0) return null
-  if (e.notificados === 0) return 'no se pudo avisar'
+  if (e.notificados === 0) return null
   return `email a ${personas(e.notificados)}`
 }
 

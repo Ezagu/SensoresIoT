@@ -18,13 +18,10 @@ function personas(n: number) {
   return `${n} ${n === 1 ? 'persona' : 'personas'}`
 }
 
-/* Sólo se dice "no se pudo" con destinatarios > 0 y ningún envío: cero
-   destinatarios es un equipo silenciado por todos, no una falla. */
+/* Sólo lo que llegó: un envío fallido es un problema del backend, no algo que
+   el usuario pueda resolver. */
 function LineaAviso({ aviso, ahora }: { aviso: AvisoDeRegla | AvisoDeEquipo; ahora: number }) {
-  if (aviso.destinatarios === 0) return null
-  if (aviso.notificados === 0) {
-    return <p className="text-body text-danger">No se pudo avisar por email.</p>
-  }
+  if (aviso.notificados === 0) return null
   return (
     <p className="text-body leading-normal text-text-muted">
       <b className="font-medium text-text">Email a {personas(aviso.notificados)}</b> a{' '}
