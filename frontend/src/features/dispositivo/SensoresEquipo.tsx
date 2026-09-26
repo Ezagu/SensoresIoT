@@ -151,13 +151,13 @@ export function ListaSensores({
           return (
             <li
               key={s.id}
-              className={`grid grid-cols-[minmax(0,1fr)_2rem] items-center gap-x-2 border-b border-border ${
+              className={`group grid grid-cols-[minmax(0,1fr)_2rem_1rem] items-center gap-x-2 border-b border-border pr-1 transition-colors duration-130 hover:bg-border ${
                 estado.critico ? 'border-l-2 border-l-danger-mark bg-danger-soft pl-3' : ''
               }`}
             >
               <Link
                 to={`/dispositivos/${dispositivoId}/sensores/${s.id}`}
-                className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-2 pl-0.5 transition-colors duration-130 hover:bg-border md:grid-cols-[minmax(0,1fr)_8.75rem_7.5rem_7.5rem] md:gap-x-4.5"
+                className="grid min-h-14 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 py-2 pl-0.5 md:grid-cols-[minmax(0,1fr)_8.75rem_7.5rem_7.5rem] md:gap-x-4.5"
               >
                 <span className="flex min-w-0 flex-col">
                   <span
@@ -214,13 +214,21 @@ export function ListaSensores({
                   disabled
                   aria-label={`Fijar ${s.etiqueta} (pendiente de backend)`}
                   title="Fijar: pendiente de backend"
-                  className="flex size-8 cursor-not-allowed items-center justify-center rounded-control text-text-faint"
+                  className="flex size-8 cursor-not-allowed items-center justify-center rounded-control text-text-faint md:opacity-0 md:group-hover:opacity-100"
                 >
                   <IconoPin className="size-3.75" />
                 </button>
               ) : (
                 <span />
               )}
+              <Link
+                to={`/dispositivos/${dispositivoId}/sensores/${s.id}`}
+                tabIndex={-1}
+                aria-hidden="true"
+                className="flex h-full items-center text-text-faint group-hover:text-text"
+              >
+                <IconoChevron className="size-3.5" />
+              </Link>
             </li>
           )
         })}
