@@ -111,6 +111,13 @@ RTC_DATA_ATTR uint16_t intervaloContactoSeg = 300;
 RTC_DATA_ATTR uint16_t ciclosDesdeEnvio    = 0;
 RTC_DATA_ATTR uint16_t ciclosDesdeContacto = 0;
 
+// Backoff de contacto: un intento fallido son hasta 10 s de radio sin traer nada.
+// Sólo se espacia el contacto; el muestreo y el buffer siguen igual.
+const uint16_t BACKOFF_BASE_SEG = 600;
+const uint16_t BACKOFF_MAX_SEG  = 3600;
+
+RTC_DATA_ATTR uint8_t fallosContacto = 0;
+
 // Reloj
 // Las lecturas guardan su edad y no su fecha: un equipo que arranca sin WiFi mide
 // durante días antes de conocer la hora. El ancla las data recién al enviarlas.
@@ -137,11 +144,11 @@ void setup() {
   ciclosDesdeEnvio++;
   ciclosDesdeContacto++;
 
-  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu | fallidas %lu\n",
+  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu | fallidas %lu | fallos contacto %u\n",
                 arranqueFrio ? "FRÍO" : "timer",
                 ciclosDesdeEnvio, intervaloEnvioSeg / intervaloMuestreoSeg,
                 anclaEpoch ? "sí" : "NO", bufCantidad, (unsigned long) ahoraLocal(),
-                (unsigned long) lecturasFallidas);
+                (unsigned long) lecturasFallidas, fallosContacto);
 
   // Sin sensor no tiene sentido gastar los ~30 ms de conversión en leer basura que
   // enRango() va a descartar igual. El ciclo sigue: el heartbeat mueve last_seen_at
@@ -162,11 +169,17 @@ void setup() {
     ciclosDesdeEnvio = 0;
   }
 
-  if(hayAlerta || tocaEnvio || tocaContacto) {
+  // Una alerta saltea el backoff: es justo lo que el cliente quiere enterarse ya.
+  bool enBackoff = fallosContacto > 0 && ciclosDesdeContacto < esperaBackoffSeg() / intervaloMuestreoSeg;
+
+  if ((tocaEnvio || tocaContacto) && enBackoff && !hayAlerta) {
+    Serial.printf("[ESP] En backoff: próximo contacto en %u ciclos\n",
+                  esperaBackoffSeg() / intervaloMuestreoSeg - ciclosDesdeContacto);
+  } else if (hayAlerta || tocaEnvio || tocaContacto) {
     ciclosDesdeContacto = 0;
     Serial.print("[ESP] Se debe contactar a la API\n");
     cargarSecret();
-    enviarMediciones(arranqueFrio);
+    registrarResultadoContacto(enviarMediciones(arranqueFrio));
   }
 
   dormir();
@@ -296,8 +309,9 @@ bool setearClienteHttp(HTTPClient& http, String endpoint) {
   return true;
 }
 
-void enviarMediciones(bool permitirPortal) {
-  if(conectarWifi(permitirPortal) != WIFI_CONECTADO) return;
+// true si el backend aceptó al menos un lote.
+bool enviarMediciones(bool permitirPortal) {
+  if(conectarWifi(permitirPortal) != WIFI_CONECTADO) return false;
 
   if(rotacionPendiente) rotarSecret();
 
@@ -325,6 +339,26 @@ void enviarMediciones(bool permitirPortal) {
                 (unsigned long) (millis() - inicioMs));
 
   apagarWifi();
+  return lotesEnviados > 0;
+}
+
+// 10 → 20 → 40 min, tope 1 h.
+uint16_t esperaBackoffSeg() {
+  if (fallosContacto == 0) return 0;
+  uint32_t espera = (uint32_t) BACKOFF_BASE_SEG << min<uint8_t>(fallosContacto - 1, 8);
+  return espera > BACKOFF_MAX_SEG ? BACKOFF_MAX_SEG : espera;
+}
+
+void registrarResultadoContacto(bool ok) {
+  if (ok) {
+    if (fallosContacto > 0) Serial.printf("[ESP] Contacto recuperado tras %u fallos\n", fallosContacto);
+    fallosContacto = 0;
+    return;
+  }
+
+  if (fallosContacto < UINT8_MAX) fallosContacto++;
+  Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en %u min\n",
+                fallosContacto, esperaBackoffSeg() / 60);
 }
 
 bool enviarLote(uint16_t tope) {

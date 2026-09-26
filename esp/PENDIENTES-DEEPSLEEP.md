@@ -144,11 +144,15 @@ secrets durante una rotación, así que el orden es seguro.
 
 ### P1 — autonomía y robustez
 
-**g. Backoff exponencial en el reintento de WiFi.** `waitForConnectResult(10000)`
-son 10 s de radio a ~120 mA sin traer un dato: un equipo fuera de cobertura
-consume más que uno conectado y se vacía en días. Si falla: 10 → 20 → 40 min,
-tope 1 h. El muestreo y el buffer **no** se espacian — el corte es justo lo que
-el cliente va a querer reconstruir.
+**g. Backoff exponencial en el reintento de WiFi.** ✅ en `prueba_bmp.ino`.
+`waitForConnectResult(10000)` son 10 s de radio a ~120 mA sin traer un dato: un
+equipo fuera de cobertura consume más que uno conectado y se vacía en días. Si
+falla: 10 → 20 → 40 min, tope 1 h. El muestreo y el buffer **no** se espacian — el
+corte es justo lo que el cliente va a querer reconstruir.
+- Cuenta como fallo cualquier contacto sin un 2xx, WiFi o backend: los dos gastan
+  radio sin traer nada. Un cruce de umbral saltea el backoff.
+- `fallosContacto` es `RTC_DATA_ATTR`, así que un arranque en frío lo resetea y
+  reintenta ya (ver o).
 
 **h. Conexión rápida.** Guardar canal, BSSID e IP en RTC y usar
 `WiFi.begin(ssid, pass, canal, bssid)` + `WiFi.config(...)`. Baja la conexión de
@@ -156,9 +160,9 @@ el cliente va a querer reconstruir.
 Fallback a la conexión normal tras dos fallos seguidos. Es además lo que corre el
 punto de equilibrio de 3.a de 30 s a ~12 s.
 
-**i. Drenar varios chunks con la radio ya encendida.** Hoy es un `MAX_POR_ENVIO`
-por ciclo: vaciar 500 lecturas toma 10 ciclos ≈ 50 min. Lo caro es encender el
-WiFi, no el POST — mandar chunks hasta vaciar o hasta un tope por ciclo.
+**i. Drenar varios chunks con la radio ya encendida.** ✅ en `prueba_bmp.ino`:
+lotes de 100 hasta vaciar o hasta el primer fallo. Medido en placa: 500 lecturas
+en 1,2 s, así que no hace falta tope por ciclo — la grilla de `dormir()` lo absorbe.
 
 **j. Medición de batería.** ADC sobre divisor (ver hoja de hardware). Habilita el
 aviso de "batería baja" *mientras todavía hay energía para mandarlo*, el modo
