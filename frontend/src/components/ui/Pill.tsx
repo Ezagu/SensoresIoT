@@ -10,7 +10,7 @@ const TONOS: Record<Tono, string> = {
 }
 
 /* Etiqueta corta pegada a otro elemento: un rol, un plan, una condición de la
-   fila. Para el estado de un equipo o de un sensor va PastillaEstado, que lleva
+   fila. Para el estado de un equipo o de un sensor va MarcaEstado, que lleva
    glifo con forma propia: acá el color no codifica estado, sólo acompaña. */
 export function Pill({ tono, children }: { tono: Tono; children: React.ReactNode }) {
   return (

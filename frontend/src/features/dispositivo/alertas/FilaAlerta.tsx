@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
-import { MarcaEstado, type Estado } from '@/components/ui/MarcaEstado'
+import { MarcaEstado } from '@/components/ui/MarcaEstado'
+import { estadoDeRegla } from '@/utils/alertas'
 import { MenuAcciones } from '@/components/ui/MenuAcciones'
 import { TextoError } from '@/components/ui/TextoError'
 import { actualizarAlerta, eliminarAlerta } from '@/services/consultas'
@@ -66,17 +67,13 @@ export function FilaAlerta({
     }
   }
 
-  const estado: { glifo: Estado; texto: string; clase: string } = !alerta.activa
-    ? { glifo: 'inactivo', texto: 'Pausada', clase: 'text-text-faint' }
-    : alerta.estado === 'disparada'
-      ? { glifo: 'critico', texto: 'Disparada', clase: 'font-semibold text-danger' }
-      : conectividad === 'nunca' || conectividad === 'sin-reportar'
-        ? {
-            glifo: conectividad === 'nunca' ? 'sin-datos' : 'sin-reportar',
-            texto: 'Sin evaluar',
-            clase: 'text-text-muted',
-          }
-        : { glifo: 'normal', texto: 'Normal', clase: 'text-text-muted' }
+  const estado = estadoDeRegla(alerta, conectividad)
+  const clase =
+    estado.glifo === 'critico'
+      ? 'font-semibold text-danger'
+      : estado.glifo === 'inactivo'
+        ? 'text-text-faint'
+        : 'text-text-muted'
 
   return (
     <li className="grid grid-cols-[1.125rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-3.5">
@@ -93,7 +90,7 @@ export function FilaAlerta({
         </p>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`text-note-lg ${estado.clase}`}>{estado.texto}</span>
+        <span className={`text-note-lg ${clase}`}>{estado.texto}</span>
         {puedeEditar && (
           <MenuAcciones
             etiqueta={`Acciones de ${alerta.nombre || condicionTexto(alerta)}`}
