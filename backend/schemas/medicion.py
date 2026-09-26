@@ -14,6 +14,7 @@ class Umbral(BaseModel):
     umbral: float
     histeresis: float
     muestras: int
+    disparada: bool
 
 class MedicionCreate(BaseModel):
     time: Optional[datetime] = None

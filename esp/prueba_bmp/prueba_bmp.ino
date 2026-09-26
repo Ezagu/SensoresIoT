@@ -148,9 +148,13 @@ bool flashMontada = false;
 // Ventanas
 const uint8_t VENTANA_MUESTRAS = 12;
 
-RTC_DATA_ATTR float ventana[CANT_SENSORES][VENTANA_MUESTRAS];
-RTC_DATA_ATTR uint8_t ventanaCantidad[CANT_SENSORES] = {0};
-RTC_DATA_ATTR uint8_t ventanaProximo[CANT_SENSORES]  = {0};
+// No se vacía al publicar: un cruce puede haber empezado antes del último envío y
+// sus muestras tienen que seguir ahí. La mediana usa sólo las posteriores.
+RTC_DATA_ATTR float    ventana[CANT_SENSORES][VENTANA_MUESTRAS];
+RTC_DATA_ATTR uint32_t ventanaTime[CANT_SENSORES][VENTANA_MUESTRAS];
+RTC_DATA_ATTR uint8_t  ventanaCantidad[CANT_SENSORES]   = {0};
+RTC_DATA_ATTR uint8_t  ventanaProximo[CANT_SENSORES]    = {0};
+RTC_DATA_ATTR uint8_t  ventanaDesdeEnvio[CANT_SENSORES] = {0};
 
 // Intervalos
 RTC_DATA_ATTR uint16_t intervaloMuestreoSeg = 20;
@@ -330,9 +334,11 @@ void esperarLiviano(uint32_t ms) {
 }
 
 void registrarMuestra(uint8_t sensorIdx, float value) {
-  ventana[sensorIdx][ventanaProximo[sensorIdx]] = value;
+  ventana[sensorIdx][ventanaProximo[sensorIdx]]     = value;
+  ventanaTime[sensorIdx][ventanaProximo[sensorIdx]] = ahoraLocal();
   ventanaProximo[sensorIdx] = (ventanaProximo[sensorIdx] + 1) % VENTANA_MUESTRAS;
-  if(ventanaCantidad[sensorIdx] < VENTANA_MUESTRAS) ventanaCantidad[sensorIdx]++;
+  if(ventanaCantidad[sensorIdx]   < VENTANA_MUESTRAS) ventanaCantidad[sensorIdx]++;
+  if(ventanaDesdeEnvio[sensorIdx] < VENTANA_MUESTRAS) ventanaDesdeEnvio[sensorIdx]++;
   lecturaNueva[sensorIdx] = true;
 }
 
@@ -343,25 +349,38 @@ float ultimaMuestra(uint8_t sensorIdx) {
 
 void bufferizarUltimasMuestrasSensores() {
   for (uint8_t i = 0; i < CANT_SENSORES; i++) {
-    if(ventanaCantidad[i] < 1) continue;
+    if(ventanaDesdeEnvio[i] < 1) continue;
 
     float value = calcularMediana(i);
 
     bufferizar(i, value);
 
-    ventanaCantidad[i] = 0;
-    ventanaProximo[i]  = 0;
+    ventanaDesdeEnvio[i] = 0;
+  }
+}
+
+// El servidor confirma un cruce con `muestras` lecturas seguidas: mandar sólo la
+// última dejaba la alerta esperando las publicaciones siguientes.
+void bufferizarCrudas(uint8_t sensorIdx, uint8_t cantidad) {
+  uint8_t n = min(cantidad, ventanaCantidad[sensorIdx]);
+  for (uint8_t k = n; k > 0; k--) {
+    uint8_t pos = (ventanaProximo[sensorIdx] + VENTANA_MUESTRAS - k) % VENTANA_MUESTRAS;
+    bufferizar(sensorIdx, ventana[sensorIdx][pos], ventanaTime[sensorIdx][pos]);
   }
 }
 
 void bufferizar(uint8_t sensorIdx, float value) {
+  bufferizar(sensorIdx, value, ahoraLocal());
+}
+
+void bufferizar(uint8_t sensorIdx, float value, uint32_t time) {
   if (bufCantidad == CAPACIDAD_BUFFER) {
     bufCola = (bufCola + 1) % CAPACIDAD_BUFFER;
     bufCantidad--;
   }
 
   uint16_t posicion = (bufCola + bufCantidad) % CAPACIDAD_BUFFER;
-  buffer[posicion].time      = ahoraLocal();
+  buffer[posicion].time      = time;
   buffer[posicion].value     = value;
   buffer[posicion].sensorIdx = sensorIdx;
   bufCantidad++;
@@ -1079,7 +1098,9 @@ void guardarUmbrales(JsonArray recibidos) {
     u.umbral       = item["umbral"] | 0.0f;
     u.histeresis   = item["histeresis"] | 0.0f;
     u.cantMuestras = item["muestras"] | 3;
-    u.cruzado      = false;
+    // Sólo para una regla nueva: la conocida conserva el estado local, que puede ir
+    // adelante del servidor mientras confirma un cruce.
+    u.cruzado      = item["disparada"] | false;
     u.consecutivos = 0;
 
     if (u.cantMuestras < 1) u.cantMuestras = 1;
@@ -1131,7 +1152,7 @@ bool chequearUmbrales() {
     u.consecutivos = 0;
 
     Serial.printf("[ALERTA] Cruce en sensor %u, se adelanta el envio.\n", u.sensorIdx);
-    bufferizar(u.sensorIdx, muestra);
+    bufferizarCrudas(u.sensorIdx, u.cantMuestras);
     disparo = true;
   }
 
@@ -1205,7 +1226,7 @@ bool guardarSecret(const String& nuevo) {
 
 //---------UTILS----------
 float calcularMediana(uint8_t sensorIdx) {
-  uint8_t cantidad = ventanaCantidad[sensorIdx];
+  uint8_t cantidad = ventanaDesdeEnvio[sensorIdx];
   float temp[VENTANA_MUESTRAS];
   for(uint8_t i = 0; i < cantidad; i++) {
     temp[i] = ventana[sensorIdx][(ventanaProximo[sensorIdx] + VENTANA_MUESTRAS - 1 - i) % VENTANA_MUESTRAS];

@@ -179,6 +179,9 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
                 "umbral": u["umbral"],
                 "histeresis": u["histeresis"],
                 "muestras": u["muestras_confirmacion"],
+                # Estado inicial para una regla que el equipo no conocía: sin esto
+                # arranca en normal y "cruza" una regla ya disparada.
+                "disparada": u["disparada"],
             }
             for u in umbrales
         ],

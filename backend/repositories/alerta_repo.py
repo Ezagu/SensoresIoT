@@ -133,7 +133,8 @@ def umbrales_por_dispositivo(cur, dispositivo_id) -> list[dict]:
     # completa. La máquina de estados y la notificación viven en el servidor.
     cur.execute(
         """
-        SELECT a.sensor_id, a.condicion, a.umbral, a.histeresis, a.muestras_confirmacion
+        SELECT a.sensor_id, a.condicion, a.umbral, a.histeresis, a.muestras_confirmacion,
+               a.estado = 'disparada' AS disparada
         FROM alertas a
         JOIN sensores s ON s.id = a.sensor_id
         WHERE s.dispositivo_id = %s AND a.activa
