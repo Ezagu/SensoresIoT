@@ -252,7 +252,14 @@ el ancla **y** convertir las lecturas a epoch absoluto antes de volcarlas — su
 edad no significa nada contra el cronómetro nuevo. LittleFS en partición propia,
 no NVS (partición chica y no es para esto).
 
-**m. Muestreo condicional.** Sin umbrales configurados, no despertar cada 20 s:
+**m. Muestreo condicional.** ✅ en `prueba_bmp.ino`, falta validar en placa (sobre
+todo que el I2C vuelva bien del light sleep). Sin reglas, el paso entre
+despertares es el MCD de envío y contacto (300 s con los presets) en vez de 20 s;
+las 3 lecturas del primado se separan con light sleep (~1 mA) y no con `delay()`
+(~40 mA) — con `delay()` el ahorro caía de ~90 % a ~55 %, porque los 2 s despierto
+se comían lo ganado. Los contadores pasaron de ciclos a segundos. Un cambio de
+reglas en la respuesta cambia el modo solo, desde el sueño siguiente.
+Diseño original: sin umbrales configurados, no despertar cada 20 s:
 al publicar, tomar 3 lecturas separadas 1 s y mandar la mediana — que es
 exactamente lo que ya hace `primarVentana()`. Mantiene el filtro contra frames
 corruptos (el −9,66 °C entre dos 20,6 °C) y elimina 14 de cada 15 despertares.

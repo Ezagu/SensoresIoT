@@ -126,8 +126,10 @@ RTC_DATA_ATTR uint16_t intervaloMuestreoSeg = 20;
 RTC_DATA_ATTR uint16_t intervaloEnvioSeg    = 300;
 RTC_DATA_ATTR uint16_t intervaloContactoSeg = 300;
 
-RTC_DATA_ATTR uint16_t ciclosDesdeEnvio    = 0;
-RTC_DATA_ATTR uint16_t ciclosDesdeContacto = 0;
+// En segundos y no en ciclos: sin reglas el paso entre despertares cambia.
+RTC_DATA_ATTR uint32_t segDesdeEnvio    = 0;
+RTC_DATA_ATTR uint32_t segDesdeContacto = 0;
+RTC_DATA_ATTR uint16_t pasoActualSeg    = 0;
 
 // Backoff de contacto: un intento fallido son hasta 10 s de radio sin traer nada.
 // Sólo se espacia el contacto; el muestreo y el buffer siguen igual.
@@ -170,44 +172,49 @@ void setup() {
   // Un power-on devuelve UNDEFINED, así que esto cubre power-on, reset y botón.
   bool arranqueFrio = esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER;
 
-  ciclosDesdeEnvio++;
-  ciclosDesdeContacto++;
+  segDesdeEnvio    += pasoActualSeg;
+  segDesdeContacto += pasoActualSeg;
 
   if (arranqueFrio) cargarRelojPpm();
 
-  Serial.printf("[ESP] Arranque %s | envío %u/%u | ancla %s | buffer %u | reloj %lu (%ld ppm) | fallidas %lu | fallos contacto %u\n",
-                arranqueFrio ? "FRÍO" : "timer",
-                ciclosDesdeEnvio, intervaloEnvioSeg / intervaloMuestreoSeg,
+  // En frío los contadores RTC valen 0: sin esto el primer punto sale a los 5 min.
+  bool tocaEnvio    = arranqueFrio || segDesdeEnvio >= intervaloEnvioSeg;
+  bool tocaContacto = arranqueFrio || segDesdeContacto >= intervaloContactoSeg;
+
+  // Con reglas se muestrea en cada despertar para confirmarlas; sin reglas sólo
+  // hace falta el punto a publicar.
+  bool muestreoContinuo = cantUmbrales > 0;
+
+  Serial.printf("[ESP] Arranque %s | muestreo %s | envío %lu/%us | ancla %s | buffer %u | reloj %lu (%ld ppm) | fallidas %lu | fallos contacto %u\n",
+                arranqueFrio ? "FRÍO" : "timer", muestreoContinuo ? "continuo" : "al publicar",
+                (unsigned long) segDesdeEnvio, intervaloEnvioSeg,
                 anclaEpoch ? "sí" : "NO", bufCantidad, (unsigned long) ahoraLocal(), (long) relojPpm,
                 (unsigned long) lecturasFallidas, fallosContacto);
 
   // Sin sensor no tiene sentido gastar los ~30 ms de conversión en leer basura que
   // enRango() va a descartar igual. El ciclo sigue: el heartbeat mueve last_seen_at
   // sin mover last_data_at, que es justo la diferencia entre "vivo" y "midiendo".
-  if (inicializarSensores()) {
-    if (arranqueFrio) primarVentana();
-    else              leerSensores();
+  bool tocaMuestrear = arranqueFrio || muestreoContinuo || tocaEnvio;
+  if (tocaMuestrear && inicializarSensores()) {
+    if (arranqueFrio || !muestreoContinuo) primarVentana();
+    else                                   leerSensores();
   }
 
   bool hayAlerta = chequearUmbrales();
 
-  // En frío los contadores RTC valen 0: sin esto el primer punto sale a los 5 min.
-  bool tocaEnvio    = arranqueFrio || ciclosDesdeEnvio >= intervaloEnvioSeg / intervaloMuestreoSeg;
-  bool tocaContacto = arranqueFrio || ciclosDesdeContacto >= intervaloContactoSeg / intervaloMuestreoSeg;
-
   if(tocaEnvio) {
     bufferizarUltimasMuestrasSensores();
-    ciclosDesdeEnvio = 0;
+    segDesdeEnvio = 0;
   }
 
   // Una alerta saltea el backoff: es justo lo que el cliente quiere enterarse ya.
-  bool enBackoff = fallosContacto > 0 && ciclosDesdeContacto < esperaBackoffSeg() / intervaloMuestreoSeg;
+  bool enBackoff = fallosContacto > 0 && segDesdeContacto < esperaBackoffSeg();
 
   if ((tocaEnvio || tocaContacto) && enBackoff && !hayAlerta) {
-    Serial.printf("[ESP] En backoff: próximo contacto en %u ciclos\n",
-                  esperaBackoffSeg() / intervaloMuestreoSeg - ciclosDesdeContacto);
+    Serial.printf("[ESP] En backoff: próximo contacto en %lus\n",
+                  (unsigned long) (esperaBackoffSeg() - segDesdeContacto));
   } else if (hayAlerta || tocaEnvio || tocaContacto) {
-    ciclosDesdeContacto = 0;
+    segDesdeContacto = 0;
     Serial.print("[ESP] Se debe contactar a la API\n");
     cargarSecret();
     registrarResultadoContacto(enviarMediciones(arranqueFrio));
@@ -228,11 +235,23 @@ void armarWatchdog() {
   esp_task_wdt_add(NULL);
 }
 
+// Sin reglas no hay nada que vigilar entre publicaciones: se despierta sólo cuando
+// toca publicar o contactar, y el MCD hace que el paso caiga justo en los dos.
+uint16_t pasoSeg() {
+  if (cantUmbrales > 0) return intervaloMuestreoSeg;
+
+  uint16_t a = intervaloEnvioSeg, b = intervaloContactoSeg;
+  while (b) { uint16_t r = a % b; a = b; b = r; }
+  return max(a, intervaloMuestreoSeg);
+}
+
 void dormir() {
+  pasoActualSeg = pasoSeg();
+
   int64_t ahoraUs     = microsLocales();
   // El timer del sueño corre con el mismo oscilador: 20 s reales son más o menos
   // segundos locales según el drift.
-  int64_t intervaloUs = intervaloMuestreoSeg * 1000000LL * 1000000LL / (1000000LL + relojPpm);
+  int64_t intervaloUs = pasoActualSeg * 1000000LL * 1000000LL / (1000000LL + relojPpm);
 
   // Grilla absoluta: se duerme hasta un instante, no una duración. Así el costo del
   // boot —que corre antes de que millis() empiece a contar, y que no conviene
@@ -254,12 +273,20 @@ void dormir() {
 
 //----------MUESTRAS-------------
 
-// Poblar ventana en un arranque en frío
+// Tres lecturas para que el punto sea una mediana y no una muestra suelta: basta
+// para descartar un frame corrupto aislado.
 void primarVentana() {
   for (uint8_t i = 0; i < MUESTRAS_PRIMADO; i++) {
     leerSensores();
-    if (i + 1 < MUESTRAS_PRIMADO) delay(MS_ENTRE_PRIMADO);
+    if (i + 1 < MUESTRAS_PRIMADO) esperarLiviano(MS_ENTRE_PRIMADO);
   }
+}
+
+// Light sleep: conserva la RAM y cuesta ~1 mA contra ~40 de un delay().
+void esperarLiviano(uint32_t ms) {
+  Serial.flush();
+  esp_sleep_enable_timer_wakeup(ms * 1000ULL);
+  esp_light_sleep_start();
 }
 
 void registrarMuestra(uint8_t sensorIdx, float value) {
