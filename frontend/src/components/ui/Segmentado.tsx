@@ -72,7 +72,7 @@ export function Segmentado<T extends string>({
       }
       /* Nunca desborda: o envuelve, o va en columnas iguales. Siete rangos no
          entran en 360px de ninguna manera. */
-      className={`gap-0.5 rounded-control border border-border bg-surface-2 p-0.75 ${
+      className={`gap-0.5 rounded-tile border border-border-control p-0.75 ${
         columnasAngosto
           ? 'grid w-full grid-cols-(--columnas) sm:flex sm:w-fit sm:max-w-full sm:flex-wrap'
           : 'flex w-fit max-w-full flex-wrap'
@@ -98,21 +98,14 @@ export function Segmentado<T extends string>({
             tabIndex={indice === conFoco ? 0 : -1}
             onKeyDown={(evento) => alTeclado(evento, indice)}
             onClick={() => !disabled && onCambiar(o.valor)}
-            /* 28 y no los 26 del sistema: es el control de rango en mobile, y
-               dos píxeles de más son la diferencia entre errarle y no. */
-            className={`flex h-7 items-center justify-center gap-1 rounded-chip border border-transparent text-body font-medium whitespace-nowrap transition-colors duration-130 cursor-pointer disabled:cursor-not-allowed disabled:text-disabled-text ${numerico ? 'num' : ''} ${
+            className={`flex h-7.5 min-w-10.5 items-center justify-center gap-1.25 rounded-control text-body font-medium whitespace-nowrap transition-colors duration-130 cursor-pointer disabled:cursor-not-allowed disabled:text-disabled-text ${numerico ? 'num' : ''} ${
               columnasAngosto
-                ? `px-1.5 sm:px-3 ${indice === 0 ? 'col-span-full sm:col-auto' : ''}`
-                : 'px-3'
-            } ${
-              o.valor === valor
-                ? `border-border-control bg-surface ${excede ? 'text-accent' : 'text-text'}`
-                : excede
-                  ? 'text-accent hover:bg-accent-soft'
-                  : 'text-text-muted hover:text-text'
-            }`}
+                ? `px-1.5 sm:px-2.5 ${indice === 0 ? 'col-span-full sm:col-auto' : ''}`
+                : 'px-2.5'
+            } ${o.valor === valor ? 'bg-accent-soft text-accent' : 'text-text-muted hover:text-text'}`}
           >
             {o.etiqueta}
+            {excede && <span aria-hidden="true" className="size-1.25 rounded-full bg-plan-mark" />}
           </button>
         )
       })}

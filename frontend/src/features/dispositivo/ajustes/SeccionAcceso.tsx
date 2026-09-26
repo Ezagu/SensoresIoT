@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -33,6 +33,12 @@ export function SeccionAcceso({
   puedeCompartir: boolean
   usuarioActualId: string
 }) {
+  /* "Compartir" del detalle del equipo llega acá con #accesos. */
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (hash === '#accesos') document.getElementById('accesos')?.scrollIntoView({ block: 'start' })
+  }, [hash])
+
   const {
     datos: datosAccesos,
     cargando: cargandoAccesos,
@@ -63,6 +69,7 @@ export function SeccionAcceso({
 
   return (
     <SeccionAjustes
+      id="accesos"
       titulo="Acceso compartido"
       accion={
         esDuenio && puedeCompartir ? (

@@ -1,14 +1,11 @@
 import { Fragment, useMemo, useState } from 'react'
-import { Bloque } from '@/components/ui/Bloque'
 import { Boton, BotonLink } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
 import { Desplegable } from '@/components/ui/Desplegable'
-import { Pill } from '@/components/ui/Pill'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { Vacio } from '@/components/ui/Vacio'
-import { IconoExportar } from '@/components/layout/iconos'
 import { useHistorial, type FiltroHistorial } from './usarHistorial'
-import { numero } from '@/utils/formato'
+import { medida } from '@/utils/formato'
 import { fecha, fechaHora, horaSegundos } from '@/utils/tiempo'
 import type { UmbralGrafico } from '@/utils/alertas'
 import { TextoError } from '@/components/ui/TextoError'
@@ -31,12 +28,10 @@ export function BloqueHistorial({
   sensorId,
   unidad,
   umbrales,
-  onExportar,
 }: {
   sensorId: string
   unidad: string
   umbrales: UmbralGrafico[]
-  onExportar: () => void
 }) {
   const [desdeStr, setDesdeStr] = useState('')
   const [hastaStr, setHastaStr] = useState('')
@@ -67,51 +62,47 @@ export function BloqueHistorial({
   const finPorRetencion = !cargando && !hayMas && !cortadaPorFiltro && retencionDias !== null
 
   return (
-    <Bloque
-      titulo="Historial"
-      sinPadding
-      acciones={
-        <>
-          <Boton variante="sutil" onClick={onExportar}>
-            <IconoExportar className="size-3.5" />
-            Exportar equipo
-          </Boton>
-          {/* Guardado detrás de un botón: el rango por defecto —lo último que
-              reportó— es el que sirve casi siempre. */}
-          <Desplegable etiqueta="Rango" marcado={filtrado}>
-            {(cerrar) => (
-              <div className="flex flex-col gap-3">
-                <Campo
-                  id="historial-desde"
-                  etiqueta="Desde"
-                  type="datetime-local"
-                  max={hastaStr || undefined}
-                  value={desdeStr}
-                  onChange={(e) => setDesdeStr(e.target.value)}
-                />
-                <Campo
-                  id="historial-hasta"
-                  etiqueta="Hasta"
-                  type="datetime-local"
-                  min={desdeStr || undefined}
-                  value={hastaStr}
-                  onChange={(e) => setHastaStr(e.target.value)}
-                />
-                <div className="flex items-center justify-between gap-2">
-                  <Boton type="button" variante="texto" disabled={!filtrado} onClick={limpiar}>
-                    Limpiar
-                  </Boton>
-                  <Boton type="button" variante="sutil" onClick={cerrar}>
-                    Listo
-                  </Boton>
-                </div>
+    <section aria-labelledby="titulo-lecturas">
+      <div className="flex min-h-10 items-center justify-between gap-4">
+        <h2 id="titulo-lecturas" className="text-heading-lg">
+          Lecturas{' '}
+          <span className="font-normal text-text-faint">· de la más nueva a la más vieja</span>
+        </h2>
+        {/* Guardado detrás de un botón: el rango por defecto —lo último que
+            reportó— es el que sirve casi siempre. */}
+        <Desplegable etiqueta="Rango" marcado={filtrado}>
+          {(cerrar) => (
+            <div className="flex flex-col gap-3">
+              <Campo
+                id="historial-desde"
+                etiqueta="Desde"
+                type="datetime-local"
+                max={hastaStr || undefined}
+                value={desdeStr}
+                onChange={(e) => setDesdeStr(e.target.value)}
+              />
+              <Campo
+                id="historial-hasta"
+                etiqueta="Hasta"
+                type="datetime-local"
+                min={desdeStr || undefined}
+                value={hastaStr}
+                onChange={(e) => setHastaStr(e.target.value)}
+              />
+              <div className="flex items-center justify-between gap-2">
+                <Boton type="button" variante="texto" disabled={!filtrado} onClick={limpiar}>
+                  Limpiar
+                </Boton>
+                <Boton type="button" variante="sutil" onClick={cerrar}>
+                  Listo
+                </Boton>
               </div>
-            )}
-          </Desplegable>
-        </>
-      }
-    >
-      <div className="flex flex-col gap-3 p-5">
+            </div>
+          )}
+        </Desplegable>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-3">
         {filtrado && (
           <p className="text-note-lg text-text-muted">
             Filtrado
@@ -140,9 +131,12 @@ export function BloqueHistorial({
             ))}
           </div>
         ) : mediciones.length === 0 ? (
-          <Vacio titulo="Sin lecturas para mostrar" detalle="No hay mediciones en el rango elegido." />
+          <Vacio
+            titulo="Sin lecturas para mostrar"
+            detalle="No hay mediciones en el rango elegido."
+          />
         ) : (
-          <table className="w-full text-label">
+          <table className="w-full text-body">
             <colgroup>
               <col />
               <col className="w-28" />
@@ -150,15 +144,9 @@ export function BloqueHistorial({
             </colgroup>
             <thead>
               <tr className="border-b border-border-control">
-                <th className="py-1.5 pr-3 text-left text-tag font-semibold tracking-micro text-text-muted uppercase">
-                  Hora
-                </th>
-                <th className="py-1.5 pr-3 text-right text-tag font-semibold tracking-micro text-text-muted uppercase">
-                  Valor ({unidad})
-                </th>
-                <th className="py-1.5 text-right text-tag font-semibold tracking-micro text-text-muted uppercase">
-                  Contra umbral
-                </th>
+                <th className="micro py-2 pr-3 text-left font-medium">Hora</th>
+                <th className="micro py-2 pr-3 text-right font-medium">Valor</th>
+                <th className="micro py-2 text-right font-medium">Contra umbral</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -173,24 +161,30 @@ export function BloqueHistorial({
                         <th
                           colSpan={3}
                           scope="colgroup"
-                          className="num pt-3 pb-1 text-left text-note font-semibold tracking-wide text-text-faint uppercase"
+                          className="micro pt-3.5 pb-1 text-left font-normal"
                         >
                           {dia}
                         </th>
                       </tr>
                     )}
                     <tr>
-                      <td className="num py-1.5 pr-3 text-text-muted">{horaSegundos(m.time)}</td>
-                      <td className="num py-1.5 pr-3 text-right font-semibold text-text">
-                        {numero(m.value)}
+                      <td className="num py-2.25 pr-3 font-normal text-text">
+                        {horaSegundos(m.time)}
                       </td>
-                      <td className="py-1.5 text-right">
+                      <td
+                        className={`num py-2.25 pr-3 text-right ${lado ? 'text-danger' : 'text-text'}`}
+                      >
+                        {medida(m.value, unidad)}
+                      </td>
+                      <td className="py-2.25 text-right">
                         {umbrales.length === 0 ? (
                           <span className="text-text-faint">—</span>
                         ) : lado ? (
-                          <Pill tono="danger">{lado}</Pill>
+                          <span className="text-danger">
+                            {lado === 'sobre' ? 'Sobre umbral' : 'Bajo umbral'}
+                          </span>
                         ) : (
-                          <span className="text-text-faint">normal</span>
+                          <span className="text-text-muted">En rango</span>
                         )}
                       </td>
                     </tr>
@@ -215,12 +209,12 @@ export function BloqueHistorial({
       {/* Sin paginar: el historial se lee hacia atrás y de a poco, así que lo
           que hace falta es seguir bajando, no saltar a una página cualquiera. */}
       {hayMas && (
-        <div className="flex justify-center border-t border-border px-5 py-3">
+        <div className="mt-3 flex justify-center">
           <Boton type="button" variante="sutil" disabled={cargandoMas} onClick={cargarMas}>
             {cargandoMas ? 'Cargando…' : `Cargar más`}
           </Boton>
         </div>
       )}
-    </Bloque>
+    </section>
   )
 }

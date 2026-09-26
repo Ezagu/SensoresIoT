@@ -17,12 +17,6 @@ export function rangoExcedeRetencion(rango: RangoGrafico, retencionDias: number 
   return excedeRetencion(new Date(Date.now() - duracionMsDeRango(rango)), retencionDias)
 }
 
-/* `retencion_dias` null es hoy la única marca de "el dueño es premium" que
-   viaja en la respuesta del gráfico; no hay flag propio en el catálogo. */
-export function permiteHistorialCompleto(retencionDias: number | null) {
-  return retencionDias === null
-}
-
 /* El backend compara contra su propio now(), siempre posterior al del cliente:
    pedir 7 d con 7 d de retención da recortado=true sin que falte un dato. */
 export function recorteEsMaterial(desdeEfectivo: string, desdePedidoMs: number) {

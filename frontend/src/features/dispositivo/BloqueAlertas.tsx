@@ -1,11 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bloque } from '@/components/ui/Bloque'
 import { Boton } from '@/components/ui/Boton'
 import { Modal } from '@/components/ui/Modal'
-import { Vacio } from '@/components/ui/Vacio'
 import { IconoMas } from '@/components/layout/iconos'
-import { agruparAlertasPorSensor } from '@/utils/alertas'
 import type { EstadoDispositivo } from '@/utils/tiempo'
 import type { Alerta } from '@/tipos'
 import type { SensorConMeta } from './usarDispositivo'
@@ -36,8 +33,13 @@ export function BloqueAlertas({
   const [creando, setCreando] = useState(false)
   const [editando, setEditando] = useState<Alerta | null>(null)
 
-  const porSensor = agruparAlertasPorSensor(alertas)
-  const unidadPorSensor = new Map(sensores.map((s) => [s.id, s.unidad] as const))
+  const etiquetaPorSensor = new Map(sensores.map((s) => [s.id, s] as const))
+  const orden = new Map(sensores.map((s, i) => [s.id, i] as const))
+  const ordenadas = [...alertas].sort(
+    (a, b) =>
+      Number(b.estado === 'disparada' && b.activa) - Number(a.estado === 'disparada' && a.activa) ||
+      (orden.get(a.sensor_id) ?? 0) - (orden.get(b.sensor_id) ?? 0),
+  )
   const alcanzoElMaximo = maxAlertas !== null && alertas.length >= maxAlertas
 
   function alCambiar() {
@@ -46,82 +48,91 @@ export function BloqueAlertas({
     setEditando(null)
   }
 
-  const total = alertas.length
-
   return (
-    <Bloque
-      titulo="Alertas del equipo"
-      subtitulo={puedeAlertas ? (total === 1 ? '1 regla' : `${total} reglas`) : undefined}
-      sinPadding
-      acciones={
-        puedeAlertas && puedeEditar ? (
+    <section aria-labelledby="titulo-alertas">
+      <div className="flex min-h-10 items-center justify-between gap-4">
+        <h2 id="titulo-alertas" className="text-heading-lg">
+          Alertas
+        </h2>
+        {puedeAlertas && puedeEditar && (
           <Boton
             variante="sutil"
             onClick={() => setCreando(true)}
             disabled={sensores.length === 0 || alcanzoElMaximo}
-            title={alcanzoElMaximo ? `Alcanzaste el límite de ${maxAlertas} alertas de este dispositivo` : undefined}
+            title={
+              alcanzoElMaximo
+                ? `Alcanzaste el límite de ${maxAlertas} reglas de este equipo`
+                : undefined
+            }
           >
             <IconoMas className="size-3.5" />
-            Nueva
+            Nueva regla
           </Boton>
-        ) : undefined
-      }
-    >
+        )}
+      </div>
+
       {!puedeAlertas ? (
-        <Vacio
-          titulo="Las alertas son premium"
-          detalle="Este dispositivo no tiene alertas habilitadas en su plan."
-          accion={
-            <Link to="/plan">
-              <Boton variante="sutil">Ver planes</Boton>
-            </Link>
-          }
-        />
+        <p className="mt-4 text-body text-text-muted">
+          El plan de este equipo no incluye reglas de alerta.{' '}
+          <Link to="/plan" className="font-medium text-accent hover:text-text">
+            Ver planes
+          </Link>
+        </p>
       ) : alertas.length === 0 ? (
-        <Vacio
-          titulo="Sin alertas configuradas"
-          detalle={
-            puedeEditar
-              ? 'Creá una regla para que te avisemos cuando un sensor cruce un umbral.'
-              : 'Tu rol en este equipo es de solo lectura: las reglas las crea quien lo administra.'
-          }
-        />
+        <p className="mt-4 text-body text-text-muted">
+          {puedeEditar
+            ? 'Todavía no hay reglas. Creá una para que te avisemos cuando un sensor cruce un umbral.'
+            : 'Todavía no hay reglas. Las crea quien administra el equipo.'}
+        </p>
       ) : (
-        <div className="flex flex-col divide-y divide-border">
-          {sensores
-            .filter((s) => (porSensor.get(s.id) ?? []).length > 0)
-            .map((sensor) => (
-              <div key={sensor.id} className="px-5 py-2">
-                <p className="pt-1 text-tag font-semibold tracking-micro text-text-faint uppercase">
-                  {sensor.etiqueta}
-                </p>
-                <ul className="flex flex-col divide-y divide-border">
-                  {(porSensor.get(sensor.id) ?? []).map((alerta) => (
-                    <FilaAlerta
-                      key={alerta.id}
-                      alerta={alerta}
-                      unidad={unidadPorSensor.get(alerta.sensor_id) ?? ''}
-                      conectividad={conectividad}
-                      puedeEditar={puedeEditar}
-                      onEditar={() => setEditando(alerta)}
-                      onCambio={onCambio}
-                    />
-                  ))}
-                </ul>
-              </div>
-            ))}
-        </div>
+        <ul className="mt-2">
+          {ordenadas.map((alerta) => {
+            const sensor = etiquetaPorSensor.get(alerta.sensor_id)
+            return (
+              <FilaAlerta
+                key={alerta.id}
+                alerta={alerta}
+                unidad={sensor?.unidad ?? ''}
+                sensor={sensor?.etiqueta}
+                conectividad={conectividad}
+                puedeEditar={puedeEditar}
+                onEditar={() => setEditando(alerta)}
+                onCambio={onCambio}
+              />
+            )
+          })}
+        </ul>
+      )}
+
+      {puedeAlertas && maxAlertas !== null && alertas.length > 0 && (
+        <p className="mt-4 text-body text-text-muted">
+          {alcanzoElMaximo ? 'Usás' : 'Tenés'} {alertas.length} de {maxAlertas} reglas del plan de
+          este equipo.{' '}
+          {alcanzoElMaximo && (
+            <Link to="/plan" className="font-medium text-accent hover:text-text">
+              Sumar más con Premium
+            </Link>
+          )}
+        </p>
       )}
 
       <Modal abierto={creando} onCerrar={() => setCreando(false)} titulo="Nueva alerta">
-        <FormularioNuevaAlerta sensores={sensores} onCreada={alCambiar} onCancelar={() => setCreando(false)} />
+        <FormularioNuevaAlerta
+          sensores={sensores}
+          onCreada={alCambiar}
+          onCancelar={() => setCreando(false)}
+        />
       </Modal>
 
       <Modal abierto={editando !== null} onCerrar={() => setEditando(null)} titulo="Editar alerta">
         {editando && (
-          <FormularioEditarAlerta alerta={editando} onGuardada={alCambiar} onCancelar={() => setEditando(null)} />
+          <FormularioEditarAlerta
+            alerta={editando}
+            onGuardada={alCambiar}
+            onCancelar={() => setEditando(null)}
+          />
         )}
       </Modal>
-    </Bloque>
+    </section>
   )
 }

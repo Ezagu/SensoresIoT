@@ -195,3 +195,8 @@ export function aLas(iso: string, ahora: number = Date.now()): string {
   if (dias === 1) return `ayer a las ${hora(ms)}`
   return `el ${fechaCorta(ms)} a las ${hora(ms)}`
 }
+
+/* Una duración en ms como se lee en una métrica: "1 h 44 min", "38 min", "2 d 3 h". */
+export function duracionMs(ms: number): string {
+  return duracion(new Date(0).toISOString(), new Date(ms).toISOString())
+}

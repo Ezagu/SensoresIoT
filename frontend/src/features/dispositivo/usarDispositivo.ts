@@ -1,8 +1,15 @@
 import { useCallback, useState } from 'react'
-import { listarAlertas, listarSensores, listarTiposSensor, obtenerDispositivo, obtenerEstadoDispositivo } from '@/services/consultas'
+import {
+  listarAlertas,
+  listarEventosDispositivo,
+  listarSensores,
+  listarTiposSensor,
+  obtenerDispositivo,
+  obtenerEstadoDispositivo,
+} from '@/services/consultas'
 import { useCarga } from '@/hooks/usarCarga'
 import { etiquetarSensores } from '@/utils/sensores'
-import type { Alerta, DatosGrafico } from '@/tipos'
+import type { Alerta, AlertaEvento, DatosGrafico } from '@/tipos'
 
 export type SensorConMeta = {
   id: string
@@ -112,4 +119,19 @@ export function useAlertasDispositivo(dispositivoId: string, cadenciaSeg: number
     intervaloMs: (cadenciaSeg ?? CADENCIA_INICIAL_SEG) * 1000,
   })
   return { alertas: datos ?? SIN_ALERTAS, refrescar }
+}
+
+const SIN_EVENTOS: AlertaEvento[] = []
+
+/* El log del equipo (reglas y cortes), a la misma cadencia que sus alertas: un
+   evento nuevo es la otra cara de una regla que acaba de cambiar de estado. */
+export function useEventosDispositivo(dispositivoId: string, cadenciaSeg: number | undefined, limite = 50) {
+  const cargar = useCallback(
+    (signal: AbortSignal) => listarEventosDispositivo(dispositivoId, { limite }, signal),
+    [dispositivoId, limite],
+  )
+  const { datos, cargando } = useCarga(cargar, {
+    intervaloMs: (cadenciaSeg ?? CADENCIA_INICIAL_SEG) * 1000,
+  })
+  return { eventos: datos?.eventos ?? SIN_EVENTOS, cargando }
 }

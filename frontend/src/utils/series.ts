@@ -90,3 +90,59 @@ export function huecosDeGrafico(datos: DatosGrafico): Huecos {
 
   return { cortes, faltantes }
 }
+
+type Extremo = { valor: number; t: number }
+
+export type Estadisticas = {
+  minimo: Extremo | null
+  maximo: Extremo | null
+  /* null = el sensor no tiene reglas: no hay rango contra el cual medir. */
+  fueraDeRango: { ms: number; veces: number } | null
+  sinLecturas: { ms: number; desde: number } | null
+}
+
+/* Lo que la tira de métricas del sensor dice del período. Todo sobre los mismos
+   tramos que dibuja el gráfico: un hueco no suma tiempo fuera de rango y lo que
+   se cuenta como silencio es exactamente lo que se ve cortado. Con buckets el
+   extremo sale del min/max del bucket, no del promedio que se dibuja. */
+export function estadisticasDeGrafico(
+  datos: DatosGrafico,
+  umbrales: { umbral: number; condicion: 'mayor' | 'menor' }[],
+): Estadisticas {
+  const { puntos } = datos
+  let minimo: Extremo | null = null
+  let maximo: Extremo | null = null
+  for (const p of puntos) {
+    const t = new Date(p.bucket).getTime()
+    if (!minimo || p.minimo < minimo.valor) minimo = { valor: p.minimo, t }
+    if (!maximo || p.maximo > maximo.valor) maximo = { valor: p.maximo, t }
+  }
+
+  const fuera = (v: number) =>
+    umbrales.some((u) => (u.condicion === 'mayor' ? v > u.umbral : v < u.umbral))
+  const tramos = tramosDe(datos)
+
+  let fueraMs = 0
+  let veces = 0
+  let silencioMs = 0
+  let mayorSilencio: { ms: number; desde: number } | null = null
+  tramos.forEach((tramo, i) => {
+    const largo = tramo.hasta - tramo.desde
+    if (tramo.hueco) {
+      silencioMs += largo
+      if (!mayorSilencio || largo > mayorSilencio.ms) mayorSilencio = { ms: largo, desde: tramo.desde }
+      return
+    }
+    if (fuera(puntos[i].promedio)) fueraMs += largo
+  })
+  puntos.forEach((p, i) => {
+    if (fuera(p.promedio) && (i === 0 || !fuera(puntos[i - 1].promedio))) veces++
+  })
+
+  return {
+    minimo,
+    maximo,
+    fueraDeRango: umbrales.length ? { ms: fueraMs, veces } : null,
+    sinLecturas: mayorSilencio ? { ms: silencioMs, desde: (mayorSilencio as { desde: number }).desde } : null,
+  }
+}

@@ -13,7 +13,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
    borde y una sin él no se corren un píxel cuando conviven en la misma barra.
    Deshabilitado tiene relleno y texto propios: nunca opacidad sobre el activo. */
 const BASE =
-  'inline-flex items-center justify-center rounded-control border border-transparent font-medium whitespace-nowrap ' +
+  'inline-flex items-center justify-center rounded-control border font-medium whitespace-nowrap ' +
   'cursor-pointer transition-colors duration-130 disabled:cursor-not-allowed disabled:border-border ' +
   'disabled:bg-surface-inert disabled:text-disabled-text disabled:hover:border-border ' +
   'disabled:hover:bg-surface-inert disabled:hover:text-disabled-text'
@@ -22,16 +22,16 @@ const MEDIA = 'h-10 gap-2 px-4 text-body-lg'
 const FILA = 'h-7 gap-1.5 px-2.5 text-body'
 
 const VARIANTES: Record<Variante, string> = {
-  primario: `${MEDIA} bg-accent-strong text-accent-ink hover:bg-accent-strong-hover active:bg-accent-strong-active`,
+  primario: `${MEDIA} border-transparent bg-accent-strong text-accent-ink hover:bg-accent-strong-hover active:bg-accent-strong-active`,
   /* La alternativa a la acción principal: lleva marco, no color de marca. */
-  sutil: `${MEDIA} border-border-control bg-surface text-text hover:border-border-strong hover:bg-surface-2 active:bg-border`,
+  sutil: `${MEDIA} border-border-control bg-transparent text-text hover:border-accent-border active:bg-border`,
   /* Barra de herramientas: sin marco, para no competir con la acción principal. */
-  fantasma: `${MEDIA} bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
+  fantasma: `${MEDIA} border-transparent bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
   /* Acciones dentro de una fila de lista: pesan menos que un botón de pantalla. */
-  texto: `${FILA} bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
+  texto: `${FILA} border-transparent bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
   /* Se pinta de rojo recién con el puntero o el foco: en reposo, la más llamativa
      de la fila sería la más fácil de apretar sin querer. */
-  destructivo: `${FILA} bg-transparent text-text-muted hover:bg-danger-soft hover:text-danger focus-visible:text-danger`,
+  destructivo: `${FILA} border-transparent bg-transparent text-text-muted hover:bg-danger-soft hover:text-danger focus-visible:text-danger`,
 }
 
 export function Boton({ variante = 'primario', className = '', children, ...props }: Props) {

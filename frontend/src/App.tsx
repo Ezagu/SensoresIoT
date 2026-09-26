@@ -64,7 +64,7 @@ export default function App() {
             <Route element={<Layout titulo="Todos los equipos" sinTitulo />}>
               <Route index element={<Panel />} />
             </Route>
-            <Route element={<Layout titulo="Dispositivo" />}>
+            <Route element={<Layout titulo="Dispositivo" sinTitulo />}>
               <Route
                 path="/dispositivos/:id"
                 element={
@@ -81,6 +81,8 @@ export default function App() {
                   </Suspense>
                 }
               />
+            </Route>
+            <Route element={<Layout titulo="Dispositivo" />}>
               <Route path="/dispositivos/:id/ajustes" element={<AjustesDispositivo />} />
             </Route>
             <Route element={<Layout titulo="Vincular equipo" />}>

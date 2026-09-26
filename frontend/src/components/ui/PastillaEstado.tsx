@@ -7,7 +7,7 @@ const TONOS: Record<Estado, string> = {
   atencion: 'text-attention',
   advertencia: 'text-warn',
   critico: 'text-danger',
-  'sin-reportar': 'text-warn',
+  'sin-reportar': 'text-offline',
   'sin-datos': 'text-offline',
   inactivo: 'text-disabled-text',
 }
@@ -18,7 +18,7 @@ const CAPSULA: Record<Estado, string> = {
   atencion: 'bg-attention-soft border-attention-border',
   advertencia: 'bg-warn-soft border-warn-border',
   critico: 'bg-danger-soft border-danger-border',
-  'sin-reportar': 'bg-warn-soft border-warn-border',
+  'sin-reportar': 'bg-offline-soft border-border-control',
   'sin-datos': 'bg-transparent border-border-control',
   inactivo: 'bg-surface-inert border-border',
 }

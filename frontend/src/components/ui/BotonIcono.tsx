@@ -1,7 +1,7 @@
 import type { ComponentPropsWithRef, ReactNode } from 'react'
 
 type Variante = 'fantasma' | 'marco'
-type Tamano = 'sm' | 'md'
+type Tamano = 'sm' | 'md' | 'lg'
 
 type Props = ComponentPropsWithRef<'button'> & {
   etiqueta: string
@@ -10,11 +10,11 @@ type Props = ComponentPropsWithRef<'button'> & {
   children: ReactNode
 }
 
-const TAMANOS: Record<Tamano, string> = { sm: 'size-7', md: 'size-8.5' }
+const TAMANOS: Record<Tamano, string> = { sm: 'size-7', md: 'size-8.5', lg: 'size-10' }
 
 const VARIANTES: Record<Variante, string> = {
   fantasma: 'border-transparent bg-transparent',
-  marco: 'border-border-control bg-surface hover:border-border-strong',
+  marco: 'border-border-control bg-transparent hover:border-accent-border',
 }
 
 const BASE =

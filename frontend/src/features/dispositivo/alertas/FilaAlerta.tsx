@@ -1,20 +1,20 @@
 import { useState } from 'react'
 import { Boton } from '@/components/ui/Boton'
-import { Interruptor } from '@/components/ui/Interruptor'
 import { Modal } from '@/components/ui/Modal'
-import { Pill } from '@/components/ui/Pill'
-import { PastillaRegla } from '@/components/ui/PastillaEstado'
+import { MarcaEstado, type Estado } from '@/components/ui/MarcaEstado'
+import { MenuAcciones } from '@/components/ui/MenuAcciones'
 import { TextoError } from '@/components/ui/TextoError'
 import { actualizarAlerta, eliminarAlerta } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
-import { medida } from '@/utils/formato'
+import { medida, numero } from '@/utils/formato'
 import type { EstadoDispositivo } from '@/utils/tiempo'
 import type { Alerta } from '@/tipos'
-import { condicionTexto, CondicionTexto } from './condicion'
+import { condicionTexto, CondicionTexto, SIMBOLO_CONDICION } from './condicion'
 
 export function FilaAlerta({
   alerta,
   unidad,
+  sensor,
   conectividad,
   puedeEditar,
   onEditar,
@@ -22,6 +22,8 @@ export function FilaAlerta({
 }: {
   alerta: Alerta
   unidad: string
+  /* Etiqueta del sensor: título de una regla sin nombre, prefijo de una con nombre. */
+  sensor?: string
   /* El estado de la regla depende de si el equipo está reportando: sin lecturas
      no se está evaluando nada. Mismo criterio que la lista global. */
   conectividad: EstadoDispositivo
@@ -64,61 +66,59 @@ export function FilaAlerta({
     }
   }
 
+  const estado: { glifo: Estado; texto: string; clase: string } = !alerta.activa
+    ? { glifo: 'inactivo', texto: 'Pausada', clase: 'text-text-faint' }
+    : alerta.estado === 'disparada'
+      ? { glifo: 'critico', texto: 'Disparada', clase: 'font-semibold text-danger' }
+      : conectividad === 'nunca' || conectividad === 'sin-reportar'
+        ? {
+            glifo: conectividad === 'nunca' ? 'sin-datos' : 'sin-reportar',
+            texto: 'Sin evaluar',
+            clase: 'text-text-muted',
+          }
+        : { glifo: 'normal', texto: 'Normal', clase: 'text-text-muted' }
+
   return (
-    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5 py-2.5">
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span
-          id={idTitulo}
-          className="flex items-center gap-2 text-label-lg font-medium text-text"
-        >
-          {alerta.nombre || <CondicionTexto alerta={alerta} />}
-          {/* Una regla pausada no tiene estado que informar: no se está evaluando. */}
-          {alerta.activa ? (
-            <PastillaRegla estado={alerta.estado} conectividad={conectividad} />
-          ) : (
-            <Pill tono="faint">Pausada</Pill>
-          )}
-        </span>
-        <span className="text-note text-text-faint">
-          {alerta.nombre && (
-            <>
-              <CondicionTexto alerta={alerta} /> ·{' '}
-            </>
-          )}
-          {alerta.ultimo_valor !== null ? (
-            <>
-              Último: <span className="num">{medida(alerta.ultimo_valor, unidad)}</span>
-            </>
-          ) : (
-            'Sin lecturas evaluadas'
-          )}
-        </span>
+    <li className="grid grid-cols-[1.125rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-3.5">
+      <MarcaEstado estado={estado.glifo} latiendo />
+      <div className="min-w-0">
+        <p id={idTitulo} className="truncate text-body-lg font-medium text-text">
+          {alerta.nombre || sensor || <CondicionTexto alerta={alerta} unidad={unidad} />}
+        </p>
+        <p className="num mt-0.5 truncate text-note-lg font-normal tracking-normal text-text-muted">
+          {alerta.nombre && sensor && `${sensor} `}
+          {SIMBOLO_CONDICION[alerta.condicion]} {medida(alerta.umbral, unidad)} · histéresis{' '}
+          {numero(alerta.histeresis)} · {alerta.muestras_confirmacion}{' '}
+          {alerta.muestras_confirmacion === 1 ? 'lectura' : 'lecturas'}
+        </p>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
+      <div className="flex items-center gap-2">
+        <span className={`text-note-lg ${estado.clase}`}>{estado.texto}</span>
         {puedeEditar && (
-          <>
-            <Interruptor
-              activo={alerta.activa}
-              onCambiar={alternar}
-              etiquetaId={idTitulo}
-              disabled={ocupado}
-            />
-            <div className="flex gap-0.5">
-              <Boton type="button" variante="texto" onClick={onEditar}>
-                Editar
-              </Boton>
-              <Boton type="button" variante="destructivo" disabled={ocupado} onClick={() => setConfirmando(true)}>
-                Borrar
-              </Boton>
-            </div>
-          </>
+          <MenuAcciones
+            etiqueta={`Acciones de ${alerta.nombre || condicionTexto(alerta)}`}
+            acciones={[
+              { etiqueta: 'Editar', onElegir: onEditar },
+              {
+                etiqueta: alerta.activa ? 'Pausar' : 'Reanudar',
+                onElegir: () => alternar(!alerta.activa),
+                disabled: ocupado,
+              },
+              {
+                etiqueta: 'Borrar',
+                onElegir: () => setConfirmando(true),
+                peligrosa: true,
+                disabled: ocupado,
+              },
+            ]}
+          />
         )}
       </div>
 
       {/* Un fallo tiene que quedar en la fila de la regla que falló: el bloque
           tiene varias y un aviso arriba no diría cuál. */}
       {error && (
-        <div className="basis-full">
+        <div className="col-span-full">
           <TextoError>{error}</TextoError>
         </div>
       )}
@@ -129,8 +129,11 @@ export function FilaAlerta({
         <Modal abierto onCerrar={() => setConfirmando(false)} titulo="Borrar alerta">
           <div className="flex flex-col gap-3.5">
             <p className="text-label text-text-muted">
-              Se borra <strong className="font-medium text-text">{alerta.nombre || condicionTexto(alerta)}</strong> y
-              el equipo deja de evaluarla. Lo que ya avisó queda en el registro, con el umbral que
+              Se borra{' '}
+              <strong className="font-medium text-text">
+                {alerta.nombre || condicionTexto(alerta)}
+              </strong>{' '}
+              y el equipo deja de evaluarla. Lo que ya avisó queda en el registro, con el umbral que
               tenía cuando disparó. No se puede deshacer.
             </p>
             <div className="mt-1 flex justify-end gap-2">
