@@ -8,7 +8,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode
 }
 
-/* Dos de las tres alturas del sistema: 34 para los botones de pantalla, 28 para
+/* Dos de las tres alturas del sistema: 40 para los botones de pantalla, 28 para
    los de fila. El borde transparente está siempre puesto, así una variante con
    borde y una sin él no se corren un píxel cuando conviven en la misma barra.
    Deshabilitado tiene relleno y texto propios: nunca opacidad sobre el activo. */
@@ -18,7 +18,7 @@ const BASE =
   'disabled:bg-surface-inert disabled:text-disabled-text disabled:hover:border-border ' +
   'disabled:hover:bg-surface-inert disabled:hover:text-disabled-text'
 
-const MEDIA = 'h-8.5 gap-2 px-3.5 text-body-lg'
+const MEDIA = 'h-10 gap-2 px-4 text-body-lg'
 const FILA = 'h-7 gap-1.5 px-2.5 text-body'
 
 const VARIANTES: Record<Variante, string> = {

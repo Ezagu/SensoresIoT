@@ -202,3 +202,9 @@ export const IconoSalir = ({ className }: Props) => (
     <path d="M16 17l5-5-5-5M21 12H9" />
   </svg>
 )
+
+export const IconoFlecha = ({ className }: Props) => (
+  <svg {...base(className)}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+)

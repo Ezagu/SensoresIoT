@@ -167,3 +167,31 @@ export const ETIQUETA_ESTADO: Record<EstadoDispositivo, string> = {
   'con-retraso': 'Con retraso',
   'sin-reportar': 'Sin reportar',
 }
+
+function diasAtras(ms: number, ahora: number): number {
+  const dia = (x: number) => {
+    const d = new Date(x)
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  }
+  return Math.round((dia(ahora) - dia(ms)) / 86_400_000)
+}
+
+/* Un instante reciente como se dice en voz alta: "hoy 19:08", "ayer 23:05",
+   "12 sept 10:00". */
+export function momento(iso: string, ahora: number = Date.now()): string {
+  const ms = new Date(iso).getTime()
+  const dias = diasAtras(ms, ahora)
+  if (dias === 0) return `hoy ${hora(ms)}`
+  if (dias === 1) return `ayer ${hora(ms)}`
+  return `${fechaCorta(ms)} ${hora(ms)}`
+}
+
+/* Para cerrar "desde …" o "… a las …": "las 18:42", "ayer a las 18:42",
+   "el 12 sept a las 18:42". */
+export function aLas(iso: string, ahora: number = Date.now()): string {
+  const ms = new Date(iso).getTime()
+  const dias = diasAtras(ms, ahora)
+  if (dias === 0) return `las ${hora(ms)}`
+  if (dias === 1) return `ayer a las ${hora(ms)}`
+  return `el ${fechaCorta(ms)} a las ${hora(ms)}`
+}

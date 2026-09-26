@@ -76,7 +76,10 @@ function BarraEquipos() {
    es lo que tiene a esos equipos en rojo. */
 function EnlaceAvisos() {
   const { atencion } = useCartera()
-  const etiqueta = atencion > 0 ? `Avisos, ${atencion} ${atencion === 1 ? 'equipo requiere' : 'equipos requieren'} atención` : 'Avisos'
+  const etiqueta =
+    atencion > 0
+      ? `Avisos, ${atencion} ${atencion === 1 ? 'equipo requiere' : 'equipos requieren'} atención`
+      : 'Avisos'
 
   return (
     <NavLink
@@ -98,14 +101,19 @@ function EnlaceAvisos() {
           >
             {atencion}
           </span>
-          <span aria-hidden="true" className="absolute top-2.5 right-2.5 size-1.75 rounded-chip bg-danger-mark md:hidden" />
+          <span
+            aria-hidden="true"
+            className="absolute top-2.5 right-2.5 size-1.75 rounded-chip bg-danger-mark md:hidden"
+          />
         </>
       )}
     </NavLink>
   )
 }
 
-export function Layout({ titulo }: { titulo: string }) {
+/* `sinTitulo`: la pantalla pone su propio h1 (el panel abre con la frase de
+   estado, no con un título). */
+export function Layout({ titulo, sinTitulo = false }: { titulo: string; sinTitulo?: boolean }) {
   /* La pantalla puede afinar la cabecera: la ruta hasta ella y su propio título
      (el nombre del equipo, no "Dispositivo"). */
   const [migas, setMigas] = useState<Miga[] | null>(null)
@@ -120,7 +128,10 @@ export function Layout({ titulo }: { titulo: string }) {
      cambio de nodo dispare un render, y una ref no lo hace. */
   const [nodoMeta, setNodoMeta] = useState<HTMLElement | null>(null)
   const [nodoAcciones, setNodoAcciones] = useState<HTMLElement | null>(null)
-  const ranuras = useMemo(() => ({ meta: nodoMeta, acciones: nodoAcciones }), [nodoMeta, nodoAcciones])
+  const ranuras = useMemo(
+    () => ({ meta: nodoMeta, acciones: nodoAcciones }),
+    [nodoMeta, nodoAcciones],
+  )
 
   return (
     <>
@@ -161,7 +172,9 @@ export function Layout({ titulo }: { titulo: string }) {
             tabIndex={-1}
             className="w-full max-w-288 px-4 pt-6 pb-16 outline-none md:px-7 md:pt-8 lg:px-16 lg:pt-12"
           >
-            <div className="mb-8 flex flex-wrap items-end gap-x-6 gap-y-3">
+            <div
+              className={`mb-8 flex flex-wrap items-end gap-x-6 gap-y-3 ${sinTitulo ? 'hidden' : ''}`}
+            >
               <div className="flex min-w-0 flex-col gap-1.5">
                 <h1 className="text-page">{encabezado}</h1>
                 <div

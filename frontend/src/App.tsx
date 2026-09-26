@@ -61,7 +61,7 @@ export default function App() {
           </Route>
 
           <Route element={<Guardia />}>
-            <Route element={<Layout titulo="Todos los equipos" />}>
+            <Route element={<Layout titulo="Todos los equipos" sinTitulo />}>
               <Route index element={<Panel />} />
             </Route>
             <Route element={<Layout titulo="Dispositivo" />}>

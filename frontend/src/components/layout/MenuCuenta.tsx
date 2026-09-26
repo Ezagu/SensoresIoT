@@ -15,20 +15,29 @@ export function iniciales(nombre?: string) {
     .join('')
 }
 
-const SIGUIENTE_TEMA: Record<Tema, Tema> = { sistema: 'claro', claro: 'oscuro', oscuro: 'sistema' }
-const ETIQUETA_TEMA: Record<Tema, string> = { sistema: 'Sistema', claro: 'Claro', oscuro: 'Oscuro' }
+const SIGUIENTE_TEMA: Record<Tema, Tema> = {
+  sistema: 'claro',
+  claro: 'oscuro',
+  oscuro: 'sistema',
+}
+const ETIQUETA_TEMA: Record<Tema, string> = {
+  sistema: 'Sistema',
+  claro: 'Claro',
+  oscuro: 'Oscuro',
+}
 
 /* Qué ve y qué no, en una frase: el límite que se nota es el de la ventana, no
    el de lo guardado, y decirlo evita que un downgrade se lea como pérdida. */
 function resumenDePlan(plan: Plan) {
-  const ventana = plan.retencion_dias === null ? 'Historial completo' : `${plan.retencion_dias} días visibles`
-  const reglas =
-    !plan.puede_alertas
-      ? 'sin reglas de alerta'
-      : plan.max_alertas === null
-        ? 'reglas ilimitadas'
-        : `${plan.max_alertas} ${plan.max_alertas === 1 ? 'regla' : 'reglas'} por equipo`
-  const guardado = plan.retencion_dias === null ? '' : ' Todo lo que miden tus equipos se guarda igual.'
+  const ventana =
+    plan.retencion_dias === null ? 'Historial completo' : `${plan.retencion_dias} días visibles`
+  const reglas = !plan.puede_alertas
+    ? 'sin reglas de alerta'
+    : plan.max_alertas === null
+      ? 'reglas ilimitadas'
+      : `${plan.max_alertas} ${plan.max_alertas === 1 ? 'regla' : 'reglas'} por equipo`
+  const guardado =
+    plan.retencion_dias === null ? '' : ' Todo lo que miden tus equipos se guarda igual.'
   return `${ventana}, ${reglas}.${guardado}`
 }
 
@@ -69,7 +78,9 @@ export function MenuCuenta() {
         aria-controls={panelId}
         onClick={() => setAbierto((v) => !v)}
         className={`ml-1.5 flex size-8.5 cursor-pointer items-center justify-center rounded-full border text-note font-semibold transition-colors duration-130 ${
-          abierto ? 'border-accent-border text-text' : 'border-border-control text-text-muted hover:text-text'
+          abierto
+            ? 'border-accent-border text-text'
+            : 'border-border-control text-text-muted hover:text-text'
         }`}
       >
         {iniciales(sesion?.nombre)}
@@ -81,7 +92,9 @@ export function MenuCuenta() {
           className="absolute top-full right-0 z-30 mt-2.5 w-75 rounded-menu border border-border-control bg-elevated p-2 shadow-overlay"
         >
           <div className="border-b border-border px-3 pt-3 pb-3.5">
-            <b className="block truncate text-body-lg font-semibold">{sesion?.nombre ?? 'Mi cuenta'}</b>
+            <b className="block truncate text-body-lg font-semibold">
+              {sesion?.nombre ?? 'Mi cuenta'}
+            </b>
             <span className="block truncate text-note-lg text-text-faint">{sesion?.email}</span>
           </div>
 
@@ -97,7 +110,9 @@ export function MenuCuenta() {
                   Ver planes
                 </Link>
               </div>
-              <p className="text-note-lg leading-normal text-text-muted">{resumenDePlan(plan.plan)}</p>
+              <p className="text-note-lg leading-normal text-text-muted">
+                {resumenDePlan(plan.plan)}
+              </p>
             </div>
           )}
 

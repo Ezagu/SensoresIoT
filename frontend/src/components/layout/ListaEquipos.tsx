@@ -13,7 +13,10 @@ import {
 } from '@/utils/dispositivos'
 import { TIC_RELOJ_MS } from '@/utils/tiempo'
 
-export type FilaCartera = { dispositivo: DispositivoResumen; situacion: SituacionEquipo }
+export type FilaCartera = {
+  dispositivo: DispositivoResumen
+  situacion: SituacionEquipo
+}
 
 /* Orden alfabético y no por gravedad: es navegación, y una lista que se reordena
    sola cada vez que un equipo cambia de estado obliga a buscar de nuevo. La

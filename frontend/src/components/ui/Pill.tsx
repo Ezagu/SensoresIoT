@@ -21,15 +21,3 @@ export function Pill({ tono, children }: { tono: Tono; children: React.ReactNode
     </span>
   )
 }
-
-/* Un número pegado a un nombre: cuántas reglas están sonando en ese equipo.
-   Relleno sólido porque es lo único de la fila que tiene que contarse de lejos.
-   La tinta es el fondo de la página y no blanco: en oscuro el rojo del sistema
-   es un tono claro —está hecho para texto— y blanco encima no tendría contraste. */
-export function PillConteo({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="num inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-chip bg-danger px-1.5 text-note-lg text-bg">
-      {children}
-    </span>
-  )
-}

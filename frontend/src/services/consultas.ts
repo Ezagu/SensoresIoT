@@ -94,6 +94,17 @@ export function listarEventosAlerta(
     .then((r) => r.data)
 }
 
+/* El mismo log, acotado a un equipo: reglas y cortes de conexión juntos. */
+export function listarEventosDispositivo(
+  dispositivoId: string,
+  params: { cursor?: string; limite?: number } = {},
+  signal?: AbortSignal,
+) {
+  return api
+    .get<EventosAlerta>(`/dispositivos/${dispositivoId}/alertas/eventos`, { signal, params })
+    .then((r) => r.data)
+}
+
 /* Opt-out de mails del equipo entero, del usuario que llama. */
 export function configurarNotificaciones(dispositivoId: string, payload: NotificacionUpdatePayload) {
   return api

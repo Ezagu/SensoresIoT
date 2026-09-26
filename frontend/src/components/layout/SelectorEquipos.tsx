@@ -31,27 +31,37 @@ export function SelectorEquipos({ compacto = false }: { compacto?: boolean }) {
         aria-expanded={abierta}
         onClick={() => setAbierta(true)}
         className={`flex min-w-0 cursor-pointer items-center border border-border-control bg-sidebar text-left transition-colors duration-130 hover:border-border-strong ${
-          compacto ? 'h-10 min-w-75 gap-2.5 rounded-group pr-3 pl-3.5' : 'h-13 w-full gap-3 rounded-menu px-3.5'
+          compacto
+            ? 'h-10 min-w-75 gap-2.5 rounded-group pr-3 pl-3.5'
+            : 'h-13 w-full gap-3 rounded-menu px-3.5'
         }`}
       >
         {actual && <MarcaEstado estado={actual.situacion.glifo} latiendo />}
         {compacto ? (
           <span className="flex min-w-0 items-baseline gap-2">
             <span className="truncate text-body-lg font-semibold">
-              {actual ? nombreDeDispositivo(actual.dispositivo.id, actual.dispositivo.nombre) : 'Todos los equipos'}
+              {actual
+                ? nombreDeDispositivo(actual.dispositivo.id, actual.dispositivo.nombre)
+                : 'Todos los equipos'}
             </span>
             {(actual ? otros > 0 : atencion > 0) && (
               <span className="truncate text-note text-danger">
-                {actual ? `+${otros} más ${otros === 1 ? 'requiere' : 'requieren'} atención` : textoAtencion(atencion)}
+                {actual
+                  ? `+${otros} más ${otros === 1 ? 'requiere' : 'requieren'} atención`
+                  : textoAtencion(atencion)}
               </span>
             )}
           </span>
         ) : (
           <span className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-heading font-semibold">
-              {actual ? nombreDeDispositivo(actual.dispositivo.id, actual.dispositivo.nombre) : 'Todos los equipos'}
+              {actual
+                ? nombreDeDispositivo(actual.dispositivo.id, actual.dispositivo.nombre)
+                : 'Todos los equipos'}
             </span>
-            <span className={`truncate text-note ${!actual && atencion > 0 ? 'text-danger' : 'text-text-faint'}`}>
+            <span
+              className={`truncate text-note ${!actual && atencion > 0 ? 'text-danger' : 'text-text-faint'}`}
+            >
               {actual ? 'Cambiar de equipo' : textoAtencion(atencion)}
             </span>
           </span>

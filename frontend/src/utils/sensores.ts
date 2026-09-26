@@ -5,6 +5,9 @@ export type ClaveSensor =
   | 'co2'
   | 'luz'
   | 'ruido'
+  | 'uv'
+  | 'suelo'
+  | 'bateria'
   | 'desconocido'
 
 type MetaSensor = {
@@ -24,6 +27,9 @@ const META: Record<ClaveSensor, MetaSensor> = {
   co2: { etiqueta: 'CO₂', color: 'var(--color-chart-line)' },
   luz: { etiqueta: 'Luz', color: 'var(--color-chart-line)' },
   ruido: { etiqueta: 'Ruido', color: 'var(--color-chart-line)' },
+  uv: { etiqueta: 'UV', color: 'var(--color-chart-line)' },
+  suelo: { etiqueta: 'Humedad del suelo', color: 'var(--color-chart-line)' },
+  bateria: { etiqueta: 'Batería', color: 'var(--color-chart-line)' },
   desconocido: { etiqueta: 'Sensor', color: 'var(--color-text-muted)' },
 }
 
@@ -38,14 +44,17 @@ const SIN_TILDE: Record<string, string> = {
   ü: 'u',
 }
 
-function claveDeTipo(nombre: string): ClaveSensor {
+export function claveDeTipo(nombre: string): ClaveSensor {
   const limpio = nombre
     .trim()
     .toLowerCase()
     .replace(/[áéíóúü]/g, (c) => SIN_TILDE[c] ?? c)
 
   if (limpio.includes('temperatura')) return 'temperatura'
+  if (limpio.includes('suelo')) return 'suelo'
   if (limpio.includes('humedad')) return 'humedad'
+  if (limpio === 'uv' || limpio.includes('ultraviolet')) return 'uv'
+  if (limpio.includes('bateria')) return 'bateria'
   if (limpio.includes('presion')) return 'presion'
   if (limpio.includes('co2') || limpio.includes('dioxido')) return 'co2'
   if (limpio.includes('luz') || limpio.includes('lumin')) return 'luz'

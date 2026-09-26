@@ -102,11 +102,13 @@
   --text-heading: 15px;
   --text-heading-lg: 17px;
   --text-brand: 15px;
+  --text-title: 24px;
   --text-page: 30px;
   --text-page-lg: 34px;
   --text-metric: 21px;
   --text-metric-lg: 30px;
   --text-hero: 44px;
+  --text-alarma: 60px;
   --text-display: 76px;
 
   /* El interletrado de titular vive en @layer base; estos son los que se
