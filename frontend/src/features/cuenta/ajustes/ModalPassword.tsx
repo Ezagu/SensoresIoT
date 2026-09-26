@@ -12,7 +12,11 @@ const VACIO = { actual: '', nueva: '', repetir: '' }
 
 /* Es de las pocas cosas que sí piden un modal: hay que escribir la contraseña
    actual, y ese foco protegido no se puede armar en un renglón de la lista. */
-export function ModalPassword({ abierto, onCerrar, onCambiada }: {
+export function ModalPassword({
+  abierto,
+  onCerrar,
+  onCambiada,
+}: {
   abierto: boolean
   onCerrar: () => void
   onCambiada: () => void

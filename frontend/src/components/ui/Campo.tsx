@@ -5,7 +5,7 @@ import { IconoOjo, IconoOjoTachado } from '@/components/layout/iconos'
    Dos clases de alto en el mismo elemento no se resuelven por orden de atributo,
    se resuelven por orden de hoja de estilos. */
 const CLASES_INPUT =
-  'w-full rounded-control border bg-surface px-2.5 text-body-lg text-text placeholder:text-text-faint ' +
+  'w-full rounded-control border bg-transparent px-3 text-body-lg text-text placeholder:text-text-faint ' +
   'transition-colors duration-130 ' +
   /* Deshabilitado pierde el fondo pero el valor sigue legible con text-muted y no
      con disabled-text: es un dato que hay que poder leer, no un rótulo apagado. */
@@ -18,8 +18,8 @@ export const borde = (error?: string) =>
     ? 'border-danger-mark focus-visible:border-danger-mark'
     : 'border-border-control hover:border-border-strong focus-visible:border-accent'
 
-/* La altura media del sistema (34px), compartida por Campo y Select. */
-export const ALTO_CAMPO = 'h-8.5'
+/* La altura media del sistema (40px), compartida por Campo y Select. */
+export const ALTO_CAMPO = 'h-10'
 
 /* La etiqueta acompaña el estado del control: deshabilitada baja un escalón
    para que el bloque entero se lea como inactivo, no sólo la caja. */
@@ -77,14 +77,16 @@ export function descrito(id: string, error?: string, ayuda?: string) {
 type CampoProps = InputHTMLAttributes<HTMLInputElement> & {
   id: string
   etiqueta: string
+  /* El rótulo visible lo pone la fila de ajustes: acá queda sólo para lectores. */
+  etiquetaOculta?: boolean
   ayuda?: string
   error?: string
 }
 
-export function Campo({ id, etiqueta, ayuda, error, className = '', ...props }: CampoProps) {
+export function Campo({ id, etiqueta, ayuda, error, etiquetaOculta, className = '', ...props }: CampoProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta id={id} disabled={props.disabled}>
+      <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
         {etiqueta}
       </Etiqueta>
       <input
@@ -102,12 +104,12 @@ export function Campo({ id, etiqueta, ayuda, error, className = '', ...props }: 
 
 /* Contraseña con alternancia de visibilidad. El botón vive dentro del campo y
    es focusable, así que se llega por teclado sin salir del formulario. */
-export function CampoPassword({ id, etiqueta, ayuda, error, className = '', ...props }: CampoProps) {
+export function CampoPassword({ id, etiqueta, ayuda, error, etiquetaOculta, className = '', ...props }: CampoProps) {
   const [visible, setVisible] = useState(false)
 
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta id={id} disabled={props.disabled}>
+      <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
         {etiqueta}
       </Etiqueta>
       <div className="relative">
@@ -139,14 +141,15 @@ export function CampoPassword({ id, etiqueta, ayuda, error, className = '', ...p
 type AreaTextoProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
   id: string
   etiqueta: string
+  etiquetaOculta?: boolean
   ayuda?: string
   error?: string
 }
 
-export function AreaTexto({ id, etiqueta, ayuda, error, className = '', ...props }: AreaTextoProps) {
+export function AreaTexto({ id, etiqueta, ayuda, error, etiquetaOculta, className = '', ...props }: AreaTextoProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Etiqueta id={id} disabled={props.disabled}>
+      <Etiqueta id={id} disabled={props.disabled} oculta={etiquetaOculta}>
         {etiqueta}
       </Etiqueta>
       <textarea

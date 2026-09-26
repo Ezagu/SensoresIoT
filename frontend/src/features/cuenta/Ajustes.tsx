@@ -1,57 +1,59 @@
-import { Link } from 'react-router-dom'
-import { Pill } from '@/components/ui/Pill'
-import { useSesion } from '@/features/auth/sesion'
-import { iniciales } from '@/components/layout/MenuCuenta'
-import { IndiceAjustes, type Seccion } from './ajustes/IndiceAjustes'
+import { AvisoPendiente } from '@/components/ui/AvisoPendiente'
+import { Boton } from '@/components/ui/Boton'
+import { IndiceAjustes, type Seccion } from '@/components/ui/IndiceAjustes'
+import { ZonaPeligro } from '@/components/ui/SeccionAjustes'
 import { SeccionApariencia } from './ajustes/SeccionApariencia'
 import { SeccionNotificaciones } from './ajustes/SeccionNotificaciones'
 import { SeccionPerfil } from './ajustes/SeccionPerfil'
+import { SeccionPlan } from './ajustes/SeccionPlan'
 import { SeccionSeguridad } from './ajustes/SeccionSeguridad'
 
-/* Constante de módulo: su identidad es la llave del observador del índice. */
+/* Constantes de módulo: su identidad es la llave del observador del índice. */
 const SECCIONES: Seccion[] = [
   { id: 'perfil', etiqueta: 'Perfil' },
-  { id: 'notificaciones', etiqueta: 'Notificaciones' },
-  { id: 'apariencia', etiqueta: 'Apariencia' },
+  { id: 'avisos', etiqueta: 'Avisos' },
+  { id: 'plan', etiqueta: 'Plan' },
   { id: 'seguridad', etiqueta: 'Seguridad' },
+  { id: 'preferencias', etiqueta: 'Preferencias' },
 ]
+const ELIMINAR: Seccion = { id: 'eliminar', etiqueta: 'Eliminar cuenta' }
 
 export function Ajustes() {
-  const { sesion, plan } = useSesion()
-  const esPago = plan !== null && plan.plan.id !== 'free'
-
   return (
-    <div className="flex max-w-180 flex-col gap-3 xl:max-w-232 xl:flex-row xl:gap-8">
-      <IndiceAjustes secciones={SECCIONES} />
+    <div className="flex flex-col gap-3 xl:flex-row xl:gap-14">
+      <div className="xl:pt-17">
+        <IndiceAjustes secciones={SECCIONES} peligro={ELIMINAR} />
+      </div>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <header className="mb-1 flex items-center gap-3.5">
-          <span
-            aria-hidden="true"
-            className="flex size-11 shrink-0 items-center justify-center rounded-group border border-border bg-surface-2 font-display text-body-lg font-bold text-text"
-          >
-            {iniciales(sesion?.nombre)}
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate font-display text-page-lg font-semibold text-text">
-              {sesion?.nombre ?? 'Mi cuenta'}
-            </h2>
-            <p className="truncate text-label text-text-faint">{sesion?.email}</p>
-          </div>
-          {plan && (
-            <Link
-              to="/plan"
-              className="ml-auto shrink-0 rounded-full transition-opacity duration-150 hover:opacity-80"
-            >
-              <Pill tono={esPago ? 'premium' : 'faint'}>Plan {plan.plan.nombre}</Pill>
-            </Link>
-          )}
-        </header>
-
+      <div className="min-w-0 flex-1">
+        <h1 className="pb-9 text-page">Tu cuenta</h1>
         <SeccionPerfil id="perfil" />
-        <SeccionNotificaciones id="notificaciones" />
-        <SeccionApariencia id="apariencia" />
+        <SeccionNotificaciones id="avisos" />
+        <SeccionPlan id="plan" />
         <SeccionSeguridad id="seguridad" />
+        <SeccionApariencia id="preferencias" />
+
+        {/* PENDIENTE (backend + definición legal del borrado de datos, ver CLAUDE.md). */}
+        <ZonaPeligro
+          id={ELIMINAR.id}
+          titulo="Eliminar cuenta"
+          accion={
+            <Boton variante="peligro" disabled title="Pendiente de backend">
+              Eliminar cuenta
+            </Boton>
+          }
+        >
+          <p>
+            Perdés el acceso a tus equipos y a su historial. Las personas con quienes compartiste
+            equipos también dejan de verlos.
+          </p>
+          <div className="mt-3">
+            <AvisoPendiente>
+              no hay endpoint para eliminar la cuenta, y falta definir qué se borra (pendiente
+              legal).
+            </AvisoPendiente>
+          </div>
+        </ZonaPeligro>
       </div>
     </div>
   )

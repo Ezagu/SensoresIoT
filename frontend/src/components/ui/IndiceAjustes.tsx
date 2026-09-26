@@ -37,27 +37,44 @@ function useSeccionVisible(secciones: Seccion[]) {
 /* Índice lateral, sólo donde sobra ancho. Abajo de xl las cuatro secciones
    entran en dos pantallas de scroll y un índice sería un renglón de más entre
    el título y lo que se vino a cambiar. */
-export function IndiceAjustes({ secciones }: { secciones: Seccion[] }) {
+export function IndiceAjustes({
+  secciones,
+  peligro,
+}: {
+  secciones: Seccion[]
+  /* La acción irreversible de la página, aparte y en rojo: lleva a su caja. */
+  peligro?: Seccion
+}) {
   const activa = useSeccionVisible(secciones)
 
   return (
-    <nav aria-label="Secciones de ajustes" className="hidden xl:block xl:w-44 xl:shrink-0">
-      <ul className="sticky top-20 flex flex-col gap-0.5">
+    <nav aria-label="Secciones de ajustes" className="hidden xl:block xl:w-45 xl:shrink-0">
+      <ul className="sticky top-24 flex flex-col gap-0.5">
         {secciones.map(({ id, etiqueta }) => (
           <li key={id}>
             <a
               href={`#${id}`}
               aria-current={activa === id ? 'true' : undefined}
-              className={`block rounded-control px-3 py-1.5 text-label font-medium transition-colors duration-150 ${
+              className={`block rounded-tile px-3 py-2 text-body transition-colors duration-150 ${
                 activa === id
-                  ? 'bg-accent-soft text-text'
-                  : 'text-text-muted hover:bg-surface-2 hover:text-text'
+                  ? 'bg-surface-2 text-text'
+                  : 'text-text-muted hover:bg-border hover:text-text'
               }`}
             >
               {etiqueta}
             </a>
           </li>
         ))}
+        {peligro && (
+          <li className="mt-4">
+            <a
+              href={`#${peligro.id}`}
+              className="block rounded-tile border border-danger-border px-3 py-2 text-body text-danger transition-colors duration-150 hover:bg-danger-soft"
+            >
+              {peligro.etiqueta}
+            </a>
+          </li>
+        )}
       </ul>
     </nav>
   )

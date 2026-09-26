@@ -70,7 +70,7 @@ export function SeccionAcceso({
   return (
     <SeccionAjustes
       id="accesos"
-      titulo="Acceso compartido"
+      titulo="Acceso"
       accion={
         esDuenio && puedeCompartir ? (
           <Boton variante="sutil" onClick={() => setInvitando(true)}>

@@ -7,13 +7,15 @@ import { quitarAcceso } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import { nombreDeDispositivo } from '@/utils/dispositivos'
 import type { DispositivoDetalle } from '@/tipos'
-import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
+import { ZonaPeligro } from '@/components/ui/SeccionAjustes'
 
 export function ZonaDeRiesgo({
+  id,
   dispositivo,
   esDuenio,
   usuarioActualId,
 }: {
+  id: string
   dispositivo: DispositivoDetalle
   esDuenio: boolean
   usuarioActualId: string
@@ -36,26 +38,23 @@ export function ZonaDeRiesgo({
   }
 
   return (
-    <SeccionAjustes titulo="Zona de riesgo">
-      <div className="flex flex-col divide-y divide-border">
-        <div className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0">
-          <div>
-            <p className="text-label-lg font-medium text-text">Quitar de mi cuenta</p>
-            <p className="text-note text-text-faint">
-              {esDuenio
-                ? 'Como dueño, primero tenés que quitar el acceso de las demás personas en "Acceso compartido".'
-                : 'Perdés acceso a sus datos. El equipo sigue midiendo y guardando.'}
-            </p>
-          </div>
-          <Boton variante="destructivo" disabled={esDuenio} onClick={() => setConfirmandoQuitar(true)}>
-            Quitar
+    <ZonaPeligro
+      id={id}
+      titulo="Desvincular este equipo"
+      accion={
+        <>
+          <Boton variante="peligro" disabled={esDuenio} onClick={() => setConfirmandoQuitar(true)}>
+            Desvincular
           </Boton>
-        </div>
-        {errorQuitar && <TextoError className="py-1">{errorQuitar}</TextoError>}
-      </div>
-
+          {errorQuitar && <TextoError>{errorQuitar}</TextoError>}
+        </>
+      }
+    >
+      {esDuenio
+        ? 'Como dueño, primero tenés que quitar el acceso de las demás personas en "Acceso". Las mediciones no se borran.'
+        : 'Dejás de verlo y de recibir sus avisos. Las mediciones no se borran: el equipo sigue midiendo y guardando.'}
       {confirmandoQuitar && (
-        <Modal abierto onCerrar={() => setConfirmandoQuitar(false)} titulo="Quitar equipo de mi cuenta">
+        <Modal abierto onCerrar={() => setConfirmandoQuitar(false)} titulo="Desvincular equipo">
           <div className="flex flex-col gap-3.5">
             <p className="text-label text-text-muted">
               Dejás de ver{' '}
@@ -69,12 +68,12 @@ export function ZonaDeRiesgo({
                 Cancelar
               </Boton>
               <Boton type="button" disabled={quitando} onClick={quitarDeMiCuenta}>
-                {quitando ? 'Quitando…' : 'Quitar equipo'}
+                {quitando ? 'Desvinculando…' : 'Desvincular'}
               </Boton>
             </div>
           </div>
         </Modal>
       )}
-    </SeccionAjustes>
+    </ZonaPeligro>
   )
 }

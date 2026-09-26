@@ -9,7 +9,7 @@ import { Verificar } from '@/features/auth/Verificar'
 import { Panel } from '@/features/panel/Panel'
 import { Vincular } from '@/features/dispositivo/Vincular'
 import { AjustesDispositivo } from '@/features/dispositivo/ajustes/AjustesDispositivo'
-import { Alertas } from '@/features/alertas/Alertas'
+import { Avisos } from '@/features/alertas/Avisos'
 import { PlanPagina } from '@/features/plan/PlanPagina'
 import { Ajustes } from '@/features/cuenta/Ajustes'
 
@@ -82,19 +82,19 @@ export default function App() {
                 }
               />
             </Route>
-            <Route element={<Layout titulo="Dispositivo" />}>
+            <Route element={<Layout titulo="Dispositivo" sinTitulo />}>
               <Route path="/dispositivos/:id/ajustes" element={<AjustesDispositivo />} />
             </Route>
-            <Route element={<Layout titulo="Vincular equipo" />}>
+            <Route element={<Layout titulo="Vincular equipo" sinTitulo />}>
               <Route path="/vincular" element={<Vincular />} />
             </Route>
-            <Route element={<Layout titulo="Avisos" />}>
-              <Route path="/avisos" element={<Alertas />} />
+            <Route element={<Layout titulo="Avisos" sinTitulo />}>
+              <Route path="/avisos" element={<Avisos />} />
             </Route>
             <Route element={<Layout titulo="Plan" />}>
               <Route path="/plan" element={<PlanPagina />} />
             </Route>
-            <Route element={<Layout titulo="Ajustes" />}>
+            <Route element={<Layout titulo="Tu cuenta" sinTitulo />}>
               <Route path="/ajustes" element={<Ajustes />} />
             </Route>
             {/* Perfil, plan y preferencias viven todos en /ajustes: dos puertas

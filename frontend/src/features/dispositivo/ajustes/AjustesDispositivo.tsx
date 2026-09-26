@@ -1,38 +1,73 @@
 import { useParams } from 'react-router-dom'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { BotonCopiar } from '@/components/ui/BotonCopiar'
+import { FilaAjuste, ValorAjuste } from '@/components/ui/FilaAjuste'
+import { HaceCuanto } from '@/components/ui/HaceCuanto'
+import { IndiceAjustes, type Seccion } from '@/components/ui/IndiceAjustes'
+import { MarcaEstado } from '@/components/ui/MarcaEstado'
 import { Pill } from '@/components/ui/Pill'
+import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
+import { Skeleton } from '@/components/ui/Skeleton'
 import { useSesion } from '@/features/auth/sesion'
+import { useAhora } from '@/hooks/usarAhora'
 import { useRastro } from '@/hooks/usarCabecera'
 import {
   esDuenio as esDuenioDispositivo,
+  ETIQUETA_ROL,
   nombreDeDispositivo,
   puedeEditar as puedeEditarDispositivo,
 } from '@/utils/dispositivos'
-import { useDispositivo, useSensoresConMeta } from '../usarDispositivo'
+import { estadoDispositivo, TIC_RELOJ_MS } from '@/utils/tiempo'
+import {
+  useAlertasDispositivo,
+  useDispositivo,
+  useEstadoDispositivo,
+  useSensoresConMeta,
+} from '../usarDispositivo'
 import { ErrorDeCarga, Navegable } from '../ErrorDeCarga'
+import { SeccionAcceso } from './SeccionAcceso'
+import { SeccionAlertas, SeccionConectividad, SeccionEnergia } from './SeccionesEstado'
 import { SeccionIdentificacion } from './SeccionIdentificacion'
 import { SeccionMuestreo } from './SeccionMuestreo'
-import { SeccionAcceso } from './SeccionAcceso'
 import { SeccionNotificaciones } from './SeccionNotificaciones'
-import { FichaEquipo } from './FichaEquipo'
 import { ZonaDeRiesgo } from './ZonaDeRiesgo'
+
+/* Constantes de módulo: su identidad es la llave del observador del índice. */
+const SECCIONES: Seccion[] = [
+  { id: 'equipo', etiqueta: 'Equipo' },
+  { id: 'conectividad', etiqueta: 'Conectividad' },
+  { id: 'energia', etiqueta: 'Energía' },
+  { id: 'alertas', etiqueta: 'Alertas' },
+  { id: 'accesos', etiqueta: 'Acceso' },
+]
+const DESVINCULAR: Seccion = { id: 'desvincular', etiqueta: 'Desvincular' }
+
+const TEXTO_CONECTIVIDAD = {
+  nunca: 'todavía no se conectó',
+  'en-linea': 'en línea',
+  'con-retraso': 'con retraso',
+  'sin-reportar': 'sin reportar',
+} as const
 
 function EsqueletoAjustes() {
   return (
-    <div className="flex max-w-180 flex-col gap-3">
-      <Skeleton className="h-6 w-56" />
-      {Array.from({ length: 5 }, (_, i) => (
-        <Skeleton key={i} className="h-28 w-full" />
+    <div className="flex max-w-200 flex-col gap-4">
+      <Skeleton className="h-9 w-40" />
+      <Skeleton className="h-4 w-72" />
+      {Array.from({ length: 4 }, (_, i) => (
+        <Skeleton key={i} className="h-24 w-full" />
       ))}
     </div>
   )
 }
 
 export function AjustesDispositivo() {
-  const { id } = useParams<{ id: string }>()
+  const { id = '' } = useParams<{ id: string }>()
   const { sesion, plan } = useSesion()
-  const equipo = useDispositivo(id ?? '')
-  const sensores = useSensoresConMeta(id ?? '')
+  const equipo = useDispositivo(id)
+  const estado = useEstadoDispositivo(id)
+  const sensores = useSensoresConMeta(id)
+  const { alertas } = useAlertasDispositivo(id, estado.cadenciaSeg)
+  const ahora = useAhora(TIC_RELOJ_MS)
 
   const dispositivo = equipo.datos
   useRastro(
@@ -43,13 +78,12 @@ export function AjustesDispositivo() {
             etiqueta: nombreDeDispositivo(dispositivo.id, dispositivo.nombre),
             a: `/dispositivos/${dispositivo.id}`,
           },
-          { etiqueta: 'Ajustes del equipo' },
+          { etiqueta: 'Ajustes' },
         ]
       : null,
   )
 
-  if (!id) return <Navegable titulo="Dispositivo no encontrado" volverA="/" />
-
+  if (!id) return <Navegable titulo="Equipo no encontrado" volverA="/" />
   if (equipo.cargando || sensores.cargando) return <EsqueletoAjustes />
 
   const error = equipo.error ?? sensores.error
@@ -67,41 +101,107 @@ export function AjustesDispositivo() {
   if (!dispositivo) return null
 
   const puedeEditar = puedeEditarDispositivo(dispositivo.rol)
-  const puedeGestionarAcceso = esDuenioDispositivo(dispositivo.rol)
-  const sensoresBase = sensores.datos ?? []
+  const esDuenio = esDuenioDispositivo(dispositivo.rol)
+  const conectividad = estadoDispositivo(
+    {
+      last_seen_at: estado.datos?.last_seen_at ?? null,
+      last_data_at: estado.datos?.last_data_at ?? null,
+      online: estado.datos?.online ?? false,
+      intervalo_efectivo_seg: dispositivo.intervalo_efectivo_seg,
+      intervalo_modificado_at: estado.datos?.intervalo_modificado_at ?? null,
+    },
+    ahora,
+  )
+  const glifo = {
+    nunca: 'sin-datos',
+    'en-linea': 'normal',
+    'con-retraso': 'atencion',
+    'sin-reportar': 'sin-reportar',
+  } as const
+  const lastSeen = estado.datos?.last_seen_at ?? null
 
   return (
-    <div className="flex max-w-180 flex-col gap-3">
-      {!puedeEditar && (
-        <div className="mb-1">
-          <Pill tono="faint">Solo lectura</Pill>
-        </div>
-      )}
+    <div className="flex flex-col gap-3 xl:flex-row xl:gap-14">
+      <div className="xl:pt-17">
+        <IndiceAjustes secciones={SECCIONES} peligro={DESVINCULAR} />
+      </div>
 
-      <SeccionIdentificacion dispositivo={dispositivo} puedeEditar={puedeEditar} onGuardado={equipo.refrescar} />
+      <div className="min-w-0 flex-1">
+        <header className="pb-9">
+          <div className="flex items-center gap-3">
+            <h1 className="text-page">Ajustes</h1>
+            {!puedeEditar && <Pill tono="faint">Solo lectura</Pill>}
+          </div>
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-body text-text-muted">
+            <MarcaEstado estado={glifo[conectividad]} />
+            {nombreDeDispositivo(dispositivo.id, dispositivo.nombre)} ·{' '}
+            {TEXTO_CONECTIVIDAD[conectividad]}
+            {lastSeen && (
+              <>
+                , último contacto <HaceCuanto iso={lastSeen} />
+              </>
+            )}
+          </p>
+        </header>
 
-      <SeccionMuestreo
-        dispositivo={dispositivo}
-        puedeEditar={puedeEditar}
-        onGuardado={equipo.refrescar}
-      />
+        <SeccionAjustes id="equipo" titulo="Equipo">
+          <div className="flex flex-col">
+            <SeccionIdentificacion
+              dispositivo={dispositivo}
+              puedeEditar={puedeEditar}
+              onGuardado={equipo.refrescar}
+            />
+            <FilaAjuste
+              id="fila-id"
+              titulo="Identificador"
+              accion={
+                <BotonCopiar
+                  texto={dispositivo.id}
+                  etiqueta="Copiar identificador"
+                  variante="icono"
+                />
+              }
+            >
+              {/* Lo primero que se pide por teléfono en un soporte. */}
+              <p className="truncate font-mono text-body text-text">{dispositivo.id}</p>
+            </FilaAjuste>
+            <FilaAjuste id="fila-duenio" titulo="Dueño">
+              <ValorAjuste detalle={`vos sos ${ETIQUETA_ROL[dispositivo.rol].toLowerCase()}`}>
+                {dispositivo.owner_nombre ?? '—'}
+              </ValorAjuste>
+            </FilaAjuste>
+            <SeccionMuestreo
+              dispositivo={dispositivo}
+              puedeEditar={puedeEditar}
+              onGuardado={equipo.refrescar}
+            />
+            <SeccionNotificaciones dispositivo={dispositivo} onGuardado={equipo.refrescar} />
+          </div>
+        </SeccionAjustes>
 
-      <SeccionAcceso
-        dispositivoId={dispositivo.id}
-        esDuenio={puedeGestionarAcceso}
-        puedeCompartir={plan?.plan.puede_compartir ?? false}
-        usuarioActualId={sesion?.usuario_id ?? ''}
-      />
+        <SeccionConectividad id="conectividad" />
+        <SeccionEnergia id="energia" />
+        <SeccionAlertas
+          id="alertas"
+          dispositivoId={dispositivo.id}
+          alertas={alertas}
+          sensores={sensores.datos ?? []}
+        />
 
-      <SeccionNotificaciones dispositivo={dispositivo} onGuardado={equipo.refrescar} />
+        <SeccionAcceso
+          dispositivoId={dispositivo.id}
+          esDuenio={esDuenio}
+          puedeCompartir={plan?.plan.puede_compartir ?? false}
+          usuarioActualId={sesion?.usuario_id ?? ''}
+        />
 
-      <FichaEquipo dispositivo={dispositivo} sensores={sensoresBase} />
-
-      <ZonaDeRiesgo
-        dispositivo={dispositivo}
-        esDuenio={puedeGestionarAcceso}
-        usuarioActualId={sesion?.usuario_id ?? ''}
-      />
+        <ZonaDeRiesgo
+          id={DESVINCULAR.id}
+          dispositivo={dispositivo}
+          esDuenio={esDuenio}
+          usuarioActualId={sesion?.usuario_id ?? ''}
+        />
+      </div>
     </div>
   )
 }

@@ -1,14 +1,16 @@
 import { useState, type SubmitEvent } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { AreaTexto, Campo } from '@/components/ui/Campo'
+import { FilaAjuste } from '@/components/ui/FilaAjuste'
 import { TextoError } from '@/components/ui/TextoError'
 import { actualizarDispositivo } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import { esquemaIdentificacion } from '@/utils/validacion'
 import { useFormulario } from '@/hooks/usarFormulario'
 import type { DispositivoDetalle } from '@/tipos'
-import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 
+/* Nombre, ubicación y descripción: los tres campos de texto del equipo, con un
+   solo Guardar que aparece recién cuando hay algo que guardar. */
 export function SeccionIdentificacion({
   dispositivo,
   puedeEditar,
@@ -57,46 +59,55 @@ export function SeccionIdentificacion({
   }
 
   return (
-    <SeccionAjustes
-      titulo="Identificación"
-    >
-      <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
-        <Campo etiqueta="Nombre" disabled={!puedeEditar} {...campo('nombre')} />
-        <Campo
-          etiqueta="Ubicación (opcional)"
-          placeholder="Ej: Cámara 2 — Depósito Sur"
-          disabled={!puedeEditar}
-          {...campo('ubicacion')}
-        />
-        {/* AreaTexto es <textarea>: su onChange no entra en el tipo que
-            `campo()` arma para <input>/<select>, así que se cablea a mano. */}
-        <AreaTexto
-          id="descripcion"
-          etiqueta="Descripción (opcional)"
-          value={valores.descripcion}
-          error={errores.descripcion}
-          onChange={(e) => fijar('descripcion', e.target.value)}
-          disabled={!puedeEditar}
-        />
+    <form onSubmit={enviar} noValidate className="flex flex-col">
+      <FilaAjuste id="fila-nombre" titulo="Nombre">
+        <div className="max-w-85">
+          <Campo etiqueta="Nombre" etiquetaOculta disabled={!puedeEditar} {...campo('nombre')} />
+        </div>
+      </FilaAjuste>
+      <FilaAjuste id="fila-ubicacion" titulo="Ubicación" opcional>
+        <div className="max-w-85">
+          <Campo
+            etiqueta="Ubicación"
+            etiquetaOculta
+            placeholder="Ej: Cámara 2 — Depósito Sur"
+            disabled={!puedeEditar}
+            {...campo('ubicacion')}
+          />
+        </div>
+      </FilaAjuste>
+      <FilaAjuste id="fila-descripcion" titulo="Descripción" opcional>
+        <div className="max-w-85">
+          {/* AreaTexto es <textarea>: su onChange no entra en el tipo que
+              `campo()` arma para <input>/<select>, así que se cablea a mano. */}
+          <AreaTexto
+            id="descripcion"
+            etiqueta="Descripción"
+            etiquetaOculta
+            placeholder="Para qué está, quién lo revisa, cualquier dato útil"
+            value={valores.descripcion}
+            error={errores.descripcion}
+            onChange={(e) => fijar('descripcion', e.target.value)}
+            disabled={!puedeEditar}
+          />
+        </div>
+      </FilaAjuste>
 
-        {!puedeEditar && (
-          <p className="text-note text-text-faint">Tu rol en este equipo es de solo lectura.</p>
-        )}
-        {error && <TextoError>{error}</TextoError>}
-
-        {puedeEditar && (
-          <div className="mt-1 flex items-center justify-end gap-3">
-            {guardadoOk && (
-              <span role="status" className="text-note text-ok">
-                Guardado.
-              </span>
-            )}
-            <Boton type="submit" disabled={!sucio || enviando}>
-              {enviando ? 'Guardando…' : 'Guardar'}
+      {error && <TextoError>{error}</TextoError>}
+      {puedeEditar && (sucio || guardadoOk) && (
+        <div className="flex items-center justify-end gap-3 border-b border-border py-3">
+          {guardadoOk && !sucio && (
+            <span role="status" className="text-note text-ok">
+              Guardado.
+            </span>
+          )}
+          {sucio && (
+            <Boton type="submit" disabled={enviando}>
+              {enviando ? 'Guardando…' : 'Guardar cambios'}
             </Boton>
-          </div>
-        )}
-      </form>
-    </SeccionAjustes>
+          )}
+        </div>
+      )}
+    </form>
   )
 }

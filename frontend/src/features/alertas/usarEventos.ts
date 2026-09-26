@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { listarEventosAlerta } from '@/services/consultas'
+import { listarEventosAlerta, listarEventosDispositivo } from '@/services/consultas'
 import { useCarga } from '@/hooks/usarCarga'
 import type { AlertaEvento } from '@/tipos'
 
@@ -19,22 +19,25 @@ type Tramo = {
 const INICIO = 'inicio'
 const llaveDe = (cursor: string | undefined) => cursor ?? INICIO
 
-export function useEventosAlerta(cadenciaSeg: number | undefined) {
+/* Con `dispositivoId` el log es el de ese equipo: el filtro va al backend y no
+   se aplica sobre tramos ya traídos, que dejaría páginas casi vacías. Quien lo
+   cambia remonta el hook (key), así los cursores no mezclan dos logs. */
+export function useEventosAlerta(cadenciaSeg: number | undefined, dispositivoId?: string) {
   const [cursores, setCursores] = useState<(string | undefined)[]>([undefined])
   const [tramos, setTramos] = useState<Record<string, Tramo>>({})
   const cursor = cursores[cursores.length - 1]
 
   const cargar = useCallback(
     async (signal: AbortSignal): Promise<Tramo> => {
-      const { eventos, siguiente_cursor } = await listarEventosAlerta(
-        { cursor, limite: TAMANO_TRAMO },
-        signal,
-      )
+      const params = { cursor, limite: TAMANO_TRAMO }
+      const { eventos, siguiente_cursor } = dispositivoId
+        ? await listarEventosDispositivo(dispositivoId, params, signal)
+        : await listarEventosAlerta(params, signal)
       const tramo: Tramo = { eventos, siguiente: siguiente_cursor }
       setTramos((previo) => ({ ...previo, [llaveDe(cursor)]: tramo }))
       return tramo
     },
-    [cursor],
+    [cursor, dispositivoId],
   )
 
   /* Mientras se mira el presente el log se refresca solo, a la cadencia del

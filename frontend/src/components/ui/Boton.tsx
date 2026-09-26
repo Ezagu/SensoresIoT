@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 
-type Variante = 'primario' | 'sutil' | 'acento' | 'fantasma' | 'texto' | 'destructivo'
+type Variante = 'primario' | 'sutil' | 'acento' | 'peligro' | 'fantasma' | 'texto' | 'destructivo'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variante?: Variante
@@ -27,6 +27,8 @@ const VARIANTES: Record<Variante, string> = {
   sutil: `${MEDIA} border-border-control bg-transparent text-text hover:border-accent-border active:bg-border`,
   /* Con marco de marca: una acción destacada que no es la principal de la pantalla. */
   acento: `${MEDIA} border-accent-border bg-transparent text-accent hover:bg-accent-soft active:bg-border`,
+  /* Lo irreversible (desvincular, eliminar la cuenta): marco y texto rojos. */
+  peligro: `${MEDIA} border-danger-border bg-transparent text-danger hover:bg-danger-soft active:bg-border`,
   /* Barra de herramientas: sin marco, para no competir con la acción principal. */
   fantasma: `${MEDIA} border-transparent bg-transparent text-text-muted hover:bg-surface-2 hover:text-text active:bg-border`,
   /* Acciones dentro de una fila de lista: pesan menos que un botón de pantalla. */

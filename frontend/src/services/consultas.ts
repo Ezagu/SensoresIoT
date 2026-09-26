@@ -40,6 +40,12 @@ export function obtenerEstadoDispositivo(dispositivoId: string, signal?: AbortSi
 
 /* Todos los dispositivos del usuario con sensores + última lectura + alertas
    disparadas, resuelto en un solo request. */
+/* El código de la etiqueta es el id del equipo. Sin dueño previo, quien lo
+   vincula queda como owner; con dueño, 409. */
+export function vincularDispositivo(dispositivoId: string) {
+  return api.post(`/dispositivos/${dispositivoId}/vinculate`).then((r) => r.data)
+}
+
 export function obtenerPanel(usuarioId: string, signal?: AbortSignal) {
   return api.get<PanelResumen>(`/usuarios/${usuarioId}/panel`, { signal }).then((r) => r.data)
 }

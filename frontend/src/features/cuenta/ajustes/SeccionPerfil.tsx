@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { Boton } from '@/components/ui/Boton'
 import { Campo } from '@/components/ui/Campo'
+import { FilaAjuste, ValorAjuste } from '@/components/ui/FilaAjuste'
 import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
 import { TextoError } from '@/components/ui/TextoError'
 import { useSesion } from '@/features/auth/sesion'
@@ -9,6 +10,7 @@ import { mensajeDeError } from '@/services/api'
 import { actualizarPerfil } from '@/services/consultas'
 import { esquemaPerfil } from '@/utils/validacion'
 
+/* El email no se edita acá: es con lo que se entra y adonde llegan los avisos. */
 export function SeccionPerfil({ id }: { id: string }) {
   const { sesion, refrescarSesion } = useSesion()
   const inicial = { nombre: sesion?.nombre ?? '' }
@@ -39,22 +41,33 @@ export function SeccionPerfil({ id }: { id: string }) {
   }
 
   return (
-    <SeccionAjustes id={id} titulo="Perfil" descripcion="Cómo te identificamos en la app.">
-      <form onSubmit={enviar} className="flex flex-col gap-3.5" noValidate>
-        <Campo etiqueta="Nombre" autoComplete="name" {...campo('nombre')} />
-
+    <SeccionAjustes id={id} titulo="Perfil">
+      <form onSubmit={enviar} noValidate className="flex flex-col">
+        <FilaAjuste
+          id="fila-nombre"
+          titulo="Nombre"
+          accion={
+            sucio ? (
+              <Boton type="submit" disabled={enviando}>
+                {enviando ? 'Guardando…' : 'Guardar'}
+              </Boton>
+            ) : (
+              guardadoOk && (
+                <span role="status" className="text-note text-ok">
+                  Guardado.
+                </span>
+              )
+            )
+          }
+        >
+          <div className="max-w-85">
+            <Campo etiqueta="Nombre" etiquetaOculta autoComplete="name" {...campo('nombre')} />
+          </div>
+        </FilaAjuste>
         {error && <TextoError>{error}</TextoError>}
-
-        <div className="mt-1 flex items-center justify-end gap-3">
-          {guardadoOk && (
-            <span role="status" className="text-note text-ok">
-              Guardado.
-            </span>
-          )}
-          <Boton type="submit" disabled={!sucio || enviando}>
-            {enviando ? 'Guardando…' : 'Guardar'}
-          </Boton>
-        </div>
+        <FilaAjuste id="fila-email" titulo="Email">
+          <ValorAjuste>{sesion?.email}</ValorAjuste>
+        </FilaAjuste>
       </form>
     </SeccionAjustes>
   )

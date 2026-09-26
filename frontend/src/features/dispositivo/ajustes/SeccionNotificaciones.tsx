@@ -4,7 +4,7 @@ import { TextoError } from '@/components/ui/TextoError'
 import { configurarNotificaciones } from '@/services/consultas'
 import { mensajeDeError } from '@/services/api'
 import type { DispositivoDetalle } from '@/tipos'
-import { SeccionAjustes } from '@/components/ui/SeccionAjustes'
+import { FilaAjuste } from '@/components/ui/FilaAjuste'
 
 type Opcion = 'si' | 'no'
 
@@ -48,10 +48,7 @@ export function SeccionNotificaciones({
   if (dispositivo.notificar === null) return null
 
   return (
-    <SeccionAjustes
-      titulo="Mis notificaciones"
-      descripcion="Los mails que te llegan por este equipo: cruces de umbral y cortes de reporte."
-    >
+    <FilaAjuste id="fila-avisos" titulo="Tus avisos de este equipo">
       {/* Sin gatear por puede_alertas: el aviso de "dejó de reportar" sale igual
           en todos los planes, así que esconder el control dejaba sin opt-out
           justo a quien no puede tener reglas. */}
@@ -59,11 +56,10 @@ export function SeccionNotificaciones({
         valor={valor}
         opciones={OPCIONES}
         onCambiar={cambiar}
-        etiqueta="Notificaciones de este equipo"
+        etiqueta="Tus avisos de este equipo"
         disabled={ocupado}
       />
-
       {error && <TextoError>{error}</TextoError>}
-    </SeccionAjustes>
+    </FilaAjuste>
   )
 }

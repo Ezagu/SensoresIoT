@@ -1,152 +1,166 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { MarcaEstado, type Estado } from '@/components/ui/MarcaEstado'
-import { Pill } from '@/components/ui/Pill'
+import { IconoChevron } from '@/components/layout/iconos'
 import { SIMBOLO_CONDICION } from '@/features/dispositivo/alertas/condicion'
 import { nombreDeDispositivo } from '@/utils/dispositivos'
 import { etiquetaDeTipo } from '@/utils/sensores'
 import { medida } from '@/utils/formato'
-import { duracion, horaSegundos } from '@/utils/tiempo'
-import { esAvisoDeEquipo, type AlertaEvento, type AvisoDeEquipo, type AvisoDeRegla } from '@/tipos'
+import { duracion, hora } from '@/utils/tiempo'
+import { esAvisoDeEquipo, type AlertaEvento } from '@/tipos'
 
-/* Dos formas de aviso comparten el renglón porque comparten la pregunta —qué
-   pasó, en cuál de mis equipos y cuándo— y la atención es una sola cola. Lo que
-   cambia es contra qué se juzga: una regla contra su umbral, un corte contra
-   cuánto duró. */
+function personas(n: number) {
+  return `${n} ${n === 1 ? 'persona' : 'personas'}`
+}
 
-/* Angosto, qué pasó se lleva el primer renglón entero y la comparación baja
-   junto con la hora: recortar el nombre del equipo para que la cifra entre al
-   lado deja ilegibles a los dos. */
-function Renglon({
-  estado,
-  titulo,
-  detalle,
-  cifra,
-  extra,
-  medicionAt,
-}: {
-  estado: Estado
-  titulo: string
-  detalle: ReactNode
-  cifra: ReactNode
-  extra?: ReactNode
-  medicionAt: string
-}) {
+/* A quién se avisó. "No se pudo" sólo con destinatarios y ningún envío; cero
+   destinatarios es lo normal para las transiciones intermedias de un lote (se
+   avisa la última de cada regla) o para un equipo que todos silenciaron. */
+function Notificacion({ evento }: { evento: AlertaEvento }) {
+  const { destinatarios, notificados } = evento
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-2.5 sm:px-5">
-      <div className="flex min-w-0 flex-1 basis-full items-center gap-4 sm:basis-56">
-        {/* La forma dice qué pasó; el color es refuerzo. Sin latido: esto ya
-            pasó, y lo que está sonando ahora vive en la banda de arriba. */}
-        <MarcaEstado estado={estado} />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate text-body-lg font-medium text-text">{titulo}</span>
-          <span className="truncate text-note-lg text-text-muted">{detalle}</span>
-        </div>
-      </div>
+    <div className="flex flex-col gap-0.5 text-body text-text-muted">
+      {destinatarios === 0 ? (
+        <span>Sin aviso por email</span>
+      ) : notificados === 0 ? (
+        <span className="text-danger">No se pudo avisar (0 de {destinatarios})</span>
+      ) : (
+        <span>
+          Email a {personas(notificados)}
+          {notificados < destinatarios && ` de ${destinatarios}`}
+        </span>
+      )}
+      {evento.tardio && (
+        <span
+          className="text-note text-text-faint"
+          title="Llegó en un envío diferido: el equipo guardó la lectura sin conexión y la mandó al reconectar. Se evaluó igual."
+        >
+          Llegó con demora, a las {hora(new Date(evento.detectado_at).getTime())}
+        </span>
+      )}
+    </div>
+  )
+}
 
-      <span className="num shrink-0 text-note-lg text-text-muted">{cifra}</span>
-
-      <span className="ml-auto flex shrink-0 items-center gap-2">
-        {extra}
-        <span className="num text-note-lg text-text-faint">{horaSegundos(medicionAt)}</span>
+function Renglon({
+  evento,
+  glifo,
+  titulo,
+  critico,
+  equipo,
+  valor,
+  pie,
+}: {
+  evento: AlertaEvento
+  glifo: Estado
+  titulo: string
+  critico: boolean
+  equipo: string
+  valor: ReactNode
+  pie: string
+}) {
+  const a = `/dispositivos/${evento.dispositivo_id}`
+  return (
+    <li className="grid grid-cols-[3rem_1.125rem_minmax(0,1fr)] items-start gap-x-3 gap-y-2 border-b border-border py-4 md:grid-cols-[3.5rem_1.125rem_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_7rem] md:gap-x-4">
+      <span className="num pt-px text-label-lg font-medium text-text-muted">
+        {hora(new Date(evento.medicion_at).getTime())}
       </span>
+      <span className="flex justify-center pt-1.5">
+        {/* Sin latido: esto ya pasó. Lo que suena ahora está en la banda de arriba. */}
+        <MarcaEstado estado={glifo} />
+      </span>
+      <div className="min-w-0">
+        <p
+          className={`truncate text-body-lg font-semibold ${critico ? 'text-danger' : 'text-text'}`}
+        >
+          {titulo}
+        </p>
+        <p className="mt-0.5 truncate text-body text-text-muted">{equipo}</p>
+      </div>
+      <p
+        className={`num col-start-3 text-body-lg md:col-start-auto ${critico ? 'text-danger' : 'text-text'}`}
+      >
+        {valor}
+        <small className="block text-note font-medium tracking-normal text-text-faint">{pie}</small>
+      </p>
+      <div className="col-start-3 md:col-start-auto">
+        <Notificacion evento={evento} />
+      </div>
+      <Link
+        to={a}
+        className="col-start-3 inline-flex items-center gap-1 justify-self-start pt-px text-body font-medium text-accent hover:text-text md:col-start-auto md:justify-self-end"
+      >
+        Ver equipo
+        <IconoChevron className="size-3.5 md:hidden" />
+      </Link>
     </li>
   )
 }
 
-function Equipo({ evento }: { evento: AlertaEvento }) {
-  return (
-    <Link
-      to={`/dispositivos/${evento.dispositivo_id}`}
-      className="hover:text-text hover:underline"
-    >
-      {nombreDeDispositivo(evento.dispositivo_id, evento.dispositivo_nombre)}
-    </Link>
-  )
-}
+/* Dos formas de aviso en un renglón: comparten la pregunta —qué pasó, en cuál
+   de mis equipos y cuándo—. Lo que cambia es contra qué se juzga: una regla
+   contra su umbral, un corte contra cuánto duró. `anteriores` son los más
+   viejos ya cargados: de ahí sale cuánto duró un cruce. */
+export function FilaEvento({
+  evento,
+  anteriores,
+}: {
+  evento: AlertaEvento
+  anteriores: AlertaEvento[]
+}) {
+  const nombre = nombreDeDispositivo(evento.dispositivo_id, evento.dispositivo_nombre)
 
-/* Sólo cuando el mail tenía que salir y no salió. Cero destinatarios no es una
-   falla: de un lote se avisa la última transición de cada regla, así que un
-   envío diferido que oscila deja el resto como historial, y un equipo silenciado
-   no tiene a quién avisarle. */
-function NoSePudoAvisar({ evento }: { evento: AlertaEvento }) {
-  if (evento.destinatarios === 0 || evento.notificados > 0) return null
-  return (
-    <span className="text-warn" title="El aviso se registró pero el mail no llegó a salir.">
-      {' · '}no se pudo avisar
-    </span>
-  )
-}
+  if (esAvisoDeEquipo(evento)) {
+    const corte = evento.tipo === 'sin_reportar'
+    return (
+      <Renglon
+        evento={evento}
+        glifo={corte ? 'sin-reportar' : 'normal'}
+        titulo={corte ? 'Dejó de reportar' : 'Volvió a reportar'}
+        critico={false}
+        equipo={nombre}
+        valor={
+          corte
+            ? hora(new Date(evento.silencio_desde).getTime())
+            : duracion(evento.silencio_desde, evento.medicion_at)
+        }
+        pie={corte ? 'última lectura' : 'sin reportar'}
+      />
+    )
+  }
 
-function FilaDeRegla({ evento }: { evento: AvisoDeRegla }) {
-  const disparada = evento.tipo === 'disparada'
   const sensor = etiquetaDeTipo(evento.tipo_sensor_nombre)
   const unidad = evento.tipo_sensor_unidad
   const corte = `${SIMBOLO_CONDICION[evento.condicion]} ${medida(evento.umbral, unidad)}`
 
+  if (evento.tipo === 'disparada') {
+    return (
+      <Renglon
+        evento={evento}
+        glifo="critico"
+        titulo={evento.alerta_nombre?.trim() || `${sensor} ${corte}`}
+        critico
+        equipo={evento.alerta_nombre ? `${nombre} · ${sensor}` : nombre}
+        valor={medida(evento.valor, unidad)}
+        pie={`umbral ${corte}`}
+      />
+    )
+  }
+
+  const disparo = anteriores.find(
+    (a) => !esAvisoDeEquipo(a) && a.tipo === 'disparada' && a.alerta_id === evento.alerta_id,
+  )
   return (
     <Renglon
-      estado={disparada ? 'critico' : 'normal'}
-      titulo={evento.alerta_nombre?.trim() || `${sensor} ${corte}`}
-      detalle={
-        <>
-          <Equipo evento={evento} />
-          {' · '}
-          {sensor}
-          {' · '}
-          {disparada ? 'se disparó' : 'volvió a normal'}
-          <NoSePudoAvisar evento={evento} />
-        </>
+      evento={evento}
+      glifo="normal"
+      titulo="Volvió a rango"
+      critico={false}
+      equipo={`${nombre} · ${evento.alerta_nombre?.trim() || sensor}`}
+      valor={medida(evento.valor, unidad)}
+      pie={
+        disparo ? `duró ${duracion(disparo.medicion_at, evento.medicion_at)}` : `umbral ${corte}`
       }
-      cifra={
-        <>
-          <span className="font-medium text-text">{medida(evento.valor, unidad)}</span> umbral {corte}
-        </>
-      }
-      extra={
-        evento.tardio && (
-          <Pill tono="atencion">
-            <span title="Llegó en un envío diferido: el equipo guardó la lectura sin conexión y la mandó al reconectar. Se evaluó igual.">
-              tardío
-            </span>
-          </Pill>
-        )
-      }
-      medicionAt={evento.medicion_at}
     />
   )
-}
-
-function FilaDeEquipo({ evento }: { evento: AvisoDeEquipo }) {
-  const corte = evento.tipo === 'sin_reportar'
-  const silencio = duracion(evento.silencio_desde, evento.medicion_at)
-
-  return (
-    <Renglon
-      /* El mismo glifo que la pastilla del equipo: un corte acá y "Sin reportar"
-         en el panel son el mismo hecho contado en dos lados. */
-      estado={corte ? 'sin-reportar' : 'normal'}
-      titulo={nombreDeDispositivo(evento.dispositivo_id, evento.dispositivo_nombre)}
-      detalle={
-        <>
-          <Equipo evento={evento} />
-          {' · '}
-          {corte ? 'dejó de reportar' : 'volvió a reportar'}
-          <NoSePudoAvisar evento={evento} />
-        </>
-      }
-      /* Un corte no tiene valor contra qué compararse: lo único que se juzga es
-         cuánto duró. En el de apertura, cuánto llevaba al detectarlo. */
-      cifra={
-        <>
-          <span className="font-medium text-text">{silencio}</span> {corte ? 'sin datos' : 'de corte'}
-        </>
-      }
-      medicionAt={evento.medicion_at}
-    />
-  )
-}
-
-export function FilaEvento({ evento }: { evento: AlertaEvento }) {
-  return esAvisoDeEquipo(evento) ? <FilaDeEquipo evento={evento} /> : <FilaDeRegla evento={evento} />
 }

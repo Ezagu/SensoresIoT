@@ -8,16 +8,16 @@ type Tamaño = 'normal' | 'compacto'
    su flecha pegada al borde y un hover del sistema que ignora la paleta. Con la
    caja apagada, el estilo es el mismo que el de cualquier otro control. */
 const BASE =
-  'w-full cursor-pointer appearance-none rounded-control border bg-surface font-sans text-text ' +
+  'w-full cursor-pointer appearance-none rounded-control border bg-transparent font-sans text-text ' +
   'transition-colors duration-130 outline-none ' +
   /* El menú desplegable lo dibuja el sistema: en los navegadores que lo
      permiten, al menos que no aparezca en blanco sobre el tema oscuro. */
   '[&>option]:bg-surface [&>option]:text-text ' +
   'disabled:cursor-not-allowed disabled:bg-surface-inert disabled:text-text-muted disabled:hover:border-border-control'
 
-/* Las dos alturas de control que usa el sistema acá: 34 en pantalla, 28 en fila. */
+/* Las dos alturas de control que usa el sistema acá: 40 en pantalla, 28 en fila. */
 const TAMAÑOS: Record<Tamaño, string> = {
-  normal: 'h-8.5 pl-2.5 pr-7.5 text-body-lg',
+  normal: 'h-10 pl-3 pr-8 text-body-lg',
   compacto: 'h-7 pl-2.5 pr-7 text-body',
 }
 
