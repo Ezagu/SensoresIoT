@@ -1,20 +1,20 @@
 #include <Nucleo.h>
-#include <sensores/BMP085.h>
+#include <sensores/AHT10.h>
 
-enum SensorIdx { SENSOR_TEMP, SENSOR_PRESS, CANT_SENSORES };
+enum SensorIdx { SENSOR_TEMP, SENSOR_HUM, CANT_SENSORES };
 
 const char* const SENSOR_IDS[CANT_SENSORES] = {
-  "3b5f7025-82f9-4a17-9338-25ad05cad3e2",  // temperatura
-  "a019e751-5d54-4262-b6b6-0c33dfafd40c"   // presión
+  "e06eebf0-20ae-41fc-b3d8-59c405d60984",  // temperatura
+  "85907302-7ee1-4011-9224-0886c733c534"   // humedad
 };
 
-ModuloBMP085 bmp(SENSOR_TEMP, SENSOR_PRESS);
-Modulo* const MODULOS[] = {&bmp};
+ModuloAHT10 aht(SENSOR_TEMP, SENSOR_HUM);
+Modulo* const MODULOS[] = {&aht};
 
 const Equipo EQUIPO = {
   .apiBase       = "http://192.168.1.4:8000",
-  .dispositivoId = "6e4eb952-cdb1-4507-9194-329ccbdafa1b",  // Dispositivo BMP
-  .secretInicial = "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372",
+  .dispositivoId = "5e97ef75-0c52-49de-a4c7-457a4320db0e",
+  .secretInicial = "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a",
   .sensorIds     = SENSOR_IDS,
   .cantSensores  = CANT_SENSORES,
   .modulos       = MODULOS,
