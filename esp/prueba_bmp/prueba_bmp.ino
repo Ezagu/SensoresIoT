@@ -44,6 +44,8 @@ struct RedConocida {
 
 RTC_DATA_ATTR RedConocida red = {};
 
+uint8_t ultimoMotivoDesconexion = 0;
+
 enum ResultadoWifi {
   WIFI_CONECTADO,
   WIFI_FALLO,
@@ -56,7 +58,7 @@ const uint32_t EPOCH_MIN = 1700000000;
 const uint32_t MS_WATCHDOG = 60000;
 
 const uint8_t  MUESTRAS_PRIMADO   = 3;
-const uint16_t MS_ENTRE_PRIMADO   = 1000;
+const uint16_t MS_ENTRE_PRIMADO   = 100;
 
 // Piso para que un ciclo más largo que el intervalo no deje al equipo sin dormir.
 const uint32_t MS_SUENO_MINIMO = 1000;
@@ -83,6 +85,7 @@ bool lecturaNueva[CANT_SENSORES] = {false};
 // Lecturas que el sensor no entregó o que salieron fuera del rango del datasheet.
 // En RTC memory: contarlas por ciclo no dice nada, lo que interesa es la tendencia.
 RTC_DATA_ATTR uint32_t lecturasFallidas = 0;
+RTC_DATA_ATTR uint32_t fallosInicioSensor = 0;
 
 // Alertas
 struct Umbral {
@@ -120,14 +123,17 @@ RTC_DATA_ATTR uint16_t bufCantidad = 0;
 // se pierde en un corte de luz, brownout o watchdog. Conectado, la RTC se vacía
 // antes y la flash no se escribe nunca.
 const uint32_t SEG_VOLCADO           = 1800;
-const uint16_t LECTURAS_POR_SEGMENTO = 450;   // 4 B de cabecera + 450 × 9 B: un bloque de 4 KB
+const uint16_t LECTURAS_POR_SEGMENTO = 450;   // 16 B de cabecera + 450 × 9 B: un bloque de 4 KB
 const uint8_t  PORCENTAJE_MAX_FLASH  = 90;
-const uint8_t  BIT_SIN_FECHA         = 0x80;  // en sensorIdx: time es local, no epoch
 
 // Una cola de archivos /cola/NNNNNNNN, del más viejo (segPrimero) al que se está
-// escribiendo (segSiguiente - 1).
+// escribiendo (segSiguiente - 1). Las lecturas guardan tiempo del cronómetro, no
+// fecha: se fechan al enviar, cuando ya se conoce el drift real del corte.
 struct __attribute__((packed)) CabeceraSegmento {
-  uint32_t sesion;  // corrida del cronómetro de las lecturas sin fecha; 0 = ninguna
+  uint32_t sesion;      // corrida del cronómetro que las midió
+  uint32_t anclaEpoch;  // ancla vigente al volcar; 0 = sin hora todavía
+  uint32_t anclaLocal;
+  int32_t  relojPpm;
 };
 
 RTC_DATA_ATTR uint32_t segPrimero    = 0;
@@ -137,8 +143,8 @@ RTC_DATA_ATTR uint16_t offsetLectura = 0;  // lecturas ya enviadas de segPrimero
 RTC_DATA_ATTR uint32_t descartadasSinFecha = 0;
 RTC_DATA_ATTR uint32_t perdidasPorFlashLlena = 0;
 
-// Una lectura volcada sin fecha sólo se puede fechar con el mismo cronómetro que la
-// midió, y un power-on lo reinicia. NOINIT sobrevive al watchdog, que no lo reinicia.
+// Una lectura volcada se fecha con el cronómetro que la midió, y un power-on lo
+// reinicia. NOINIT sobrevive al watchdog, que no lo reinicia.
 const uint32_t MAGIC_SESION = 0x5E5105;
 RTC_NOINIT_ATTR uint32_t sesionMagic;
 RTC_NOINIT_ATTR uint32_t sesionActual;
@@ -173,11 +179,26 @@ const uint16_t BACKOFF_MAX_SEG  = 3600;
 
 RTC_DATA_ATTR uint8_t fallosContacto = 0;
 
+// Un cruce que no pudo salir se reintenta en cada despertar: tras el primer fallo
+// el backoff es 0, desde el segundo lo frena como a cualquier contacto.
+RTC_DATA_ATTR bool alertaPendiente = false;
+
+// Causa del último contacto fallido, para el diag del siguiente que salga bien.
+RTC_DATA_ATTR uint8_t  motivoFalloWifi     = 0;
+RTC_DATA_ATTR int16_t  codigoFalloHttp     = 0;
+RTC_DATA_ATTR uint16_t conexionesRapidasFallidas = 0;
+
 // Reloj
 // Las lecturas guardan su edad y no su fecha: un equipo que arranca sin WiFi mide
 // durante días antes de conocer la hora. El ancla las data recién al enviarlas.
 RTC_DATA_ATTR uint32_t anclaEpoch = 0;
 RTC_DATA_ATTR uint32_t anclaLocal = 0;
+
+// El ancla de antes del último tramo sin contacto: entre ella y la actual se
+// interpola. Los POST de un mismo drenaje llegan a segundos y no la mueven.
+const uint32_t SEG_MIN_TRAMO = 60;
+RTC_DATA_ATTR uint32_t anclaPreviaEpoch = 0;
+RTC_DATA_ATTR uint32_t anclaPreviaLocal = 0;
 
 // Drift del oscilador interno, aprendido contra el servidor: cuántos segundos por
 // millón se adelanta (negativo) o atrasa el cronómetro local respecto del real.
@@ -189,6 +210,9 @@ const int32_t  PPM_MAX_RELOJ       = 30000;
 RTC_DATA_ATTR uint32_t calibracionEpoch = 0;
 RTC_DATA_ATTR uint32_t calibracionLocal = 0;
 RTC_DATA_ATTR int32_t  relojPpm         = 0;
+
+// Declarada a mano: Arduino no genera el prototipo de una función con default.
+int64_t aReal(int64_t segLocales, int32_t ppm = relojPpm);
 
 RTC_DATA_ATTR int64_t proximoDespertarUs = 0;
 
@@ -247,13 +271,16 @@ void setup() {
     segDesdeEnvio = 0;
   }
 
-  // Una alerta saltea el backoff: es justo lo que el cliente quiere enterarse ya.
+  if (hayAlerta) alertaPendiente = true;
+  bool tocaHablar = tocaEnvio || tocaContacto || alertaPendiente;
+
+  // El cruce en sí saltea el backoff: es justo lo que el cliente quiere enterarse ya.
   bool enBackoff = fallosContacto > 0 && segDesdeContacto < esperaBackoffSeg();
 
-  if ((tocaEnvio || tocaContacto) && enBackoff && !hayAlerta) {
+  if (tocaHablar && enBackoff && !hayAlerta) {
     Serial.printf("[ESP] En backoff: próximo contacto en %lus\n",
                   (unsigned long) (esperaBackoffSeg() - segDesdeContacto));
-  } else if (hayAlerta || tocaEnvio || tocaContacto) {
+  } else if (tocaHablar) {
     segDesdeContacto = 0;
     Serial.print("[ESP] Se debe contactar a la API\n");
     cargarSecret();
@@ -322,15 +349,10 @@ void dormir() {
 void primarVentana() {
   for (uint8_t i = 0; i < MUESTRAS_PRIMADO; i++) {
     leerSensores();
-    if (i + 1 < MUESTRAS_PRIMADO) esperarLiviano(MS_ENTRE_PRIMADO);
+    // delay() y no light sleep: el sensor dejaba de responder en los despertares
+    // con light sleep entre lecturas, y un corte de 100 ms ya filtra un frame suelto.
+    if (i + 1 < MUESTRAS_PRIMADO) delay(MS_ENTRE_PRIMADO);
   }
-}
-
-// Light sleep: conserva la RAM y cuesta ~1 mA contra ~40 de un delay().
-void esperarLiviano(uint32_t ms) {
-  Serial.flush();
-  esp_sleep_enable_timer_wakeup(ms * 1000ULL);
-  esp_light_sleep_start();
 }
 
 void registrarMuestra(uint8_t sensorIdx, float value) {
@@ -392,7 +414,8 @@ uint16_t flushBuffer(JsonDocument& doc, uint16_t tope) {
 
   for (uint16_t i = 0; i < cantidad; i++) {
     Lectura& lectura = buffer[(bufCola + i) % CAPACIDAD_BUFFER];
-    agregarPunto(mediciones, lectura.sensorIdx, lectura.value, epochDeLectura(lectura.time));
+    agregarPunto(mediciones, lectura.sensorIdx, lectura.value,
+                 epochEntre(lectura.time, anclaPreviaEpoch, anclaPreviaLocal));
   }
 
   return cantidad;
@@ -478,7 +501,7 @@ uint32_t sesionParaVolcar() {
 }
 
 // 0 = hay que abrir un segmento nuevo.
-uint16_t lugarEnSegmentoActivo(uint32_t sesion) {
+uint16_t lugarEnSegmentoActivo(const CabeceraSegmento& actual) {
   if (segSiguiente == segPrimero) return 0;
 
   File f = LittleFS.open(rutaSegmento(segSiguiente - 1), "r");
@@ -489,18 +512,17 @@ uint16_t lugarEnSegmentoActivo(uint32_t sesion) {
   size_t tamanio = f.size();
   f.close();
 
-  // Lecturas sin fecha de otra corrida del cronómetro no pueden compartir cabecera.
-  if (!leida || (sesion != 0 && cab.sesion != sesion)) return 0;
+  // Otra corrida del cronómetro u otra ancla no pueden compartir cabecera.
+  if (!leida || memcmp(&cab, &actual, sizeof(cab)) != 0) return 0;
 
   uint16_t cantidad = (tamanio - sizeof(cab)) / sizeof(Lectura);
   return cantidad < LECTURAS_POR_SEGMENTO ? LECTURAS_POR_SEGMENTO - cantidad : 0;
 }
 
-bool crearSegmento(uint32_t sesion) {
+bool crearSegmento(const CabeceraSegmento& cab) {
   File f = LittleFS.open(rutaSegmento(segSiguiente), "w");
   if (!f) return false;
 
-  CabeceraSegmento cab = {sesion};
   bool ok = f.write((uint8_t*) &cab, sizeof(cab)) == sizeof(cab);
   f.close();
   if (ok) segSiguiente++;
@@ -528,17 +550,15 @@ void liberarEspacio() {
 void volcarAFlash() {
   if (!montarFlash()) return;
 
-  // Todo lo de la RTC comparte cronómetro con el ancla: o se puede fechar todo o nada.
-  bool conFecha = anclaEpoch != 0;
-  uint32_t sesion = conFecha ? 0 : sesionParaVolcar();
+  CabeceraSegmento cab = {sesionParaVolcar(), anclaEpoch, anclaLocal, relojPpm};
   uint16_t volcadas = 0;
 
   while (bufCantidad > 0) {
     liberarEspacio();
 
-    uint16_t lugar = lugarEnSegmentoActivo(sesion);
+    uint16_t lugar = lugarEnSegmentoActivo(cab);
     if (lugar == 0) {
-      if (!crearSegmento(sesion)) break;
+      if (!crearSegmento(cab)) break;
       lugar = LECTURAS_POR_SEGMENTO;
     }
 
@@ -547,11 +567,7 @@ void volcarAFlash() {
 
     bool ok = true;
     for (uint16_t i = 0; i < lugar && bufCantidad > 0 && ok; i++) {
-      Lectura l = buffer[bufCola];
-      if (conFecha) l.time = epochDeLectura(l.time);
-      else          l.sensorIdx |= BIT_SIN_FECHA;
-
-      ok = f.write((uint8_t*) &l, sizeof(l)) == sizeof(l);
+      ok = f.write((uint8_t*) &buffer[bufCola], sizeof(Lectura)) == sizeof(Lectura);
       if (ok) {
         eliminarDelBuffer(1);
         volcadas++;
@@ -562,15 +578,20 @@ void volcarAFlash() {
   }
 
   Serial.printf("[FLASH] Volcadas %u lecturas%s, %lu segmentos, uso %u%%\n",
-                volcadas, conFecha ? "" : " sin fecha",
+                volcadas, anclaEpoch ? "" : " sin hora",
                 (unsigned long) (segSiguiente - segPrimero), porcentajeFlash());
 }
 
-// 0 = no se puede fechar: sin fecha y de otra corrida del cronómetro.
-uint32_t epochDeFlash(const Lectura& l, uint32_t sesion) {
-  if (!(l.sensorIdx & BIT_SIN_FECHA)) return l.time;
-  if (sesionMagic != MAGIC_SESION || sesion != sesionActual) return 0;
-  return epochDeLectura(l.time);
+// 0 = no se puede fechar: de otra corrida del cronómetro y volcada sin hora.
+uint32_t epochDeFlash(const Lectura& l, const CabeceraSegmento& cab) {
+  if (sesionMagic == MAGIC_SESION && cab.sesion == sesionActual) {
+    return epochEntre(l.time, cab.anclaEpoch, cab.anclaLocal);
+  }
+  if (cab.anclaEpoch == 0) return 0;
+
+  // Otro cronómetro: sólo queda extrapolar desde el ancla de cuando se volcó.
+  int64_t epoch = (int64_t) cab.anclaEpoch + aReal((int32_t) (l.time - cab.anclaLocal), cab.relojPpm);
+  return epoch > (int64_t) EPOCH_MIN ? (uint32_t) epoch : 0;
 }
 
 // 1 = enviado, 0 = falló el POST, -1 = no había nada para mandar en este tramo.
@@ -598,12 +619,12 @@ int8_t enviarLoteFlash() {
 
   while (aEnviar < MAX_POR_ENVIO && f.read((uint8_t*) &l, sizeof(l)) == sizeof(l)) {
     leidas++;
-    uint32_t epoch = epochDeFlash(l, cab.sesion);
+    uint32_t epoch = epochDeFlash(l, cab);
     if (epoch == 0) {
       descartadasSinFecha++;
       continue;
     }
-    agregarPunto(mediciones, l.sensorIdx & ~BIT_SIN_FECHA, l.value, epoch);
+    agregarPunto(mediciones, l.sensorIdx, l.value, epoch);
     aEnviar++;
   }
   bool finDelSegmento = f.available() == 0;
@@ -640,13 +661,11 @@ bool enviarMediciones(bool permitirPortal) {
 
   if(rotacionPendiente) rotarSecret();
 
-  // La hora llega en la respuesta, así que sin ancla el buffer saldría sin fechar.
-  // Un lote vacío no escribe ninguna fila y la trae antes de vaciarlo. Con un ancla
-  // vieja (un corte) también: esa respuesta mide el drift sobre el corte mismo, y
-  // lo acumulado se fecha con él en vez de con el anterior.
-  // Sin ancla no se drena nada: lo volcado sin fecha se descartaría por no poder
-  // fecharlo, cuando en realidad sólo faltaba esta respuesta.
-  bool anclaVieja = anclaEpoch == 0 || (int32_t) (ahoraLocal() - anclaLocal) >= (int32_t) SEG_MIN_CALIBRACION;
+  // La hora llega en la respuesta: un lote vacío (no escribe filas) la trae antes
+  // de vaciar. Sin ancla, lo pendiente saldría sin fecha; tras un corte, cierra el
+  // tramo entre el ancla de antes y ésta, sobre el que se interpola lo acumulado.
+  bool anclaVieja = anclaEpoch == 0 || segSiguiente > segPrimero ||
+                    (int32_t) (ahoraLocal() - anclaLocal) >= (int32_t) SEG_MIN_CALIBRACION;
   if (anclaVieja && hayPendientes() && !enviarLote(0)) {
     apagarWifi();
     return false;
@@ -659,7 +678,7 @@ bool enviarMediciones(bool permitirPortal) {
   bool ok = enviarSiguienteLote();
   if (ok) lotesEnviados++;
 
-  while (ok && hayPendientes()) {
+  while (ok && hayParaDrenar()) {
     esp_task_wdt_reset();
     if (rotacionPendiente) rotarSecret();
     ok = enviarSiguienteLote();
@@ -680,10 +699,16 @@ bool hayPendientes() {
   return bufCantidad > 0 || segSiguiente > segPrimero;
 }
 
+// La flash sin ancla no sale (ver enviarSiguienteLote): contarla colgaría el drenaje.
+bool hayParaDrenar() {
+  return bufCantidad > 0 || (anclaEpoch != 0 && segSiguiente > segPrimero);
+}
+
 // Lo más viejo primero: el backend no evalúa alertas sobre lecturas anteriores a la
 // última que ya evaluó, así que la flash tiene que salir antes que la RTC.
 bool enviarSiguienteLote() {
-  while (segSiguiente > segPrimero) {
+  // Sin ancla la flash no se puede fechar y se descartaría: espera al próximo contacto.
+  while (anclaEpoch != 0 && segSiguiente > segPrimero) {
     int8_t r = enviarLoteFlash();
     if (r >= 0) return r == 1;
   }
@@ -705,6 +730,8 @@ void registrarResultadoContacto(bool ok) {
   if (ok) {
     if (fallosContacto > 0) Serial.printf("[ESP] Contacto recuperado tras %u fallos\n", fallosContacto);
     fallosContacto = 0;
+    // Un drenaje cortado a mitad puede haber dejado las crudas del cruce en el buffer.
+    alertaPendiente = alertaPendiente && hayPendientes();
     return;
   }
 
@@ -712,6 +739,11 @@ void registrarResultadoContacto(bool ok) {
   uint16_t espera = esperaBackoffSeg();
   if (espera == 0) Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en la cadencia normal\n", fallosContacto);
   else             Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en %u min\n", fallosContacto, espera / 60);
+}
+
+void registrarFallo(uint8_t motivoWifi, int16_t codigoHttp) {
+  motivoFalloWifi = motivoWifi;
+  codigoFalloHttp = codigoHttp;
 }
 
 bool enviarLote(uint16_t tope) {
@@ -724,6 +756,8 @@ bool enviarLote(uint16_t tope) {
 }
 
 bool postearMediciones(JsonDocument& doc, uint16_t cantMediciones) {
+  agregarDiagnostico(doc);
+
   String payload;
   serializeJson(doc, payload);
   HTTPClient http;
@@ -737,8 +771,10 @@ bool postearMediciones(JsonDocument& doc, uint16_t cantMediciones) {
 
   if (httpCode <= 0) {
     Serial.printf("[HTTP] Fallo de conexión: %s\n", http.errorToString(httpCode).c_str());
+    registrarFallo(0, httpCode);
   } else if (httpCode != 200 && httpCode != 201) {
     Serial.printf("[HTTP] El backend respondió %d\n", httpCode);
+    registrarFallo(0, httpCode);
   } else {
     ok = true;
 
@@ -750,6 +786,39 @@ bool postearMediciones(JsonDocument& doc, uint16_t cantMediciones) {
 
   http.end();
   return ok;
+}
+
+// Estado interno que viaja en cada POST: un equipo a batería en campo no tiene
+// serial, y sin esto un sensor mudo sólo se nota mirando la base.
+void agregarDiagnostico(JsonDocument& doc) {
+  // Recién arrancado, una lectura en el segundo 0 del cronómetro es válida.
+  bool     hayLectura    = false;
+  uint32_t ultimaLectura = 0;
+  for (uint8_t i = 0; i < CANT_SENSORES; i++) {
+    if (ventanaCantidad[i] == 0) continue;
+    uint8_t pos = (ventanaProximo[i] + VENTANA_MUESTRAS - 1) % VENTANA_MUESTRAS;
+    if (!hayLectura || ventanaTime[i][pos] > ultimaLectura) ultimaLectura = ventanaTime[i][pos];
+    hayLectura = true;
+  }
+
+  JsonObject diag = doc["diag"].to<JsonObject>();
+  diag["reinicio"]             = (int) esp_reset_reason();
+  diag["cronometro"]           = ahoraLocal();
+  diag["seg_desde_lectura_ok"] = hayLectura ? (int32_t) (ahoraLocal() - ultimaLectura) : -1;
+  diag["fallos_inicio_sensor"] = fallosInicioSensor;
+  diag["lecturas_fallidas"]    = lecturasFallidas;
+  diag["en_rtc"]               = bufCantidad;
+  diag["segmentos_flash"]      = segSiguiente - segPrimero;
+  diag["fallos_contacto"]      = fallosContacto;
+  diag["rapidas_fallidas"]     = conexionesRapidasFallidas;
+  if (fallosContacto > 0) {
+    // 0 = no aplica: un fallo es de WiFi (motivo 802.11) o de HTTP (status, o <0 del cliente).
+    diag["motivo_fallo_wifi"] = motivoFalloWifi;
+    diag["codigo_fallo_http"] = codigoFalloHttp;
+    diag["alerta_pendiente"]  = alertaPendiente;
+  }
+  diag["reglas"]               = cantUmbrales;
+  diag["reloj_ppm"]            = relojPpm;
 }
 
 void aplicarConfiguracionesRespuestaApi(JsonDocument& respuesta) {
@@ -801,6 +870,10 @@ String isoUtc(uint32_t epoch) {
 void anclarHora(uint32_t epoch) {
   if (epoch < EPOCH_MIN) return;
 
+  if (anclaEpoch != 0 && (int32_t) (ahoraLocal() - anclaLocal) >= (int32_t) SEG_MIN_TRAMO) {
+    anclaPreviaEpoch = anclaEpoch;
+    anclaPreviaLocal = anclaLocal;
+  }
   anclaEpoch = epoch;
   anclaLocal = ahoraLocal();
   calibrarReloj();
@@ -858,8 +931,8 @@ void cargarRelojPpm() {
 }
 
 // Segundos locales a segundos reales.
-int64_t aReal(int64_t segLocales) {
-  return segLocales + segLocales * relojPpm / 1000000LL;
+int64_t aReal(int64_t segLocales, int32_t ppm) {
+  return segLocales + segLocales * ppm / 1000000LL;
 }
 
 // 0 = no se puede datar. Con signo a propósito: el ancla llega en la respuesta del
@@ -871,6 +944,17 @@ uint32_t epochDeLectura(uint32_t lecturaTime) {
   // Resta modular: una lectura anterior al power-on (o al wrap) sigue dando la edad correcta.
   int64_t epoch = (int64_t) anclaEpoch + aReal((int32_t) (lecturaTime - anclaLocal));
   return epoch > (int64_t) EPOCH_MIN ? (uint32_t) epoch : 0;
+}
+
+// Entre un ancla anterior y la actual se interpola: reparte el drift real del tramo
+// en vez del promedio aprendido, que en un corte largo se corre decenas de segundos.
+uint32_t epochEntre(uint32_t lecturaTime, uint32_t epoch0, uint32_t local0) {
+  int32_t tramo = (int32_t) (anclaLocal - local0);
+  int32_t edad  = (int32_t) (lecturaTime - local0);
+  if (anclaEpoch == 0 || epoch0 == 0 || tramo <= 0 || edad < 0 || edad > tramo) {
+    return epochDeLectura(lecturaTime);
+  }
+  return epoch0 + (uint32_t) (((int64_t) anclaEpoch - epoch0) * edad / tramo);
 }
 
 //-----------WIFI---------------
@@ -919,6 +1003,10 @@ ResultadoWifi conectarWifi(bool permitirPortal) {
   // pisar en NVS la credencial que guardó WiFiManager.
   esp_wifi_set_storage(WIFI_STORAGE_RAM);
 
+  WiFi.onEvent([](WiFiEvent_t, WiFiEventInfo_t info) {
+    ultimoMotivoDesconexion = info.wifi_sta_disconnected.reason;
+  }, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+
   uint32_t inicioMs = millis();
 
   if (red.valida) {
@@ -929,7 +1017,9 @@ ResultadoWifi conectarWifi(bool permitirPortal) {
       return WIFI_CONECTADO;
     }
     // Canal o AP cambiados (reinicio del router, mesh): se olvida y va la normal.
-    Serial.println("[WiFi] Falló la conexión rápida, se intenta la normal.");
+    Serial.printf("[WiFi] Falló la conexión rápida (motivo %u), se intenta la normal.\n",
+                  ultimoMotivoDesconexion);
+    conexionesRapidasFallidas++;
     red.valida = false;
     WiFi.disconnect(false, false);
     prepararConexionNormal();
@@ -943,9 +1033,35 @@ ResultadoWifi conectarWifi(bool permitirPortal) {
     return WIFI_CONECTADO;
   }
 
-  Serial.println("[WiFi] No se pudo conectar con las credenciales guardadas.");
+  // WiFi.SSID() sólo devuelve la red conectada; la guardada está en la config.
+  wifi_config_t conf;
+  esp_wifi_get_config(WIFI_IF_STA, &conf);
+  Serial.printf("[WiFi] No se pudo conectar a \"%s\": estado %d, motivo %u (%s)\n",
+                (const char*) conf.sta.ssid, (int) WiFi.status(), ultimoMotivoDesconexion,
+                WiFi.disconnectReasonName((wifi_err_reason_t) ultimoMotivoDesconexion));
+  registrarFallo(ultimoMotivoDesconexion, 0);
+
+  // Escanear cuesta ~2 s de radio: sólo en frío, que es cuando alguien mira el serial.
+  // Sin cortar el intento en curso y la reconexión automática, el escaneo aborta vacío.
+  if (permitirPortal) {
+    WiFi.setAutoReconnect(false);
+    WiFi.disconnect(false, false);
+    listarRedes();
+  }
+
   apagarWifi();
   return WIFI_FALLO;
+}
+
+void listarRedes() {
+  int16_t cantidad = WiFi.scanNetworks();
+  Serial.printf("[WiFi] %d redes visibles:\n", cantidad);
+  for (int16_t i = 0; i < cantidad; i++) {
+    Serial.printf("  %-32s canal %2ld  %4ld dBm  seguridad %d\n",
+                  WiFi.SSID(i).c_str(), (long) WiFi.channel(i), (long) WiFi.RSSI(i),
+                  (int) WiFi.encryptionType(i));
+  }
+  WiFi.scanDelete();
 }
 
 bool conectarRapido() {
@@ -1028,6 +1144,7 @@ bool leerSensores() {
 bool inicializarBMP085() {
   if (!bmp.begin(BMP085_ULTRAHIGHRES, &Wire)) {
     Serial.println("[ERROR] BMP085 no detectado. Verifica las conexiones.");
+    fallosInicioSensor++;
     return false;
   }
   return true;

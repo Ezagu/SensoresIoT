@@ -3,6 +3,20 @@
 Documento autocontenido para quien haga las pruebas con instrumental. No hace falta
 saber nada del firmware.
 
+## Estado
+
+- **22/09/2026 — resuelto: un pad medio desoldado del módulo del sensor.** Explicaba
+  todo lo de abajo (lecturas perfectas, NACK permanente, dos sensores fallando igual,
+  sólo revivía cortando la alimentación). La lista de descartes sigue valiendo.
+- **29/09/2026 — reapareció 3 h, sin reproducir todavía.** Minutos después de mover
+  el equipo de lugar (20:23 UTC) una misma lectura trajo temperatura buena y presión
+  fuera de rango; desde ahí, NACK en los 549 despertares siguientes (uno cada 20 s)
+  hasta que **volvió solo a las 23:24, sin cortar la alimentación**. El ESP no se
+  reinició: el cronómetro y el buffer siguieron corridos. Un sensor trabado no se
+  recupera solo; un contacto que se abre y se vuelve a cerrar sí, así que apunta de
+  nuevo al camino mecánico. Siguiente paso: la prueba 5 sobre el pad ya resoldado y
+  la bornera.
+
 ## El síntoma, medido
 
 El sensor (primero un AHT10, después un BMP180 — **los dos hacen lo mismo**) entrega
@@ -30,7 +44,9 @@ Queda: **la alimentación o el contacto del módulo del sensor.**
 
 PCB propia de AC Electrónica con módulo ESP32-WROOM. El sensor **no está sobre la
 placa**: cuelga de la bornera a tornillo rotulada `I2C-SDA=IO22 / 3.3V / GND /
-I2C-SCL=IO23` por un cable de 4 hilos de unos 20-30 cm que termina en un conector.
+I2C-SCL=IO23` por un cable de 4 hilos de **7 cm como mucho** que termina en un
+conector. Con ese largo la capacitancia del cable no es sospechosa: el eslabón débil
+es mecánico (bornera, conector, soldaduras).
 
 ## Pruebas, en orden
 
@@ -66,21 +82,23 @@ los pines I2C) y de cuánto son. Con el equipo desconectado, medir de SDA a VCC 
 SCL a VCC.
 
 Si **no tiene**, el bus funciona sólo con los pull-ups internos del ESP32, que son de
-unos 45 kΩ — insuficientes para 20-30 cm de cable. **Agregar 2,2 a 4,7 kΩ a 3,3 V en
+unos 45 kΩ — flojos para I2C incluso con cable corto. **Agregar 2,2 a 4,7 kΩ a 3,3 V en
 SDA y en SCL, lo más cerca posible del sensor.**
 
 ### 4. Desacople en el sensor
 
 Verificar que haya **100 nF entre VCC y GND pegados al módulo del sensor**, y de ser
-posible sumar 10 µF. Un sensor al final de un cable largo sin desacople local se
-hunde con su propio pico de corriente al convertir, que es compatible con "anda dos
+posible sumar 10 µF. Un sensor al final de un cable sin desacople local se hunde
+con su propio pico de corriente al convertir, que es compatible con "anda dos
 lecturas y se cae".
 
-### 5. Cable corto (la prueba que zanja)
+### 5. Movimiento con el equipo corriendo (la prueba que zanja)
 
-Conectar el sensor con **5-10 cm** directo a los pines, sin la bornera ni el cable
-largo. Si así aguanta indefinidamente, el problema está en ese camino y no en el
-sensor.
+Con `esp/diagnostico_bmp` corriendo y el monitor serie abierto, mover el cable,
+apretar el módulo, tocar los tornillos de la bornera y repetir el traslado que se
+hace al dejarlo midiendo. Un solo `NACK` mientras se mueve algo ubica el punto.
+Si no aparece, conectar el sensor soldado directo a los pines, sin bornera ni
+conector: si así aguanta indefinidamente, el problema está en ese camino.
 
 ### 6. De dónde sale el riel de 3,3 V del sensor
 

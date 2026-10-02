@@ -11,6 +11,9 @@ def create_medicion(
     background_tasks: BackgroundTasks,
     dispositivo: dict = Depends(get_dispositivo_autenticado)
 ):
+    if payload.diag:
+        print(f"[diag {dispositivo['id']}] mediciones={len(payload.mediciones)} {payload.diag}")
+
     respuesta, notificaciones = medicion_service.crear_medicion(
         payload.time, payload.mediciones, dispositivo["id"], dispositivo["rotacion_pendiente"],
         dispositivo["intervalo_configurado_seg"], dispositivo["first_connected_at"],
