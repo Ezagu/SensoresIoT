@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include "sensores/Modulo.h"
+#include "equipo/Bateria.h"
 
 // Dimensiona la ventana de muestras en RTC.
 const uint8_t MAX_SENSORES = 6;
@@ -18,6 +19,8 @@ struct Equipo {
 
   uint8_t pinSda;
   uint8_t pinScl;
+
+  MedidorBateria* bateria = nullptr;  // nullptr = alimentado sin batería
 };
 
 namespace equipo {

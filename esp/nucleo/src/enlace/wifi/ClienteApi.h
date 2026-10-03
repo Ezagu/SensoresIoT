@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "comun/Lote.h"
 #include "comun/Control.h"
-#include "comun/Diagnostico.h"
+#include "comun/Estado.h"
 
 // Contrato JSON con el backend: el único archivo que arma o lee JSON.
 namespace clienteApi {
@@ -17,7 +17,7 @@ struct DiagWifi {
 
 // true si el backend aceptó (200/201). Si falla, `codigoFallo` trae el del cliente HTTP
 // o el status; 0 = ni siquiera se pudo armar el cliente.
-bool postear(const char* apiBase, const Lote& lote, const Diagnostico& diag, const DiagWifi& wifi,
+bool postear(const char* apiBase, const Lote& lote, const Estado& estado, const DiagWifi& wifi,
              Respuesta& respuesta, bool& pideRotar, int16_t& codigoFallo);
 
 // Se autentica con el secret actual y guarda el nuevo.

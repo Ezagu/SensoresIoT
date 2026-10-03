@@ -21,14 +21,14 @@ bool EnlaceWifi::abrir(bool interactivo) {
   return resultado == WIFI_CONECTADO;
 }
 
-bool EnlaceWifi::enviar(const Lote& lote, const Diagnostico& diag, Respuesta& respuesta) {
+bool EnlaceWifi::enviar(const Lote& lote, const Estado& estado, Respuesta& respuesta) {
   if (secret::rotacionPendiente()) clienteApi::rotarSecret(config.apiBase);
 
   clienteApi::DiagWifi wifi = {conexionWifi::rapidasFallidas(), motivoFalloWifi, codigoFalloHttp};
   bool pideRotar = false;
   int16_t codigo = 0;
 
-  if (!clienteApi::postear(config.apiBase, lote, diag, wifi, respuesta, pideRotar, codigo)) {
+  if (!clienteApi::postear(config.apiBase, lote, estado, wifi, respuesta, pideRotar, codigo)) {
     if (codigo != 0) registrarFallo(0, codigo);
     return false;
   }

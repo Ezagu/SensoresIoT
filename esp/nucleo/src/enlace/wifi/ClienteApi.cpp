@@ -88,7 +88,7 @@ static void leerRespuesta(JsonDocument& json, Respuesta& r, bool& pideRotar) {
   }
 }
 
-bool postear(const char* apiBase, const Lote& lote, const Diagnostico& diag, const DiagWifi& wifi,
+bool postear(const char* apiBase, const Lote& lote, const Estado& estado, const DiagWifi& wifi,
              Respuesta& respuesta, bool& pideRotar, int16_t& codigoFallo) {
   codigoFallo = 0;
   pideRotar   = false;
@@ -97,7 +97,8 @@ bool postear(const char* apiBase, const Lote& lote, const Diagnostico& diag, con
   JsonDocument doc;
   JsonArray mediciones = doc["mediciones"].to<JsonArray>();
   for (uint16_t i = 0; i < lote.cantidad; i++) agregarPunto(mediciones, lote.puntos[i]);
-  agregarDiagnostico(doc, diag, wifi);
+  if (estado.bateriaPct >= 0) doc["bateria_pct"] = estado.bateriaPct;
+  agregarDiagnostico(doc, estado.diag, wifi);
 
   String payload;
   serializeJson(doc, payload);

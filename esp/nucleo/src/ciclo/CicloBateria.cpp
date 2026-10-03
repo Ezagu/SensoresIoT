@@ -9,6 +9,7 @@
 #include "almacenamiento/ColaFlash.h"
 #include "almacenamiento/Pendientes.h"
 #include "alertas/Umbrales.h"
+#include "comun/Reinicio.h"
 #include <esp_task_wdt.h>
 #include <esp_sleep.h>
 
@@ -18,17 +19,15 @@ static const uint32_t MS_WATCHDOG = 60000;
 // Piso para que un ciclo más largo que el intervalo no deje al equipo sin dormir.
 static const uint32_t MS_SUENO_MINIMO = 1000;
 
-// Backoff de contacto: desde el segundo fallo, 10 → 20 → 40 min, tope 1 h. No escala
-// con la cadencia: un intento fallido cuesta lo mismo, y sin red los datos se bufferizan.
-static const uint16_t BACKOFF_BASE_SEG = 600;
-static const uint16_t BACKOFF_MAX_SEG  = 3600;
-
 RTC_DATA_ATTR static int64_t proximoDespertarUs = 0;
 RTC_DATA_ATTR static uint8_t fallosContacto     = 0;
 
 // Un cruce que no pudo salir se reintenta en cada despertar: tras el primer fallo el
 // backoff es 0, desde el segundo lo frena como a cualquier contacto.
 RTC_DATA_ATTR static bool alertaPorEnviar = false;
+
+// Se lee una vez por contacto, antes de abrir el enlace: el ADC2 no lee con WiFi encendido.
+static int8_t bateriaPct = -1;
 
 static void armarWatchdog() {
   esp_task_wdt_config_t wdt = {};
@@ -66,16 +65,18 @@ static void dormir() {
   esp_deep_sleep_start();
 }
 
-// El primer fallo reintenta en la cadencia normal (casi siempre es transitorio).
-static uint16_t esperaBackoffSeg() {
+// El primer fallo reintenta en la cadencia normal (casi siempre es transitorio). No escala
+// con la cadencia: un intento fallido cuesta lo mismo, y sin red los datos se bufferizan.
+static uint16_t esperaBackoffSeg(const Enlace& enlace) {
+  PoliticaReintento p = enlace.politicaReintento();
   uint16_t espera = 0;
-  for (uint8_t i = 1; i < fallosContacto && espera < BACKOFF_MAX_SEG; i++) {
-    espera = espera ? espera * 2 : BACKOFF_BASE_SEG;
+  for (uint8_t i = 1; i < fallosContacto && espera < p.maxSeg; i++) {
+    espera = espera ? espera * 2 : p.baseSeg;
   }
-  return min(espera, BACKOFF_MAX_SEG);
+  return min(espera, p.maxSeg);
 }
 
-static void registrarResultado(bool ok) {
+static void registrarResultado(const Enlace& enlace, bool ok) {
   if (ok) {
     if (fallosContacto > 0) Serial.printf("[ESP] Contacto recuperado tras %u fallos\n", fallosContacto);
     fallosContacto = 0;
@@ -85,14 +86,15 @@ static void registrarResultado(bool ok) {
   }
 
   if (fallosContacto < UINT8_MAX) fallosContacto++;
-  uint16_t espera = esperaBackoffSeg();
+  uint16_t espera = esperaBackoffSeg(enlace);
   if (espera == 0) Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en la cadencia normal\n", fallosContacto);
   else             Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en %u min\n", fallosContacto, espera / 60);
 }
 
 static bool enviarLote(Enlace& enlace, const Lote& lote) {
   Respuesta respuesta;
-  if (!enlace.enviar(lote, diagnostico::armar(fallosContacto, alertaPorEnviar), respuesta)) return false;
+  Estado estado = {bateriaPct, diagnostico::armar(fallosContacto, alertaPorEnviar)};
+  if (!enlace.enviar(lote, estado, respuesta)) return false;
 
   planoControl::aplicar(respuesta);
   return true;
@@ -108,6 +110,9 @@ static bool enviarSiguiente(Enlace& enlace, Lote& lote) {
 
 // true si el backend aceptó al menos un lote.
 static bool contactar(Enlace& enlace, bool interactivo) {
+  MedidorBateria* bateria = equipo::actual().bateria;
+  bateriaPct = bateria ? bateria->porcentaje() : -1;
+
   if (!enlace.abrir(interactivo)) return false;
 
   Lote lote;
@@ -182,8 +187,8 @@ void cicloBateria(const Equipo& config, Enlace& enlace) {
   // hace falta el punto a publicar.
   bool muestreoContinuo = umbrales::cantidad() > 0;
 
-  Serial.printf("[ESP] Arranque %s | muestreo %s | envío %lu/%us | ancla %s | buffer %u | reloj %lu (%ld ppm) | fallidas %lu | fallos contacto %u\n",
-                arranqueFrio ? "FRÍO" : "timer", muestreoContinuo ? "continuo" : "al publicar",
+  Serial.printf("[ESP] Arranque %s (%s) | muestreo %s | envío %lu/%us | ancla %s | buffer %u | reloj %lu (%ld ppm) | fallidas %lu | fallos contacto %u\n",
+                arranqueFrio ? "FRÍO" : "timer", motivoReinicio(), muestreoContinuo ? "continuo" : "al publicar",
                 (unsigned long) cadencia::segDesdeEnvio(), cadencia::envioSeg(),
                 reloj::tieneAncla() ? "sí" : "NO", bufferLecturas::cantidad(),
                 (unsigned long) reloj::ahora(), (long) reloj::ppm(),
@@ -209,15 +214,15 @@ void cicloBateria(const Equipo& config, Enlace& enlace) {
   bool tocaHablar = tocaEnvio || tocaContacto || alertaPorEnviar;
 
   // El cruce en sí saltea el backoff: es justo lo que el cliente quiere enterarse ya.
-  bool enBackoff = fallosContacto > 0 && cadencia::segDesdeContacto() < esperaBackoffSeg();
+  bool enBackoff = fallosContacto > 0 && cadencia::segDesdeContacto() < esperaBackoffSeg(enlace);
 
   if (tocaHablar && enBackoff && !hayAlerta) {
     Serial.printf("[ESP] En backoff: próximo contacto en %lus\n",
-                  (unsigned long) (esperaBackoffSeg() - cadencia::segDesdeContacto()));
+                  (unsigned long) (esperaBackoffSeg(enlace) - cadencia::segDesdeContacto()));
   } else if (tocaHablar) {
     cadencia::reiniciarContacto();
     Serial.print("[ESP] Se debe contactar a la API\n");
-    registrarResultado(contactar(enlace, arranqueFrio));
+    registrarResultado(enlace, contactar(enlace, arranqueFrio));
   }
 
   if (bufferLecturas::cantidad() > 0 &&
