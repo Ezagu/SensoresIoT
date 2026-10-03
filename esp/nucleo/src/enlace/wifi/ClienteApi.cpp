@@ -1,26 +1,24 @@
-#include "api/ClienteApi.h"
+#include "enlace/wifi/ClienteApi.h"
+#include "enlace/wifi/Secret.h"
 #include "equipo/Equipo.h"
-#include "equipo/Secret.h"
 #include "reloj/Reloj.h"
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 
-namespace api {
+namespace clienteApi {
 
-static bool configurarCliente(HTTPClient& http, const String& endpoint) {
-  const Equipo& e = equipo::actual();
-
+static bool configurarCliente(HTTPClient& http, const char* apiBase, const String& endpoint) {
   http.setConnectTimeout(10000);
   http.setTimeout(10000);
   http.setReuse(false);
 
-  if (!http.begin(String(e.apiBase) + endpoint)) {
+  if (!http.begin(String(apiBase) + endpoint)) {
     Serial.println("[ERROR] Error al iniciar cliente HTTP");
     return false;
   }
 
   http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Dispositivo-Id", e.dispositivoId);
+  http.addHeader("X-Dispositivo-Id", equipo::actual().dispositivoId);
   http.addHeader("Authorization", String("Bearer ") + secret::actual());
 
   return true;
@@ -44,7 +42,7 @@ static void agregarPunto(JsonArray& mediciones, const PuntoFechado& p) {
   if (p.epoch != 0) punto["time"] = reloj::isoUtc(p.epoch);
 }
 
-static void agregarDiagnostico(JsonDocument& doc, const Diagnostico& d) {
+static void agregarDiagnostico(JsonDocument& doc, const Diagnostico& d, const DiagWifi& w) {
   JsonObject diag = doc["diag"].to<JsonObject>();
   diag["reinicio"]             = d.reinicio;
   diag["cronometro"]           = d.cronometro;
@@ -54,23 +52,25 @@ static void agregarDiagnostico(JsonDocument& doc, const Diagnostico& d) {
   diag["en_rtc"]               = d.enRtc;
   diag["segmentos_flash"]      = d.segmentosFlash;
   diag["fallos_contacto"]      = d.fallosContacto;
-  diag["rapidas_fallidas"]     = d.rapidasFallidas;
+  diag["rapidas_fallidas"]     = w.rapidasFallidas;
   if (d.fallosContacto > 0) {
     // 0 = no aplica: un fallo es de WiFi (motivo 802.11) o de HTTP (status, o <0 del cliente).
-    diag["motivo_fallo_wifi"] = d.motivoFalloWifi;
-    diag["codigo_fallo_http"] = d.codigoFalloHttp;
+    diag["motivo_fallo_wifi"] = w.motivoFalloWifi;
+    diag["codigo_fallo_http"] = w.codigoFalloHttp;
     diag["alerta_pendiente"]  = d.alertaPendiente;
   }
   diag["reglas"]               = d.reglas;
   diag["reloj_ppm"]            = d.relojPpm;
 }
 
-static void leerRespuesta(JsonDocument& json, RespuestaApi& r) {
+static void leerRespuesta(JsonDocument& json, Respuesta& r, bool& pideRotar) {
   r.serverEpoch          = json["server_epoch"] | 0;
   r.intervaloEnvioSeg    = json["intervalo_sugerido_seg"] | 0;
   r.intervaloContactoSeg = json["intervalo_contacto_seg"] | 0;
-  r.rotarSecret          = json["rotar_secret"] | false;
+  pideRotar              = json["rotar_secret"] | false;
 
+  // El backend manda siempre la lista de umbrales, vacía incluida.
+  r.hayReglas  = true;
   r.cantReglas = 0;
   for (JsonObject item : json["umbrales"].as<JsonArray>()) {
     if (r.cantReglas == MAX_UMBRALES) break;
@@ -88,23 +88,24 @@ static void leerRespuesta(JsonDocument& json, RespuestaApi& r) {
   }
 }
 
-bool postear(const PuntoFechado* puntos, uint16_t cantidad, const Diagnostico& diag,
-             RespuestaApi& respuesta, int16_t& codigoFallo) {
+bool postear(const char* apiBase, const Lote& lote, const Diagnostico& diag, const DiagWifi& wifi,
+             Respuesta& respuesta, bool& pideRotar, int16_t& codigoFallo) {
   codigoFallo = 0;
-  respuesta.valida = false;
+  pideRotar   = false;
+  respuesta   = Respuesta();
 
   JsonDocument doc;
   JsonArray mediciones = doc["mediciones"].to<JsonArray>();
-  for (uint16_t i = 0; i < cantidad; i++) agregarPunto(mediciones, puntos[i]);
-  agregarDiagnostico(doc, diag);
+  for (uint16_t i = 0; i < lote.cantidad; i++) agregarPunto(mediciones, lote.puntos[i]);
+  agregarDiagnostico(doc, diag, wifi);
 
   String payload;
   serializeJson(doc, payload);
   HTTPClient http;
 
-  if (!configurarCliente(http, "/mediciones/")) return false;
+  if (!configurarCliente(http, apiBase, "/mediciones/")) return false;
 
-  Serial.printf("[HTTP] POST con %u mediciones\n", cantidad);
+  Serial.printf("[HTTP] POST con %u mediciones\n", lote.cantidad);
 
   int httpCode = http.POST(payload);
   bool ok = false;
@@ -120,7 +121,7 @@ bool postear(const PuntoFechado* puntos, uint16_t cantidad, const Diagnostico& d
 
     JsonDocument json;
     if (leerJson(http, json)) {
-      leerRespuesta(json, respuesta);
+      leerRespuesta(json, respuesta, pideRotar);
       respuesta.valida = true;
     }
   }
@@ -129,9 +130,9 @@ bool postear(const PuntoFechado* puntos, uint16_t cantidad, const Diagnostico& d
   return ok;
 }
 
-bool rotarSecret() {
+bool rotarSecret(const char* apiBase) {
   HTTPClient http;
-  if (!configurarCliente(http, "/dispositivos/rotate-secret")) return false;
+  if (!configurarCliente(http, apiBase, "/dispositivos/rotate-secret")) return false;
 
   Serial.println("[CONFIG] Rotando secret...");
 

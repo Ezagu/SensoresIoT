@@ -12,19 +12,24 @@ ModuloAHT10 aht(SENSOR_TEMP, SENSOR_HUM);
 Modulo* const MODULOS[] = {&aht};
 
 const Equipo EQUIPO = {
-  .apiBase       = "http://192.168.1.4:8000",
   .dispositivoId = "5e97ef75-0c52-49de-a4c7-457a4320db0e",
-  .secretInicial = "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a",
   .sensorIds     = SENSOR_IDS,
   .cantSensores  = CANT_SENSORES,
   .modulos       = MODULOS,
   .cantModulos   = sizeof(MODULOS) / sizeof(MODULOS[0]),
   .pinSda        = 22,
   .pinScl        = 23,
+};
+
+const ConfigWifi CONFIG_WIFI = {
+  .apiBase       = "http://192.168.1.4:8000",
+  .secretInicial = "dd98c353a5d1cd98db082de10b724b67965f2f095e9709566d9a93fd5a06358a",
   .apNombre      = "SensoresIoT-AC-Electrónica",
   .apPassword    = "sensores2026",
 };
 
-void setup() { cicloBateria(EQUIPO); }
+EnlaceWifi enlace(CONFIG_WIFI);
+
+void setup() { cicloBateria(EQUIPO, enlace); }
 
 void loop() {}

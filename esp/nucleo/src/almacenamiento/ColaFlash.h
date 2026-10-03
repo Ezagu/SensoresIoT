@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "almacenamiento/Punto.h"
+#include "comun/Lote.h"
 
 // Cola de archivos /cola/NNNNNNNN en LittleFS (partición spiffs de huge_app).
 // Sin conexión, lo que lleva más de SEG_VOLCADO en RTC pasa acá: acota lo que se
@@ -10,13 +10,6 @@
 namespace colaFlash {
 
 const uint32_t SEG_VOLCADO = 1800;
-
-struct LoteFlash {
-  PuntoFechado puntos[MAX_POR_ENVIO];
-  uint16_t cantidad;
-  uint16_t leidas;
-  bool     finDelSegmento;
-};
 
 // Un power-on reinicia el cronómetro; el watchdog no. Sin sesión vigente, lo volcado
 // sólo se puede fechar desde el ancla de su cabecera.
@@ -30,9 +23,10 @@ uint32_t segmentos();
 uint32_t descartadasSinFecha();
 uint32_t perdidasPorFlashLlena();
 
+// Llena `lote` con hasta `max` lecturas ya fechadas del segmento más viejo.
 // 1 = hay lote, 0 = flash no montable, -1 = no había nada para mandar en este tramo.
-int8_t leerLote(LoteFlash& lote);
-// Tras un 2xx.
-void confirmarLote(const LoteFlash& lote);
+int8_t leerLote(Lote& lote, uint16_t max);
+// Avanza sobre lo que leyó el último leerLote; llamar tras un 2xx.
+void confirmarLote();
 
 }

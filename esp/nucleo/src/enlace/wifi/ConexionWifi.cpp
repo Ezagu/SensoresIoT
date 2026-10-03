@@ -1,5 +1,4 @@
-#include "red/ConexionWifi.h"
-#include "equipo/Equipo.h"
+#include "enlace/wifi/ConexionWifi.h"
 #include "reloj/Reloj.h"
 #include <WiFi.h>
 #include <WiFiManager.h>
@@ -39,15 +38,14 @@ void apagar() {
   WiFi.mode(WIFI_OFF);
 }
 
-static ResultadoWifi abrirPortal(WiFiManager& wm) {
-  const Equipo& e = equipo::actual();
+static ResultadoWifi abrirPortal(WiFiManager& wm, const char* apNombre, const char* apPassword) {
   wm.setConfigPortalTimeout(TIMEOUT_PORTAL_SEG);
 
-  Serial.printf("[WiFi] Portal abierto. Red: %s | IP: 192.168.4.1\n", e.apNombre);
+  Serial.printf("[WiFi] Portal abierto. Red: %s | IP: 192.168.4.1\n", apNombre);
 
   // El portal bloquea hasta 10 min: el watchdog reiniciaría en plena configuración.
   esp_task_wdt_delete(NULL);
-  bool configurado = wm.startConfigPortal(e.apNombre, e.apPassword);
+  bool configurado = wm.startConfigPortal(apNombre, apPassword);
   esp_task_wdt_add(NULL);
 
   if (configurado) {
@@ -127,7 +125,7 @@ static void prepararConexionNormal() {
   esp_wifi_set_config(WIFI_IF_STA, &conf);
 }
 
-ResultadoWifi conectar(bool permitirPortal) {
+ResultadoWifi conectar(bool permitirPortal, const char* apNombre, const char* apPassword) {
   WiFi.mode(WIFI_STA);
   WiFiManager wm;
 
@@ -137,7 +135,7 @@ ResultadoWifi conectar(bool permitirPortal) {
       apagar();
       return WIFI_SIN_CREDENCIALES;
     }
-    return abrirPortal(wm);
+    return abrirPortal(wm, apNombre, apPassword);
   }
 
   // Sólo RAM: la config con canal/BSSID es de este despertar y no tiene que

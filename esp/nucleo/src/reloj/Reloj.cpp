@@ -52,6 +52,10 @@ int32_t segDesdeAncla() {
   return (int32_t) (ahora() - localAncla);
 }
 
+bool anclaVencida() {
+  return epochAncla == 0 || segDesdeAncla() >= (int32_t) SEG_MIN_CALIBRACION;
+}
+
 static void guardarPpm() {
   Preferences p;
   p.begin("reloj", false);

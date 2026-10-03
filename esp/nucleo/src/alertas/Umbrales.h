@@ -1,18 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-
-const uint8_t MAX_UMBRALES = 8;
-
-// Regla tal como la manda el backend; `disparada` es su estado inicial.
-struct ReglaRecibida {
-  uint8_t sensorIdx;
-  bool    mayor;
-  float   umbral;
-  float   histeresis;
-  uint8_t cantMuestras;
-  bool    disparada;
-};
+#include "comun/Control.h"
 
 // El equipo adelanta un cruce, pero es un disparador de envío, no un motor de alertas:
 // no notifica ni decide nada, `evaluar_batch` del backend sigue siendo la única verdad.

@@ -6,11 +6,9 @@
 // Dimensiona la ventana de muestras en RTC.
 const uint8_t MAX_SENSORES = 6;
 
-// Lo único que cambia por pedido y por placa.
+// Identidad y hardware del equipo. Lo del enlace (API, secret, WiFi) va en su config.
 struct Equipo {
-  const char* apiBase;
   const char* dispositivoId;
-  const char* secretInicial;
 
   const char* const* sensorIds;  // índice → UUID del sensor
   uint8_t cantSensores;
@@ -20,9 +18,6 @@ struct Equipo {
 
   uint8_t pinSda;
   uint8_t pinScl;
-
-  const char* apNombre;
-  const char* apPassword;
 };
 
 namespace equipo {

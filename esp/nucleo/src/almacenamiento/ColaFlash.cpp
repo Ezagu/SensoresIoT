@@ -32,6 +32,10 @@ RTC_NOINIT_ATTR static uint32_t sesionActual;
 
 static bool flashMontada = false;
 
+// Lo que leyó el último leerLote, para que confirmarLote avance sobre eso.
+static uint16_t leidasServidas = 0;
+static bool     finServido     = false;
+
 uint32_t segmentos()              { return segSiguiente - segPrimero; }
 uint32_t descartadasSinFecha()    { return sinFecha; }
 uint32_t perdidasPorFlashLlena()  { return flashLlena; }
@@ -196,7 +200,7 @@ static uint32_t epochDeFlash(const Lectura& l, const CabeceraSegmento& cab) {
   return epoch > (int64_t) reloj::EPOCH_MIN ? (uint32_t) epoch : 0;
 }
 
-int8_t leerLote(LoteFlash& lote) {
+int8_t leerLote(Lote& lote, uint16_t max) {
   if (!montar()) return 0;
 
   File f = LittleFS.open(rutaSegmento(segPrimero), "r");
@@ -217,7 +221,7 @@ int8_t leerLote(LoteFlash& lote) {
   uint16_t leidas = 0;
   Lectura l;
 
-  while (lote.cantidad < MAX_POR_ENVIO && f.read((uint8_t*) &l, sizeof(l)) == sizeof(l)) {
+  while (lote.cantidad < max && f.read((uint8_t*) &l, sizeof(l)) == sizeof(l)) {
     leidas++;
     uint32_t epoch = epochDeFlash(l, cab);
     if (epoch == 0) {
@@ -226,20 +230,20 @@ int8_t leerLote(LoteFlash& lote) {
     }
     lote.puntos[lote.cantidad++] = {l.sensorIdx, l.value, epoch};
   }
-  lote.leidas         = leidas;
-  lote.finDelSegmento = f.available() == 0;
+  leidasServidas = leidas;
+  finServido     = f.available() == 0;
   f.close();
 
   if (lote.cantidad == 0) {
-    confirmarLote(lote);
+    confirmarLote();
     return -1;
   }
   return 1;
 }
 
-void confirmarLote(const LoteFlash& lote) {
-  offsetLectura += lote.leidas;
-  if (lote.finDelSegmento) borrarSegmentoPrimero();
+void confirmarLote() {
+  offsetLectura += leidasServidas;
+  if (finServido) borrarSegmentoPrimero();
 }
 
 }

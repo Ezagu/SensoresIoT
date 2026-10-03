@@ -13,7 +13,7 @@ namespace conexionWifi {
 
 // El portal sólo se abre con `permitirPortal` (arranque en frío): abrirlo en cada
 // despertar serían 10 min de AP encendido cada 20 s.
-ResultadoWifi conectar(bool permitirPortal);
+ResultadoWifi conectar(bool permitirPortal, const char* apNombre, const char* apPassword);
 void apagar();
 
 // Causa del último fallo de asociación (motivo 802.11), para el diag.

@@ -4,7 +4,7 @@
 
 namespace secret {
 
-void cargar();
+void cargar(const char* secretInicial);
 const String& actual();
 bool guardar(const String& nuevo);
 

@@ -4,4 +4,6 @@
 // (sensores/BMP085.h, sensores/AHT10.h).
 #include "equipo/Equipo.h"
 #include "sensores/Modulo.h"
+#include "enlace/Enlace.h"
+#include "enlace/EnlaceWifi.h"
 #include "ciclo/CicloBateria.h"

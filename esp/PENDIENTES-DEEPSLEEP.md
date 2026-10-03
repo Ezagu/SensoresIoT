@@ -2,11 +2,12 @@
 
 El código vive en la librería `esp/nucleo/` (ver CLAUDE.md, sección Firmware); acá las
 funciones se citan por su nombre de antes de la modularización. Dónde quedó cada una:
-`reloj/Reloj` (cronómetro, anclas, drift), `almacenamiento/BufferLecturas` y `ColaFlash`
-(buffer RTC y flash), `sensores/Muestras` (ventana y mediana), `alertas/Umbrales`
-(`empuja()`), `red/ConexionWifi`, `api/ClienteApi` (todo el JSON) y `api/Contacto`
-(drenaje, backoff), `ciclo/CicloBateria` (`setup()` y `dormir()`). Los sketches
-`prueba_bmp/` y `prueba_aht10/` sólo declaran el `Equipo`.
+`reloj/Reloj` (cronómetro, anclas, drift), `almacenamiento/BufferLecturas`, `ColaFlash` y
+`Pendientes` (buffer RTC, flash y el orden de drenaje), `sensores/Muestras` (ventana y
+mediana), `alertas/Umbrales` (`empuja()`), `enlace/EnlaceWifi` (con `wifi/ConexionWifi`,
+`ClienteApi` = todo el JSON y `Secret`), `ciclo/CicloBateria` (`setup()`, `dormir()`,
+backoff y bucle de drenaje) y `ciclo/PlanoControl`. Los sketches `prueba_bmp/` y
+`prueba_aht10/` sólo componen `Equipo` + `ConfigWifi`.
 
 Estado: **P0 cerrado y corriendo en placa.** Validados en placa: ciclo de sueño,
 backoff, conexión rápida, drenaje en lotes, drift (p), volcado a flash (l) y

@@ -1,13 +1,14 @@
 #include "ciclo/CicloBateria.h"
+#include "ciclo/Diagnostico.h"
+#include "ciclo/PlanoControl.h"
 #include "equipo/Cadencia.h"
-#include "equipo/Secret.h"
 #include "reloj/Reloj.h"
 #include "sensores/Sensores.h"
 #include "sensores/Muestras.h"
 #include "almacenamiento/BufferLecturas.h"
 #include "almacenamiento/ColaFlash.h"
+#include "almacenamiento/Pendientes.h"
 #include "alertas/Umbrales.h"
-#include "api/Contacto.h"
 #include <esp_task_wdt.h>
 #include <esp_sleep.h>
 
@@ -17,7 +18,17 @@ static const uint32_t MS_WATCHDOG = 60000;
 // Piso para que un ciclo más largo que el intervalo no deje al equipo sin dormir.
 static const uint32_t MS_SUENO_MINIMO = 1000;
 
+// Backoff de contacto: desde el segundo fallo, 10 → 20 → 40 min, tope 1 h. No escala
+// con la cadencia: un intento fallido cuesta lo mismo, y sin red los datos se bufferizan.
+static const uint16_t BACKOFF_BASE_SEG = 600;
+static const uint16_t BACKOFF_MAX_SEG  = 3600;
+
 RTC_DATA_ATTR static int64_t proximoDespertarUs = 0;
+RTC_DATA_ATTR static uint8_t fallosContacto     = 0;
+
+// Un cruce que no pudo salir se reintenta en cada despertar: tras el primer fallo el
+// backoff es 0, desde el segundo lo frena como a cualquier contacto.
+RTC_DATA_ATTR static bool alertaPorEnviar = false;
 
 static void armarWatchdog() {
   esp_task_wdt_config_t wdt = {};
@@ -55,7 +66,88 @@ static void dormir() {
   esp_deep_sleep_start();
 }
 
-void cicloBateria(const Equipo& config) {
+// El primer fallo reintenta en la cadencia normal (casi siempre es transitorio).
+static uint16_t esperaBackoffSeg() {
+  uint16_t espera = 0;
+  for (uint8_t i = 1; i < fallosContacto && espera < BACKOFF_MAX_SEG; i++) {
+    espera = espera ? espera * 2 : BACKOFF_BASE_SEG;
+  }
+  return min(espera, BACKOFF_MAX_SEG);
+}
+
+static void registrarResultado(bool ok) {
+  if (ok) {
+    if (fallosContacto > 0) Serial.printf("[ESP] Contacto recuperado tras %u fallos\n", fallosContacto);
+    fallosContacto = 0;
+    // Un drenaje cortado a mitad puede haber dejado las crudas del cruce en el buffer.
+    alertaPorEnviar = alertaPorEnviar && pendientes::hay();
+    return;
+  }
+
+  if (fallosContacto < UINT8_MAX) fallosContacto++;
+  uint16_t espera = esperaBackoffSeg();
+  if (espera == 0) Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en la cadencia normal\n", fallosContacto);
+  else             Serial.printf("[ESP] Contacto fallido (%u seguidos), reintento en %u min\n", fallosContacto, espera / 60);
+}
+
+static bool enviarLote(Enlace& enlace, const Lote& lote) {
+  Respuesta respuesta;
+  if (!enlace.enviar(lote, diagnostico::armar(fallosContacto, alertaPorEnviar), respuesta)) return false;
+
+  planoControl::aplicar(respuesta);
+  return true;
+}
+
+static bool enviarSiguiente(Enlace& enlace, Lote& lote) {
+  if (!pendientes::siguiente(lote, enlace.maxPuntos())) return false;
+  if (!enviarLote(enlace, lote)) return false;
+
+  pendientes::confirmar();
+  return true;
+}
+
+// true si el backend aceptó al menos un lote.
+static bool contactar(Enlace& enlace, bool interactivo) {
+  if (!enlace.abrir(interactivo)) return false;
+
+  Lote lote;
+
+  // La hora llega en la respuesta: un lote vacío (no escribe filas) la trae antes de
+  // vaciar. Sin ancla, lo pendiente saldría sin fecha; tras un corte, cierra el tramo
+  // entre el ancla de antes y ésta, sobre el que se interpola lo acumulado.
+  if ((reloj::anclaVencida() || pendientes::enFlash()) && pendientes::hay()) {
+    lote.cantidad = 0;
+    if (!enviarLote(enlace, lote)) {
+      enlace.cerrar();
+      return false;
+    }
+  }
+
+  uint32_t inicioMs = millis();
+  uint16_t lotesEnviados = 0;
+
+  // El primer lote sale siempre: sin nada pendiente es el heartbeat.
+  bool ok = enviarSiguiente(enlace, lote);
+  if (ok) lotesEnviados++;
+
+  while (ok && pendientes::hayParaEnviar()) {
+    esp_task_wdt_reset();
+    ok = enviarSiguiente(enlace, lote);
+    if (ok) lotesEnviados++;
+  }
+
+  Serial.printf("[ESP] Drenaje: %u lotes, restantes %u en RTC y %lu segmentos en flash, %lums"
+                " | descartadas sin fecha %lu, perdidas por flash llena %lu\n",
+                lotesEnviados, bufferLecturas::cantidad(), (unsigned long) colaFlash::segmentos(),
+                (unsigned long) (millis() - inicioMs),
+                (unsigned long) colaFlash::descartadasSinFecha(),
+                (unsigned long) colaFlash::perdidasPorFlashLlena());
+
+  enlace.cerrar();
+  return lotesEnviados > 0;
+}
+
+void cicloBateria(const Equipo& config, Enlace& enlace) {
   // 80 MHz alcanza para leer un I2C y armar un JSON, y a batería cada segundo
   // despierto es consumo. Antes de Serial.begin(): cambiar el clock recalcula el
   // baudrate.
@@ -72,6 +164,7 @@ void cicloBateria(const Equipo& config) {
   // Un power-on devuelve UNDEFINED, así que esto cubre power-on, reset y botón.
   bool arranqueFrio = esp_sleep_get_wakeup_cause() != ESP_SLEEP_WAKEUP_TIMER;
 
+  // Indica a los contadores que pasó un nuevo ciclo
   cadencia::avanzar();
 
   if (arranqueFrio) {
@@ -94,7 +187,7 @@ void cicloBateria(const Equipo& config) {
                 (unsigned long) cadencia::segDesdeEnvio(), cadencia::envioSeg(),
                 reloj::tieneAncla() ? "sí" : "NO", bufferLecturas::cantidad(),
                 (unsigned long) reloj::ahora(), (long) reloj::ppm(),
-                (unsigned long) sensores::lecturasFallidas(), contacto::fallosSeguidos());
+                (unsigned long) sensores::lecturasFallidas(), fallosContacto);
 
   // Sin sensor no tiene sentido gastar los ~30 ms de conversión en leer basura que
   // enRango() va a descartar igual. El ciclo sigue: el heartbeat mueve last_seen_at
@@ -102,7 +195,7 @@ void cicloBateria(const Equipo& config) {
   bool tocaMuestrear = arranqueFrio || muestreoContinuo || tocaEnvio;
   if (tocaMuestrear && sensores::iniciar()) {
     if (arranqueFrio || !muestreoContinuo) sensores::primar();
-    else                                   sensores::leer();
+    else sensores::leer();
   }
 
   bool hayAlerta = umbrales::chequear();
@@ -112,18 +205,19 @@ void cicloBateria(const Equipo& config) {
     cadencia::reiniciarEnvio();
   }
 
-  if (hayAlerta) contacto::marcarAlerta();
-  bool tocaHablar = tocaEnvio || tocaContacto || contacto::alertaPendiente();
+  if (hayAlerta) alertaPorEnviar = true;
+  bool tocaHablar = tocaEnvio || tocaContacto || alertaPorEnviar;
 
   // El cruce en sí saltea el backoff: es justo lo que el cliente quiere enterarse ya.
-  if (tocaHablar && contacto::enBackoff() && !hayAlerta) {
+  bool enBackoff = fallosContacto > 0 && cadencia::segDesdeContacto() < esperaBackoffSeg();
+
+  if (tocaHablar && enBackoff && !hayAlerta) {
     Serial.printf("[ESP] En backoff: próximo contacto en %lus\n",
-                  (unsigned long) contacto::segHastaReintento());
+                  (unsigned long) (esperaBackoffSeg() - cadencia::segDesdeContacto()));
   } else if (tocaHablar) {
     cadencia::reiniciarContacto();
     Serial.print("[ESP] Se debe contactar a la API\n");
-    secret::cargar();
-    contacto::contactar(arranqueFrio);
+    registrarResultado(contactar(enlace, arranqueFrio));
   }
 
   if (bufferLecturas::cantidad() > 0 &&

@@ -19,6 +19,8 @@ String isoUtc(uint32_t epoch);
 // La hora sale de la respuesta del backend, no de SNTP.
 void anclar(uint32_t epoch);
 bool tieneAncla();
+// Sin ancla o con una de más de SEG_MIN_CALIBRACION: conviene pedir la hora antes de drenar.
+bool anclaVencida();
 uint32_t anclaEpoch();
 uint32_t anclaLocal();
 int32_t segDesdeAncla();

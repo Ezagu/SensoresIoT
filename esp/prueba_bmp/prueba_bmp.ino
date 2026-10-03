@@ -12,19 +12,24 @@ ModuloBMP085 bmp(SENSOR_TEMP, SENSOR_PRESS);
 Modulo* const MODULOS[] = {&bmp};
 
 const Equipo EQUIPO = {
-  .apiBase       = "http://192.168.1.4:8000",
   .dispositivoId = "6e4eb952-cdb1-4507-9194-329ccbdafa1b",  // Dispositivo BMP
-  .secretInicial = "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372",
   .sensorIds     = SENSOR_IDS,
   .cantSensores  = CANT_SENSORES,
   .modulos       = MODULOS,
   .cantModulos   = sizeof(MODULOS) / sizeof(MODULOS[0]),
   .pinSda        = 22,
   .pinScl        = 23,
+};
+
+const ConfigWifi CONFIG_WIFI = {
+  .apiBase       = "http://192.168.1.4:8000",
+  .secretInicial = "8c156fa2f6ba737419340ed70c49357964abd307db82b715740e4b63404f3372",
   .apNombre      = "SensoresIoT-AC-Electrónica",
   .apPassword    = "sensores2026",
 };
 
-void setup() { cicloBateria(EQUIPO); }
+EnlaceWifi enlace(CONFIG_WIFI);
+
+void setup() { cicloBateria(EQUIPO, enlace); }
 
 void loop() {}
