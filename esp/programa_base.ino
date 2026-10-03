@@ -548,7 +548,9 @@ void aplicarUmbrales(JsonArray recibidos) {
     u.umbral       = item["umbral"] | 0.0f;
     u.histeresis   = item["histeresis"] | 0.0f;
     u.muestras     = item["muestras"] | MUESTRAS_MEDIANA;
-    u.cruzado      = false;
+    // Sólo para una regla nueva: la conocida conserva el estado local, que puede ir
+    // adelante del servidor mientras confirma un cruce.
+    u.cruzado      = item["disparada"] | false;
     u.consecutivos = 0;
 
     if (u.muestras < 1) u.muestras = 1;

@@ -1,7 +1,18 @@
-# prueba.ino — modo deep sleep
+# prueba_bmp — modo deep sleep
 
-Estado: **P0 cerrado, compila.** Falta probarlo sobre hardware real (ver 4).
-Sólo software; lo de hardware va aparte.
+El código vive en la librería `esp/nucleo/` (ver CLAUDE.md, sección Firmware); acá las
+funciones se citan por su nombre de antes de la modularización. Dónde quedó cada una:
+`reloj/Reloj` (cronómetro, anclas, drift), `almacenamiento/BufferLecturas`, `ColaFlash` y
+`Pendientes` (buffer RTC, flash y el orden de drenaje), `sensores/Muestras` (ventana y
+mediana), `alertas/Umbrales` (`empuja()`), `enlace/EnlaceWifi` (con `wifi/ConexionWifi`,
+`ClienteApi` = todo el JSON y `Secret`), `ciclo/CicloBateria` (`setup()`, `dormir()`,
+backoff y bucle de drenaje) y `ciclo/PlanoControl`. Los sketches `prueba_bmp/` y
+`prueba_aht10/` sólo componen `Equipo` + `ConfigWifi`.
+
+Estado: **P0 cerrado y corriendo en placa.** Validados en placa: ciclo de sueño,
+backoff, conexión rápida, drenaje en lotes, drift (p), volcado a flash (l) y
+muestreo condicional (m). Lo que falta está en 2 y 4; lo de hardware, en
+`DIAGNOSTICO-HARDWARE.md`.
 
 La arquitectura es la misma de siempre: `setup()` es el ciclo entero, el estado
 vive en `RTC_DATA_ATTR`, las cadencias se cuentan en ciclos de muestreo y
@@ -144,21 +155,54 @@ secrets durante una rotación, así que el orden es seguro.
 
 ### P1 — autonomía y robustez
 
-**g. Backoff exponencial en el reintento de WiFi.** `waitForConnectResult(10000)`
-son 10 s de radio a ~120 mA sin traer un dato: un equipo fuera de cobertura
-consume más que uno conectado y se vacía en días. Si falla: 10 → 20 → 40 min,
-tope 1 h. El muestreo y el buffer **no** se espacian — el corte es justo lo que
-el cliente va a querer reconstruir.
+**g. Backoff exponencial en el reintento de WiFi.** ✅ en `prueba_bmp.ino`.
+`waitForConnectResult(10000)` son 10 s de radio a ~120 mA sin traer un dato: un
+equipo fuera de cobertura consume más que uno conectado y se vacía en días. Si
+falla: 10 → 20 → 40 min, tope 1 h. El muestreo y el buffer **no** se espacian — el
+corte es justo lo que el cliente va a querer reconstruir.
+- **No escala con la cadencia de envío, a propósito.** El costo de un intento
+  fallido es fijo (~1200 mA·s) y sin red los datos se bufferizan igual. Sin backoff
+  un equipo de 1 min duraría ~4 días sin red; con tope 1 h, ~77 días
+  cualquiera sea su cadencia.
+- **El primer fallo reintenta en la cadencia normal**: casi siempre es
+  transitorio y 10 min de hueco por un reinicio del router no se justifican. El
+  backoff arranca en el segundo fallo seguido.
+- El tope es la palanca contra la ventana de 15 min de «sin reportar»: con 1 h, el
+  mail de recuperación puede llegar hasta 1 h tarde. Con 30 min, ~58 días sin red.
+- Cuenta como fallo cualquier contacto sin un 2xx, WiFi o backend: los dos gastan
+  radio sin traer nada. Un cruce de umbral saltea el backoff.
+- **Un cruce que no pudo salir queda pendiente** (`alertaPendiente`) y se reintenta
+  en el despertar siguiente (20 s), no en la próxima publicación: visto el 29/9, un
+  POST adelantado fallido hizo esperar 5 min a la alerta. Como tras el primer fallo
+  el backoff es 0, el segundo fallo ya lo frena sin lógica aparte.
+- El `diag` lleva la causa del último fallo (`motivo_fallo_wifi` 802.11 o
+  `codigo_fallo_http`) y `rapidas_fallidas`, el contador de conexiones rápidas que
+  cayeron a la normal.
+- `fallosContacto` es `RTC_DATA_ATTR`, así que un arranque en frío lo resetea y
+  reintenta ya (ver o).
 
-**h. Conexión rápida.** Guardar canal, BSSID e IP en RTC y usar
-`WiFi.begin(ssid, pass, canal, bssid)` + `WiFi.config(...)`. Baja la conexión de
-~5 s a ~1,5 s: la mejor relación esfuerzo/autonomía del firmware (~+40 %).
-Fallback a la conexión normal tras dos fallos seguidos. Es además lo que corre el
-punto de equilibrio de 3.a de 30 s a ~12 s.
+**h. Conexión rápida.** ✅ en `prueba_bmp.ino`. **Medido en placa: 3406 ms la
+normal, 206 ms la rápida con IP fija** — 16×, mucho mejor que el ~1,5 s estimado.
+Un despertar con contacto bajó de ~3,8 s a **630 ms** (POST incluido). Con eso el
+contacto deja de ser el 71 % del consumo de 3.b y el despertar de muestreo
+(116 ms cada 20 s) pasa a ser lo más caro: ver m. El equilibrio de 3.a cae a ~4 s,
+así que dormir gana con más margen todavía.
+- Canal, BSSID e IP en `RTC_DATA_ATTR` (`RedConocida`), grabados tras una conexión
+  normal exitosa.
+- **La config con canal/BSSID va sólo a RAM** (`esp_wifi_set_storage(WIFI_STORAGE_RAM)`),
+  no vía `WiFi.begin(ssid, pass, canal, bssid)`: ése la escribe en NVS en cada
+  despertar, 4320 veces por día a 20 s. La credencial de WiFiManager queda intacta.
+- **La IP fija se reutiliza hasta la mitad del lease** (T1 del RFC 2131, leído de
+  lwIP), nunca más: pasado el vencimiento el router puede habérsela dado a otro
+  equipo, y un conflicto de IP rompe la red del cliente, no sólo la nuestra. Pasado
+  T1 se hace DHCP con canal/BSSID igual, y eso renueva la IP recordada.
+- Si la rápida falla, se cae a la normal **en el mismo despertar** y se olvida la
+  red, en vez de esperar dos fallos: la causa típica (el router cambió de canal)
+  se resuelve con la normal, y esperar costaba contactos perdidos con el backoff.
 
-**i. Drenar varios chunks con la radio ya encendida.** Hoy es un `MAX_POR_ENVIO`
-por ciclo: vaciar 500 lecturas toma 10 ciclos ≈ 50 min. Lo caro es encender el
-WiFi, no el POST — mandar chunks hasta vaciar o hasta un tope por ciclo.
+**i. Drenar varios chunks con la radio ya encendida.** ✅ en `prueba_bmp.ino`:
+lotes de 100 hasta vaciar o hasta el primer fallo. Medido en placa: 500 lecturas
+en 1,2 s, así que no hace falta tope por ciclo — la grilla de `dormir()` lo absorbe.
 
 **j. Medición de batería.** ADC sobre divisor (ver hoja de hardware). Habilita el
 aviso de "batería baja" *mientras todavía hay energía para mandarlo*, el modo
@@ -166,6 +210,28 @@ conservación y el volcado del punto l. Definir si el % viaja como un sensor má
 o como campo del POST (esto último toca el backend).
 
 **p. Corregir el drift del oscilador por software, midiéndolo contra el servidor.**
+✅ en `prueba_bmp.ino` (`calibrarReloj()`), **validado en placa el 29–30/9**: 21 h sin
+API (20:13 → 17:37 UTC), 219 puntos a 299–302 s, sin salto en la costura flash/RTC
+ni en la reconexión (último punto 17:37:38, POST 17:37:39). El ppm pasó de −9872 a
+−8436 en el corte (deriva térmica, ~0,14 %): sólo corrió el despertar ~1,4 s cada
+5 min, las fechas no, porque se interpolan entre anclas. En la base se
+ve 297,8 s por cada 300 configurados, o sea −7300 ppm en esta unidad. El factor se
+guarda como ppm entero, se aplica al fechar (`aReal()`) **y** al sueño (`dormir()`,
+así 5 min son 5 min reales), y persiste en NVS (namespace `reloj`), sólo cuando
+cambia más de 50 ppm: es propiedad de la placa y un reset no tiene por qué tirarlo.
+- **Visto en la base**: durante el corte de la API del 25/9 (04:17–17:26 ART) los
+  puntos quedaron a 300 s exactos, contra 297–298 s conectado. Esa regularidad es
+  el síntoma: son segundos del cronómetro, no reales (~5,7 min de error en 13 h).
+- **Tras un corte de más de 1 h, o con algo en flash, se re-ancla antes de
+  drenar** (lote vacío). Sin esto, el primer lote salía fechado con el ancla de
+  antes del corte.
+- **Lo medido durante un corte se interpola entre el ancla de antes y la de
+  después** (`epochEntre`), no se extrapola con el ppm promedio. Visto el 29/9: en
+  11 h sin API el drift real se apartó ~0,26 % del aprendido y lo de flash, fechado
+  al volcar, quedó 75 s corrido (salto de 375 s en la costura con la RTC).
+- **Calibrar en banco antes de entregar**: la NVS sobrevive al reflasheo, así que
+  una hora conectado deja el drift guardado. Si no, un equipo que arranca en
+  campo sin WiFi fecha su primer corte sin corrección.
 El equipo puede aprender su propio error sin hardware nuevo: dos anclas separadas
 dan `factor = Δepoch_servidor / Δlocal`, y datar pasa a ser
 `anclaEpoch + (lectura − anclaLocal) × factor`. Con el 0,91 % medido, eso baja el
@@ -203,7 +269,22 @@ de este lado: `arranqueFrio` lo cubre por ser `!= ESP_SLEEP_WAKEUP_TIMER`.
 
 ### P2 — cuando lo anterior ande
 
-**l. Volcado a flash.** El disparador útil **no** es "se llenó el buffer" (eso son
+**l. Volcado a flash.** ✅ en `prueba_bmp.ino`, **validado en placa el 29–30/9**: el
+corte de 21 h de p volcó y entregó todo (tandas de 100 al reconectar, detrás de
+un re-anclado). Falta ejercitarlo cerca de la capacidad y a través de un power-on
+(ver 4). Lo que lleva
+más de 30 min sin enviarse en RTC pasa a LittleFS (partición `spiffs`, 896 KB,
+~97 000 lecturas); conectado nunca se escribe. Cola de archivos `/cola/NNNNNNNN`
+de 450 lecturas (un bloque), se drena primero la flash y después la RTC — el orden
+es obligatorio por `ultima_evaluacion_at`. Se guarda tiempo del cronómetro, nunca
+epoch, y la cabecera del segmento lleva la corrida (`RTC_NOINIT` + contador en NVS,
+una escritura por power-on con volcado) y el ancla + ppm vigentes al volcar. Misma
+corrida al enviar: se interpola entre esa ancla y la actual. Otra corrida: se
+extrapola desde el ancla de la cabecera, y si se volcó sin hora se descarta: tras
+un power-on no hay forma de saber cuánto duró el apagón. Llena, se
+borra el segmento más viejo. Backend: migración 016 lleva la ventana de los CAGG a
+85 días (no 90: pasarse de la retención del raw borra agregados).
+Nota original: el disparador útil **no** es "se llenó el buffer" (eso son
 10 días sin conexión) sino **batería baja**: si la celda se agota, la RTC memory
 se borra entera y se pierden los últimos días justo en el evento que el cliente
 quiere entender. Ojo con el reloj: al volver la energía el cronómetro arranca de
@@ -212,7 +293,15 @@ el ancla **y** convertir las lecturas a epoch absoluto antes de volcarlas — su
 edad no significa nada contra el cronómetro nuevo. LittleFS en partición propia,
 no NVS (partición chica y no es para esto).
 
-**m. Muestreo condicional.** Sin umbrales configurados, no despertar cada 20 s:
+**m. Muestreo condicional.** ✅ en `prueba_bmp.ino`, validado en placa (29/9, sin
+reglas: un despertar cada ~300 s). Sin reglas, el paso entre despertares es el MCD
+de envío y contacto (300 s con los presets) en vez de 20 s. **El primado volvió a
+`delay()`**: con light sleep entre lecturas el sensor dejaba de responder en los
+despertares. Se acortó a 100 ms entre lecturas (`MS_ENTRE_PRIMADO`) en vez de 1 s,
+así el costo de estar despierto queda chico sin light sleep; medir el ahorro real
+con 4. Los contadores pasaron de ciclos a segundos. Un cambio de
+reglas en la respuesta cambia el modo solo, desde el sueño siguiente.
+Diseño original: sin umbrales configurados, no despertar cada 20 s:
 al publicar, tomar 3 lecturas separadas 1 s y mandar la mediana — que es
 exactamente lo que ya hace `primarVentana()`. Mantiene el filtro contra frames
 corruptos (el −9,66 °C entre dos 20,6 °C) y elimina 14 de cada 15 despertares.
@@ -284,8 +373,8 @@ ahí (no aplicar `VENTANA_ARRANQUE` a un equipo a batería), junto con 3.b.
 > configurable por nadie. Candidato al mismo tratamiento si el modo batería lo
 > necesita.
 
-**d. ¿Un firmware con dos modos o dos firmwares? Postergada.** `prueba.ino` queda
-suelto en `esp/prueba/`, fuera de `generar_sketches.py`, hasta que el modo batería
+**d. ¿Un firmware con dos modos o dos firmwares? Postergada.** `esp/prueba/` se
+reemplazó por `prueba_aht10/` sobre el núcleo común; `programa_base.ino` sigue fuera de la librería y de `generar_sketches.py`, hasta que el modo batería
 esté validado en campo — unificar ahora es un refactor grande sobre código que
 todavía no arrancó una sola vez. Cuando toque: un solo template con
 `#ifdef MODO_BATERIA` y una entrada nueva en el dict `SKETCHES`, que es lo
@@ -318,7 +407,7 @@ típico o es esta placa.
 
 ## 4. Verificar antes de dar por cerrado
 
-- [x] **Compila**: `arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app esp/prueba`
+- [x] **Compila**: `arduino-cli compile --fqbn esp32:esp32:esp32:PartitionScheme=huge_app --library esp/nucleo esp/prueba_bmp`
       → 38 % de flash, 15 % de RAM.
 - [x] **Mapa del linker**: todo lo `RTC_DATA_ATTR` entra en RTC slow memory con
       2891 B de sobra (ver 3.e).
@@ -350,6 +439,15 @@ típico o es esta placa.
 - [ ] **Un ciclo real de varios días sin WiFi** (la versión larga de lo anterior),
       que es lo que ejercita el buffer cerca de su capacidad y el drift acumulado
       del cristal sobre un período largo sin re-anclar.
+      - **21 h hechas el 29–30/9** (PC apagada, el equipo con WiFi y backend
+        caído: `codigo_fallo_http` −1): fechas, flash y drenaje bien (ver p y l).
+        Faltan días, no horas, y un power-on en medio.
+- [ ] **El sensor dejó de contestar 3 h** (29/9, 20:23–23:24 UTC) tras mover el
+      equipo, y volvió solo. Hardware, ver `DIAGNOSTICO-HARDWARE.md`. Del lado del
+      firmware se portó bien —no bufferizó basura, siguió despertando y
+      contactando— pero no dejó la causa: al fallar `begin()` convendría mandar en
+      `diag` el código de `endTransmission()` y el nivel de SDA/SCL, para
+      distinguir contacto abierto de bus colgado sin tener que reproducirlo.
 - [ ] **Portal**: con credenciales borradas y despertar por timer, que no levante
       el AP. Con power-on, que sí lo levante y que el watchdog no lo reinicie
       durante los 10 min.

@@ -14,10 +14,13 @@ class Umbral(BaseModel):
     umbral: float
     histeresis: float
     muestras: int
+    disparada: bool
 
 class MedicionCreate(BaseModel):
     time: Optional[datetime] = None
     mediciones: list[Medicion]
+    # Estado interno del firmware; sólo se loguea, no se persiste.
+    diag: Optional[dict] = None
 
 class MedicionCreateResponse(BaseModel):
     status: str
