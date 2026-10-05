@@ -73,8 +73,8 @@ def mediciones_en_ventana(cur, sensor_ids: list, desde, hasta) -> dict:
     )
 
     ventana = {}
-    for sensor_id, momento in cur.fetchall():
-        ventana.setdefault(sensor_id, []).append(momento)
+    for row in cur.fetchall():
+        ventana.setdefault(row["sensor_id"], []).append(row["time"])
     return ventana
 
 def ultimas_por_sensores(cur, pares: list[tuple]) -> dict:

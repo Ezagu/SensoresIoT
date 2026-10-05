@@ -79,10 +79,8 @@ def set_intervalo(dispositivo_id: UUID, payload: IntervaloUpdate, usuario_actual
 @router.post("/rotate-secret")
 @limiter.limit("10/hour")
 def rotate_secret(request: Request, dispositivo: dict = Depends(get_dispositivo_autenticado)):
-    # Rotación device-initiated: el dispositivo se autentica con su secret actual y
-    # recibe el nuevo una única vez. El viejo sigue valiendo hasta que use el nuevo,
-    # así una respuesta perdida no lo deja sin forma de reautenticarse.
-    # Límite holgado a propósito: slowapi cuenta por IP y varios equipos comparten NAT.
+    # Endpoint llamado por dispositivo ESP,  se autentica con su secret actual y
+    # recibe el nuevo una única vez. El viejo sigue valiendo hasta que use el nuevo.
     return dispositivo_service.rotar_secret_dispositivo(dispositivo["id"])
 
 @router.post("/{dispositivo_id}/marcar-rotacion")

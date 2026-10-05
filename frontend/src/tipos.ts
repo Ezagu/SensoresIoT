@@ -16,8 +16,6 @@ export type Dispositivo = {
   id: string
   nombre: string | null
   ubicacion: string | null
-  descripcion: string | null
-  activo: boolean
   /* Cuándo HABLÓ el equipo, heartbeats incluidos -> ¿está vivo? */
   last_seen_at: string | null
   /* Cuándo mandó DATOS -> ¿sus lecturas llegan a tiempo? Son dos preguntas
@@ -284,8 +282,6 @@ export type NotificacionUpdatePayload = { notificar: boolean }
 export type DispositivoUpdatePayload = {
   nombre?: string
   ubicacion?: string | null
-  descripcion?: string | null
-  activo?: boolean
 }
 
 /* 'owner' nunca se manda en el payload de alta: lo asigna /vinculate, y sólo

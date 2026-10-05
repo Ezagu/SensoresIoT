@@ -13,11 +13,10 @@ ROLES_EDICION = ("admin", "owner", "editor")
 ROLES_OWNER = ("admin", "owner")
 ROLES_ASIGNABLES = ("editor", "viewer")
 
-# Cada cuánto el equipo tiene que HABLAR, publique o no. El firmware lo recibe en
-# cada respuesta de /mediciones/ (`intervalo_contacto_seg`) en vez de tenerlo
-# hardcodeado: en un producto que se compila por pedido, una constante del lado de
-# la placa es una decisión que se arrastra años.
+# Cada cuánto el equipo tiene que HABLAR, publique o no.
 INTERVALO_CONTACTO_SEG = 300
+# Cada cuánto el equipo debe muestrear en busca de eventos.
+INTERVALO_MIN_MUESTREO_SEG = 15
 
 # Toleramos tres contactos perdidos antes de dar por caído al equipo: uno perdido
 # es un reintento normal del firmware.
@@ -116,7 +115,7 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
 
 def crear_dispositivo(dispositivo) -> dict:
     with get_cursor() as cur:
-        return dispositivo_repo.crear(cur, dispositivo.nombre, dispositivo.ubicacion, dispositivo.descripcion)
+        return dispositivo_repo.crear(cur, dispositivo.nombre, dispositivo.ubicacion)
 
 def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
@@ -150,8 +149,6 @@ def actualizar_datos(dispositivo_id, usuario_id, rol, datos):
     with get_cursor() as cur:
         validar_edicion_en_dispositivo(cur, dispositivo_id, usuario_id, rol)
         dispositivo = dispositivo_repo.actualizar(cur, dispositivo_id, campos)
-        if campos.get("activo") is False:
-            dispositivo_repo.limpiar_sin_reportar(cur, dispositivo_id)
         return obtener_detalle_dispositivo(cur, dispositivo, usuario_id, rol)
 
 def obtener_sensores(dispositivo_id, usuario_id, rol) -> list[dict]:

@@ -17,13 +17,10 @@ function estadoPrincipal(
   disparada: Alerta | undefined,
   sensores: SensorConMeta[],
   conectividad: EstadoDispositivo,
-  activo: boolean,
   lastSeenAt: string | null,
   lastDataAt: string | null,
   ahora: number,
 ): EstadoCabecera {
-  if (!activo)
-    return { glifo: 'inactivo', titulo: 'Desactivado', tono: 'text-text-muted', detalle: null }
   if (disparada) {
     const sensor = sensores.find((s) => s.id === disparada.sensor_id)?.etiqueta ?? 'Un sensor'
     return {
@@ -99,7 +96,6 @@ export function CabeceraEquipo({
     disparada,
     sensores,
     conectividad,
-    dispositivo.activo,
     lastSeenAt,
     lastDataAt,
     ahora,
@@ -128,11 +124,6 @@ export function CabeceraEquipo({
           {estado.detalle && <span className="text-text-muted">{estado.detalle}</span>}
         </p>
         <p className="mt-2 text-note-lg text-text-faint">{meta.join(' · ')}</p>
-        {dispositivo.descripcion && (
-          <p className="mt-2 max-w-150 text-pretty text-note-lg text-text-faint">
-            {dispositivo.descripcion}
-          </p>
-        )}
       </div>
 
       <div className="flex shrink-0 gap-2 md:pt-1">

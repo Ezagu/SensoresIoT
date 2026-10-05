@@ -17,16 +17,12 @@ class Umbral(BaseModel):
     disparada: bool
 
 class MedicionCreate(BaseModel):
-    time: Optional[datetime] = None
     mediciones: list[Medicion]
     # Estado interno del firmware; sólo se loguea, no se persiste.
     diag: Optional[dict] = None
 
 class MedicionCreateResponse(BaseModel):
     status: str
-    aceptadas: int
-    duplicadas: int
-    rechazadas_por_intervalo: list[str]
     server_epoch: int
     intervalo_sugerido_seg: int
     intervalo_contacto_seg: int

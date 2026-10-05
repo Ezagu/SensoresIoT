@@ -1,14 +1,14 @@
 from repositories import acceso_repo, alerta_repo, dispositivo_repo
-from services import dispositivo_service, medicion_service
+from services import dispositivo_service
 from db import get_cursor
 
 # La falla silenciosa —el equipo se muere y nadie se entera— es la única que no
 # se puede evaluar inline en crear_medicion, porque se dispara por la AUSENCIA de
 # un POST. De ahí el barrido periódico, que es lo único de fondo del backend.
 
-# Durante el arranque rápido no se abre ninguna caída. Importado y no copiado:
-# si los dos números se separan, el barrido contradice al ingreso.
-VENTANA_ARRANQUE_SEG = int(medicion_service.VENTANA_ARRANQUE.total_seconds())
+# Tras la primera conexión no se abre ninguna caída: probarlo en el banco y
+# desenchufarlo para llevarlo al sitio no es "dejó de reportar".
+VENTANA_ARRANQUE_SEG = 30 * 60
 
 def barrer() -> list[dict]:
     """

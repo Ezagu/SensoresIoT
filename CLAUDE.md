@@ -2,7 +2,7 @@
 
 ## Proyecto
 
-Plataforma IoT de sensores ambientales (marca **Bitácora**): placas ESP32 con firmware Arduino hacen POST de lecturas a un backend FastAPI que guarda en TimescaleDB. Partes: `backend/` (FastAPI + psycopg2, sin ORM), `db/` (schema y migraciones), `esp/` (firmware), `frontend/` (app de cliente, React) y `landing/` (Astro, venta).
+Plataforma IoT de sensores ambientales (marca **Bitácora**): placas ESP32 con firmware Arduino hacen POST de lecturas a un backend FastAPI que guarda en TimescaleDB. Partes: `backend/` (FastAPI + psycopg2, sin ORM), `db/` (schema), `esp/` (firmware), `frontend/` (app de cliente, React) y `landing/` (Astro, venta).
 
 ## Rol esperado del asistente
 
@@ -20,7 +20,7 @@ Stack cerrado (no cuestionar salvo problema real): ESP32 (C++/Arduino), FastAPI,
 
 ## Base de datos
 
-- Schema en `db/init.sql`, que **sólo corre con volumen nuevo**. No hay herramienta de migraciones: todo cambio va en **dos** lugares, plegado en `init.sql` y como script numerado en `db/migrations/` que se aplica a mano (`docker compose exec -T timescaledb psql -U postgres -f - < db/migrations/NNN_x.sql`).
+- Schema en `db/init.sql`, que **sólo corre con volumen nuevo**. **Sin migraciones** mientras no haya producción: un cambio se pliega en `init.sql` y se aplica a mano sobre la base de desarrollo (o se recrea el volumen). Antes de la primera base con datos de un cliente hay que retomarlas: desde ahí `init.sql` no vuelve a correr.
 - IDs UUID (`gen_random_uuid()`), salvo `tipos_sensor.id` (SERIAL) y `planes.id` (TEXT, ver Planes).
 - `mediciones.sensor_id` no tiene FK a propósito (recomendación de Timescale para hypertables).
 
@@ -45,19 +45,18 @@ core/         config, security, deps, limiter, email, tareas (background)
 ### Auth
 
 - **Usuarios**: bcrypt + JWT de acceso (30 min, en el body) + refresh (7 días) en cookie `httponly`, guardado hasheado en `refresh_token`. Fuera de dev la cookie es `secure` + `samesite=strict`; con `ENTORNO=dev` va sin `secure` y `samesite=lax` (http://localhost). Dependencias: `get_usuario_actual`, `get_usuario_admin`, `get_usuario_propio_o_admin`.
-- **Equipos**: secret por equipo, sólo su SHA-256 en `dispositivos.secret_hash`. Viaja como `Authorization: Bearer <secret>` + `X-Dispositivo-Id`, comparado con `hmac.compare_digest` en `get_dispositivo_autenticado` (que hace `SELECT *`: `intervalo_configurado_seg`, `first_connected_at` y `rotacion_pendiente` llegan gratis).
-- **Rotación iniciada por el equipo** (`POST /dispositivos/rotate-secret`): se autentica con el secret actual y recibe uno nuevo una vez. Durante la rotación valen dos (`secret_hash` + `secret_hash_anterior`); el viejo se borra la primera vez que el equipo llega con el nuevo. Invalidarlo antes brickearía un equipo que no recibió la respuesta. Un admin la fuerza con `POST /dispositivos/{id}/marcar-rotacion`, que vuelve como `rotar_secret` en la respuesta de `/mediciones/`. `POST /dispositivos/{id}/regenerate-secret` exige reflashear: sólo banco/fábrica.
+- **Equipos**: secret por equipo, sólo su SHA-256 en `dispositivos.secret_hash`. Viaja como `Authorization: Bearer <secret>` + `X-Dispositivo-Id`, comparado con `hmac.compare_digest` en `get_dispositivo_autenticado` (que hace `SELECT *`: el router de `/mediciones/` le pasa el dispositivo entero al servicio).
+- **Rotación iniciada por el equipo** (`POST /dispositivos/rotate-secret`): se autentica con el secret actual y recibe uno nuevo una vez. Durante la rotación valen dos (`secret_hash` + `secret_hash_anterior`); el viejo se borra la primera vez que el equipo llega con el nuevo. Invalidarlo antes brickearía un equipo que no recibió la respuesta. Llegar con el viejo responde `rotar_secret: true`: el pendiente del firmware vive en RTC y un reset lo pierde. Un admin la fuerza con `POST /dispositivos/{id}/marcar-rotacion`, que vuelve como `rotar_secret` en la respuesta de `/mediciones/`. `POST /dispositivos/{id}/regenerate-secret` exige reflashear: sólo banco/fábrica.
 - Rate limit `slowapi` por IP, por ruta: login, register, resend-verify-email, vinculate, rotate-secret y exportar.
 
 ### Mediciones (`POST /mediciones/`)
 
 La respuesta es **el plano de control del equipo**: `server_epoch`, `intervalo_sugerido_seg`, `intervalo_contacto_seg`, `umbrales`, `rotar_secret`. Por eso el heartbeat usa este mismo endpoint y no uno propio.
 
-- **Dos números separados a propósito.** `UMBRAL_THROTTLE` (10 s) es lo que el servidor *acepta escribir*: sólo frena firmware roto. `intervalo_sugerido_seg` es lo que el equipo *debería hacer*: `max(intervalo_configurado_seg, piso del plan)`, salvo en el **arranque rápido** (`first_connected_at` más joven que `VENTANA_ARRANQUE` = 30 min, o `None`, que el mismo POST sella) donde devuelve `INTERVALO_ARRANQUE_SEG` (15 s) sin importar el plan. Estuvieron acoplados y eso descartaba todo lo que llega antes a propósito (flush de alerta, arranque rápido). No volver a acoplarlos.
+- **Dos números separados a propósito.** `UMBRAL_THROTTLE` (`INTERVALO_MIN_MUESTREO_SEG` − 3 = 12 s) es lo que el servidor *acepta escribir*: sólo frena firmware roto, y tiene que quedar debajo del espaciado real de las crudas de un cruce. `intervalo_sugerido_seg` es lo que el equipo *debería hacer*: `max(intervalo_configurado_seg, piso del plan)`. Estuvieron acoplados y eso descartaba todo lo que llega antes a propósito (flush de alerta). No volver a acoplarlos.
 - **Las lecturas llegan tarde y fuera de orden**: el firmware bufferea y manda cada una con su `time` original. Por eso cada candidata se compara contra sus *vecinas* reales (`medicion_repo.mediciones_en_ventana`); un timestamp existente es `duplicada`, no una violación de intervalo; todo entra con un `execute_values` + `ON CONFLICT DO NOTHING`; y `last_seen_at` es `now()`, nunca el `time` de la lectura.
 - El índice único `(sensor_id, time)` es lo que hace seguros los reintentos: el equipo reenvía todo chunk sin 2xx, incluso los ya insertados.
-- Sensor inválido, timestamp fuera de rango (futuro o más viejo que `ANTIGUEDAD_MAXIMA`, 90 días) o lectura demasiado pegada se cuentan, nunca fallan el batch entero.
-- `crear_medicion` abre un **segundo cursor, dict, sobre la misma conexión** para plan y alertas: el principal devuelve tuplas porque `sensor_repo.ids_por_dispositivo` y `mediciones_en_ventana` desempaquetan por posición.
+- Sensor ajeno, lectura sin `time`, timestamp fuera de rango (futuro o más viejo que `ANTIGUEDAD_MAXIMA`, 90 días), duplicada o demasiado pegada se descartan y se loguean (`_loguear_descartadas`), nunca fallan el batch entero: un no-2xx bloquea la cola del equipo para siempre. Al equipo no se le devuelven.
 - **La escritura nunca se recorta por retención**: `ANTIGUEDAD_MAXIMA` sigue la retención del raw, no el plan. Un free escribe igual de profundo y sólo ve menos; el día que sube de plan el historial ya está.
 
 ### Series temporales
@@ -70,7 +69,7 @@ La respuesta es **el plano de control del equipo**: `server_epoch`, `intervalo_s
 ### Planes y suscripciones
 
 - `planes` es un catálogo fijo (`free`, `premium`). `id` es TEXT porque `'free'` se referencia como literal estable (fallback de falla cerrada). `NULL` = ilimitado en `dispositivos_incluidos`, `retencion_dias` y `max_alertas`.
-- **Semilla actual** (`init.sql` y `plan_service.LIMITES_FREE`, que la espeja): free = 7 días de retención, piso 60 s, sin alertas (`max_alertas` 0), sin compartir; premium = sin límite de retención, piso 15 s, alertas sin tope, compartir. Ambos exportan (migración 005). Ningún plan limita cantidad de equipos.
+- **Semilla actual** (`init.sql` y `plan_service.LIMITES_FREE`, que la espeja): free = 7 días de retención, piso 60 s, sin alertas (`max_alertas` 0), sin compartir; premium = sin límite de retención, piso 15 s, alertas sin tope, compartir. Ambos exportan. Ningún plan limita cantidad de equipos.
 - **Una suscripción está vigente sólo por fechas**: `inicio_at <= now() AND (fin_at IS NULL OR fin_at > now())`. `estado` (`activa`/`cancelada`/`revocada`) registra intención y **nunca** entra al predicado: cancelar no toca `fin_at`. No existe `vencida`; el vencimiento se deriva.
 - **Free es la ausencia de suscripción vigente**, no una fila.
 - `EXCLUDE USING gist (usuario_id WITH =, tstzrange(inicio_at, fin_at) WITH &&)` (de ahí `btree_gist`) cierra la carrera del 409 check-then-act. El rango es `[)`, así que revocar con `fin_at = now()` y reasignar con `inicio_at = now()` no chocan.
@@ -102,7 +101,7 @@ Reglas de umbral sobre un sensor (`mayor`/`menor` + `histeresis`), evaluadas inl
 
 - **La alerta es del equipo, no de quien la creó** (`creado_por` es informativo, `ON DELETE SET NULL`). CRUD en `/alertas/` y `/alertas/{id}`; listados por equipo en `GET /dispositivos/{id}/alertas` y `/alertas/eventos`, y log global en `GET /alertas/eventos`. Owner/editor crean, editan y borran; viewer lee.
 - **Gate: `puede_alertas` del plan del owner del equipo**, y `max_alertas` se cuenta **por equipo** (`contar_por_dispositivo`).
-- `tipos_sensor` no tiene rango físico (migración 008): el umbral se acepta como viene.
+- `tipos_sensor` no tiene rango físico: el umbral se acepta como viene.
 - **El estado (`normal`/`disparada`) se persiste**: cada request sólo ve su batch y sin estado no se distingue "acaba de cruzar" de "ya estaba". La histéresis es la vuelta: `mayor` necesita `valor < umbral - histeresis` para volver a `normal`.
 - **La transición exige `muestras_confirmacion` lecturas seguidas** (default 3, máx 8 = `VENTANA_MUESTRAS` del firmware). `cruces_consecutivos` se persiste porque un batch puede cortar la racha; cualquier lectura que no empuja la resetea, y también una transición. Simétrico en ambas piernas. Es lo que impide que una lectura corrupta aislada mande un mail.
 - `_empuja(estado, condicion, umbral, histeresis, valor)` es un predicado puro y **el firmware lo espeja literal** (`empuja()` en `programa_base.ino`). Si divergen, el equipo adelanta envíos que el servidor no confirma. Tras tocar cualquiera de los dos: traducir el C a Python y comparar transiciones sobre series aleatorias.
@@ -136,7 +135,7 @@ Sin la separación, un equipo con el bus I2C muerto (una lectura fallida no buff
 - Las dos piernas en un barrido, una transacción y mails después del commit: un commit por equipo dejaría caídas latcheadas sin mail. El `RETURNING` de `abrir_sin_reportar` (con `AND last_seen_at = %s`, concurrencia optimista) es lo que habilita el mail, no el `SELECT`.
 - `pg_try_advisory_xact_lock` evita dos barredores (réplicas, `--reload` en dev); es lo único que lo impide si algún día hay varios workers.
 - `medicion_at` de una apertura es `clock_timestamp()`: fechar por `last_seen_at` entierra el evento páginas atrás, y `now()` es fijo por transacción, con lo que dos equipos del mismo barrido compartirían timestamp y el cursor estricto (`medicion_at < %s`) perdería uno. Una reconexión usa el `last_seen_at` nuevo.
-- Excluidos: `activo = false` (`actualizar_datos` limpia el latch al desactivar), `last_seen_at IS NULL` (estado `nunca`) y la `VENTANA_ARRANQUE` tras `first_connected_at` (importada de `medicion_service`, no copiada).
+- Excluidos: `last_seen_at IS NULL` (estado `nunca`) y los primeros `VENTANA_ARRANQUE_SEG` (30 min) tras `first_connected_at`, para no avisar por un equipo probado en el banco y desenchufado para llevarlo al sitio. No existe desactivar un equipo.
 - Trade-off conocido: un equipo que oscila alrededor del umbral genera pares abrir/reconectar. Si el volumen molesta, la palanca es una columna de cooldown.
 
 ### Compartir: accesos e invitaciones
@@ -155,6 +154,7 @@ Sin la separación, un equipo con el bus I2C muerto (una lectura fallida no buff
 
 ## Firmware (`esp/`)
 
+- **El firmware enchufado (`programa_base.ino` + `generar_sketches.py`) está deprecado**: se reescribe sobre los módulos de `nucleo/` (otro ciclo sobre el mismo `Enlace` y `Pendientes`). Lo que sigue de `programa_base`, `programas/` y el buffer en RAM describe el código viejo hasta que eso pase.
 - `programa_base.ino` es el template con la lógica común, marcado con `// Replace ->`. **`programas/*` y `modulos/*.ino` son generados** por `generar_sketches.py` desde su dict `SKETCHES`: nunca editarlos a mano. Pedido nuevo = entrada nueva en `SKETCHES`. `modulos/` sólo sirve para leer el bloque de un sensor aislado; no compila.
 - **`nucleo/` es el firmware a batería (deep sleep, cola en flash), partido en módulos**; `prueba_bmp/` y `prueba_aht10/` son sketches finos que sólo componen, sin lógica: un `Equipo` (UUID, sensores, pines), un `ConfigWifi` (API, secret de fábrica, AP) y `cicloBateria(EQUIPO, enlace)`. Su estado y pendientes están en `esp/PENDIENTES-DEEPSLEEP.md`. `diagnostico_*` son herramientas de banco.
   - Una carpeta por dominio en `nucleo/src/`: `equipo/` (config, cadencias), `sensores/` (interfaz `Modulo`, muestras, drivers), `almacenamiento/` (buffer RTC, cola en flash y `Pendientes`, la fachada que esconde cuál), `reloj/`, `alertas/`, `enlace/` (interfaz `Enlace` + `EnlaceWifi`; `wifi/` = conexión, `ClienteApi` y secret), `comun/` (tipos neutrales: `Lote`, `Respuesta`, `Diagnostico`), `ciclo/`.
@@ -167,14 +167,14 @@ Sin la separación, un equipo con el bus I2C muerto (una lectura fallida no buff
   - **La batería no es un sensor**: es un atributo del dispositivo. Guardarla como sensor tapaba la detección de sensor muerto (`last_data_at` se renovaría siempre), ataba el aviso de batería baja a `puede_alertas` y la metía en el export y los gráficos del cliente. `Equipo.bateria` es un `MedidorBateria` opcional (`nullptr` = sin batería); el ciclo la lee una vez por contacto, antes de abrir el enlace, y viaja en `Estado` junto al diag: `bateria_pct` top-level en el POST (Pydantic lo ignora hasta que exista la columna) y un byte en la trama LoRa. El porcentaje sale de la curva de descarga de una celda Li-ion (no lineal: casi todo está entre 3,7 y 3,9 V); la tensión queda en el log para calibrar el divisor. **Falta el backend**: columnas en `dispositivos` y el aviso de batería baja como tipo propio de `alerta_eventos`, sin plan, igual que "dejó de reportar". Los pines del ADC2 (GPIO 2 y 4 del prototipo, entre otros) no leen con WiFi encendido: el ciclo a batería mide antes de conectar, un ciclo con WiFi siempre prendido necesita ADC1 (GPIO 32–39).
   - **LoRa** (estado, protocolo y pendientes en `esp/LORA.md`): `EnlaceLora` (nodo) y `ReceptorLora` (receptor, base del gateway) comparten `enlace/lora/Trama`, un protocolo binario firmado con HMAC truncado. La radio es una interfaz (`Radio`) con driver header-only (`RadioSx127x.h`), por lo mismo que los sensores. Cada enlace declara su `politicaReintento()`: el backoff de 10 min a 1 h es del WiFi, donde un intento fallido son ~10 s de radio.
 - **Particiones `huge_app`**: la default parte la flash en dos apps de ~1,25 MB para rollback OTA, que no usamos (cada pedido se flashea a mano); `huge_app` da 3 MB (~38 % usado vs ~92 %). NVS queda en el mismo offset. Revisar si algún día hay OTA.
-- Envía `{"mediciones": [{"sensor_id", "value", "time"}]}` con `X-Dispositivo-Id` + `Authorization: Bearer`. `time` es ISO-8601 UTC y opcional (sin él el backend estampa la llegada).
+- Envía `{"mediciones": [{"sensor_id", "value", "time"}]}` con `X-Dispositivo-Id` + `Authorization: Bearer`. `time` es ISO-8601 UTC; una lectura sin `time` se descarta (estamparle la llegada mentía la hora de todo lo bufferizado). No hay `time` a nivel batch.
 - **Muestreo y publicación son dos timers.** `leerSensores()` corre cada `MS_MUESTREO` (15 s fijos, no configurables ni feature de plan) y empuja a `ventana[sensor][VENTANA_MUESTRAS]`, un anillo por sensor que **no** es el buffer de envío. `publicar()` corre cada `intervaloMedicionMs` y bufferea **un** punto por sensor: `medianaDe()`, la mediana de las últimas `MUESTRAS_MEDIANA` (3). La mediana es un filtro de ruido, no un resumen del intervalo: el punto sigue significando "el valor en T", así que nada aguas abajo cambia.
 - **Un cruce de umbral manda crudas**: `bufferizarCrudas()` pone las últimas N muestras sin mediana, así el servidor confirma `muestras_confirmacion` con datos reales de 15 s en ese mismo lote. Datos rutinarios gruesos y limpios; anomalías finas e inmediatas.
 - **Watchdog** (`esp_task_wdt`, `MS_WATCHDOG` = 60 s): `Adafruit_AHT10::getEvent()` espera el bit BUSY sin timeout y un sensor muerto cuelga el sketch. Se arma **después** de `conectarWiFi()` porque el portal bloquea hasta 10 min.
 - **Cada bloque de sensor verifica que la lectura salió**: valor de retorno, bit CALIBRATED donde exista, reintento y rango del datasheet vía `enRango()` (rango = "frame corrupto", no "valor raro": eso lo filtra la mediana). Una lectura fallida no bufferea nada —un hueco es honesto, un −9,66 °C no— y suma a `lecturasFallidas`.
 - `flushBuffer()` drena el buffer del más viejo al más nuevo en chunks de `MAX_POR_ENVIO` (50), uno por pasada de `loop()` para que BOOT siga respondiendo. Avanza sólo con 2xx. En overflow se pisa el más viejo (`descartadasPorOverflow`). Sólo RAM, a propósito: sin energía no hay nada que guardar y volcar a NVS gasta la flash.
 - `loop()` muestrea **antes** del chequeo de WiFi: un corte de red no puede cortar la generación de datos.
-- **Primera publicación a los 5 s del boot** (`MS_PRIMERA_PUBLICACION`): `setup()` ceba la ventana con `MUESTRAS_MEDIANA` lecturas tras sincronizar el reloj. Va de la mano del arranque rápido del servidor.
+- **Primera publicación a los 5 s del boot** (`MS_PRIMERA_PUBLICACION`): `setup()` ceba la ventana con `MUESTRAS_MEDIANA` lecturas tras sincronizar el reloj.
 - Cada entrada del buffer guarda un índice `uint8_t` a `SENSOR_IDS`, no el UUID (12 B vs ~48).
 - **`CAPACIDAD_BUFFER = 6000` es un límite del linker**: `dram0_0_seg` reserva ~124 KB para globales y WiFiManager + HTTPClient + ArduinoJson ya usan ~50 KB. Da ~10 días a 5 min con dos sensores. Pasarlo al heap mueve un límite verificado en compilación a uno en runtime; si un pedido necesita más autonomía, es una decisión a traer, no un número a subir.
 - **Reloj**: el template usa SNTP (`configTime(0, 0, ...)`, UTC) tras conectar; lo leído antes del sync va sin `time`. El firmware a batería ya no usa NTP: toma `server_epoch` de la respuesta (el NTP Pool prohíbe `pool.ntp.org` como default en un producto distribuido, y así no depende de UDP 123). El enchufado debería seguirlo; ver `PENDIENTES-DEEPSLEEP.md` antes de reintroducir NTP.
@@ -254,7 +254,7 @@ No hay producción en volumen: cada pedido tiene sensores (y librerías) distint
 **Tier 4 — monetización**
 - 4.1 Planes: modelo ✅, **falta el cobro**. Mercado Pago (Stripe no soporta cuentas argentinas), `preapproval` para recurrentes en ARS; los webhooks se reintentan y llegan duplicados o fuera de orden, así que el alta tiene que ser idempotente.
 - 4.2 Export CSV ✅, para todos los planes. XLSX cuando alguien lo pida.
-- 4.3 Alertas ✅ (con confirmación por persistencia y disparo adelantado). **Decisión de producto**: que el free tenga 2 alertas por equipo y 15 días de retención (un free con 0 alertas nunca prueba la feature, y el primer mail es cuando el cliente entiende para qué compró la caja). **No está aplicada**: la semilla todavía dice free sin alertas y 7 días; falta una migración sobre `planes` + `init.sql` + `LIMITES_FREE`. Push/SMS más adelante como pasamanos por consumo, nunca dentro de un plan plano.
+- 4.3 Alertas ✅ (con confirmación por persistencia y disparo adelantado). **Decisión de producto**: que el free tenga 2 alertas por equipo y 15 días de retención (un free con 0 alertas nunca prueba la feature, y el primer mail es cuando el cliente entiende para qué compró la caja). **No está aplicada**: la semilla todavía dice free sin alertas y 7 días; falta cambiar `planes` en `init.sql` (y en la base) + `LIMITES_FREE`. Push/SMS más adelante como pasamanos por consumo, nunca dentro de un plan plano.
 - 4.3.b "Dejó de reportar" ✅ y 4.3.c heartbeat ✅, sin plan.
 - 4.4 Multi-usuario ✅. Pendiente: mail de invitación por Resend (no bloqueante).
 - **4.6 Reportes programados en PDF — pendiente, la feature más vendible que falta.** Resumen semanal/mensual por mail (gráfico, mín/máx/promedio, log de avisos) para cumplimiento (bromatología, ANMAT, auditoría). UbiBot lo capea en todos sus planes, señal de que convierte. Se apoya en `exportacion_service`: el trabajo es render + scheduler.

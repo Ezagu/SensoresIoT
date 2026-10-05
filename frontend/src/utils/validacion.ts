@@ -61,7 +61,6 @@ export const esquemaAlertaEdicion = z.object({
 export const esquemaIdentificacion = z.object({
   nombre: z.string().trim().min(1, 'Ingresá un nombre.').max(80, 'Máximo 80 caracteres.'),
   ubicacion: z.string().trim().max(120, 'Máximo 120 caracteres.'),
-  descripcion: z.string().trim().max(300, 'Máximo 300 caracteres.'),
 })
 
 export const esquemaInvitacion = z.object({

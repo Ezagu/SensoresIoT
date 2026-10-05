@@ -2,21 +2,21 @@ import psycopg2.errors
 from fastapi import HTTPException
 from core.security import generar_secret
 
-COLUMNAS_PUBLICAS = ("id, nombre, ubicacion, descripcion, activo, last_seen_at, last_data_at, "
+COLUMNAS_PUBLICAS = ("id, nombre, ubicacion, last_seen_at, last_data_at, "
                      "first_connected_at, intervalo_configurado_seg, intervalo_modificado_at")
-COLUMNAS_ACTUALIZABLES = ("nombre", "ubicacion", "descripcion", "activo")
+COLUMNAS_ACTUALIZABLES = ("nombre", "ubicacion")
 
-def crear(cur, nombre: str, ubicacion: str, descripcion: str) -> dict:
+def crear(cur, nombre: str, ubicacion: str) -> dict:
     # El secret sólo sale en texto plano acá; se persiste únicamente el hash.
     secret, secret_hash = generar_secret()
     try:
         cur.execute(
             f"""
-            INSERT INTO dispositivos (nombre, ubicacion, descripcion, secret_hash)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO dispositivos (nombre, ubicacion, secret_hash)
+            VALUES (%s, %s, %s)
             RETURNING {COLUMNAS_PUBLICAS}
             """,
-            (nombre, ubicacion, descripcion, secret_hash)
+            (nombre, ubicacion, secret_hash)
         )
         dispositivo = cur.fetchone()
         return {"dispositivo": dispositivo, "secret": secret}
@@ -117,8 +117,7 @@ def candidatos_de_vigilancia(cur, ventana_sin_reportar_seg: int, ventana_arranqu
         SELECT clock_timestamp() AS ahora,
                d.id, d.nombre, d.last_seen_at, d.sin_reportar_desde
         FROM dispositivos d
-        WHERE d.activo
-          AND d.last_seen_at IS NOT NULL
+        WHERE d.last_seen_at IS NOT NULL
           AND (
                 (d.sin_reportar_desde IS NULL
                  AND d.last_seen_at < now() - make_interval(secs => %s)
@@ -160,15 +159,6 @@ def cerrar_sin_reportar(cur, dispositivo_id, sin_reportar_desde) -> bool:
         (dispositivo_id, sin_reportar_desde)
     )
     return cur.fetchone() is not None
-
-def limpiar_sin_reportar(cur, dispositivo_id) -> None:
-    # Desactivar un equipo es "dejo de vigilarlo": sin esto, la caída queda
-    # abierta para siempre (un equipo inactivo no puede postear) y el día que lo
-    # reactiven sale un "volvió a reportar" de un corte que fue una decisión.
-    cur.execute(
-        "UPDATE dispositivos SET sin_reportar_desde = NULL WHERE id = %s",
-        (dispositivo_id,)
-    )
 
 #-----------SECRET---------------
 

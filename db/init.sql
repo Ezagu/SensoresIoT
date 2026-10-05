@@ -28,8 +28,6 @@ CREATE TABLE dispositivos (
     id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre                TEXT NOT NULL,
     ubicacion             TEXT,
-    descripcion           TEXT,
-    activo                BOOLEAN NOT NULL DEFAULT true,
     secret_hash           TEXT NOT NULL,
     -- Durante una rotación conviven dos secrets válidos. El viejo se borra
     -- recién cuando el dispositivo se autentica con el nuevo (commit implícito),

@@ -1,177 +1,129 @@
 import bisect
-import psycopg2.extras
 from datetime import datetime, timezone, timedelta
-from db import get_connection
+from db import get_cursor
 from repositories import dispositivo_repo, sensor_repo, medicion_repo, alerta_repo
 from services import plan_service, alerta_service, dispositivo_service
 from core.tiempo import a_utc
 
-TOLERANCIA_JITTER = timedelta(seconds=5)  # margen por drift de reloj / latencia de red
-# No depende del plan: el free escribe con la misma profundidad que el premium y
-# sólo ve menos al leer, así el historial aparece entero si algún día contrata.
+# margen por drift de reloj / latencia de red
+TOLERANCIA_JITTER = timedelta(seconds=30)  
+# Tiempo máximo que se retiene las mediciones RAW
 ANTIGUEDAD_MAXIMA = timedelta(days=90)
 # Piso duro de escritura, NO la cadencia del equipo. Sólo frena a un equipo con
 # firmware roto; la cadencia viaja como `intervalo_sugerido`. Atarlo al intervalo
 # configurado descartaría lo que llega antes de tiempo a propósito: el disparo
-# fuera de ciclo de una alerta, el arranque rápido y el modo vivo.
-UMBRAL_THROTTLE = timedelta(seconds=10)
+# fuera de ciclo de una alerta.
+UMBRAL_THROTTLE = timedelta(seconds=dispositivo_service.INTERVALO_MIN_MUESTREO_SEG - 3)
 
-# Arranque rápido: al enchufar un equipo por primera vez publica seguido, así el
-# cliente ve la serie moverse mientras lo instala en vez de esperar 5 minutos por
-# el segundo punto. No depende del plan — es la primera impresión del producto,
-# no una feature. Pasada la ventana cae solo a la cadencia configurada.
-VENTANA_ARRANQUE = timedelta(minutes=30)
-INTERVALO_ARRANQUE_SEG = 15
-
-def _en_arranque(first_connected_at, ahora) -> bool:
-    # None = este POST es el primero de su vida; actualizar_conexion lo sella
-    # más abajo, en esta misma transacción.
-    return first_connected_at is None or (ahora - first_connected_at) < VENTANA_ARRANQUE
-
-def _clasificar(existentes: list, timestamp) -> str | None:
-    """
-    Compara una lectura contra las que ya hay guardadas de ese sensor:
-    - "duplicada": misma hora exacta. Es el reenvío de un chunk cuya respuesta se
-      perdió; el dato ya está, no es un error del equipo.
-    - "intervalo": hay otra a menos de UMBRAL_THROTTLE, el equipo está midiendo de más.
-    - None: entra.
-    """
+def motivo_de_descarte(existentes: list, timestamp) -> str | None:
+    # Indica en que posición de la lista ordenada debería insertarse el timestamp para mantener el orden.
     posicion = bisect.bisect_left(existentes, timestamp)
 
+    # Mismo timestamp exacto: reenvío de un lote cuya respuesta se perdió.
     if posicion < len(existentes) and existentes[posicion] == timestamp:
         return "duplicada"
 
-    # Sólo los dos vecinos inmediatos: si esos están lejos, el resto también.
+    # Se fija si hay un vecino a menos de UMBRAL_THROTTLE antes o después del timestamp.
     for vecino in existentes[max(posicion - 1, 0):posicion + 1]:
         if abs(vecino - timestamp) < UMBRAL_THROTTLE:
             return "intervalo"
 
     return None
 
-def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, intervalo_configurado_seg=None, first_connected_at=None):
+def _loguear_descartadas(dispositivo_id, recibidas: int, descartadas: dict, en_carrera: int) -> None:
+    # Al equipo no le sirve: la respuesta sigue siendo 2xx. Es para detectar un
+    # reloj corrido o UUIDs de sensores mal compilados, que si no se pierden en silencio.
+    conteos = {motivo: len(ids) for motivo, ids in descartadas.items() if ids}
+    if en_carrera:
+        conteos["duplicada"] = conteos.get("duplicada", 0) + en_carrera
+    if not conteos:
+        return
+
+    detalle = f" sensores_ajenos={sorted(set(descartadas['sensor_ajeno']))}" if descartadas["sensor_ajeno"] else ""
+    print(f"[Mediciones {dispositivo_id}] recibidas={recibidas} descartadas={conteos}{detalle}")
+
+def crear_medicion(mediciones, dispositivo):
     ahora = datetime.now(timezone.utc)
-    timestamp_batch = time or ahora
 
     notificaciones = []
     umbrales = []
+    descartadas = {"sensor_ajeno": [], "sin_hora": [], "fuera_de_rango": [], "duplicada": [], "intervalo": []}
 
-    with get_connection() as conn:
-        # Cursor dict para el plan: se mantiene abierto hasta el final para
-        # evaluar alertas ahí (necesita RealDictCursor); el de abajo devuelve
-        # tuplas porque los repos que siguen desempaquetan por posición.
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur_plan:
-            limites = plan_service.limites_de_dispositivo(cur_plan, dispositivo_id)
-            # Sólo para responderle al equipo qué cadencia usar; lo que se acepta
-            # escribir es UMBRAL_THROTTLE, que no depende de esto.
-            intervalo_sugerido = (
-                INTERVALO_ARRANQUE_SEG if _en_arranque(first_connected_at, ahora)
-                else plan_service.intervalo_efectivo_seg(
-                    intervalo_configurado_seg, limites["intervalo_minimo_seg"]
-                )
-            )
+    with get_cursor() as cur:
+        limites = plan_service.limites_de_dispositivo(cur, dispositivo["id"])
+        # Sólo para responderle al equipo qué cadencia usar; lo que se acepta
+        # escribir es UMBRAL_THROTTLE, que no depende de esto.
+        intervalo_sugerido = plan_service.intervalo_efectivo_seg(dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"])
 
-            with conn.cursor() as cur:
-                # last_seen_at es "cuándo habló el equipo", no la hora del dato: un
-                # flush del buffer trae lecturas viejas y lo dejaría figurando como
-                # desconectado justo cuando acaba de reportar.
-                #
-                # Un batch vacío es un heartbeat: el equipo dice "sigo acá" sin
-                # tener nada que publicar. Mueve last_seen_at pero NO last_data_at,
-                # que es lo que separa "está vivo" de "sus sensores andan".
-                dispositivo_repo.actualizar_conexion(cur, dispositivo_id, ahora, con_datos=bool(mediciones))
+        # Actualiza last_seen_at con la hora actual y last_data_at sólo si el POST traía mediciones.
+        # Un heartbeat dice que el equipo está vivo, no que sus sensores anden.
+        dispositivo_repo.actualizar_conexion(cur, dispositivo["id"], ahora, con_datos=bool(mediciones))
 
-                ids_sensores = sensor_repo.ids_por_dispositivo(cur, dispositivo_id)
+        ids_sensores = sensor_repo.ids_por_dispositivo(cur, dispositivo["id"])
 
-                invalidas = []
-                duplicadas = []
-                descartadas_por_intervalo = []
-                candidatas = []
+        medicionesCandidatas = []
 
-                for medicion in mediciones:
-                    if medicion.sensor_id not in ids_sensores:
-                        invalidas.append(str(medicion.sensor_id))
-                        continue
+        for medicion in mediciones:
+            if medicion.sensor_id not in ids_sensores:
+                descartadas["sensor_ajeno"].append(str(medicion.sensor_id))
+                continue
 
-                    timestamp = a_utc(medicion.time) or timestamp_batch
+            if medicion.time is None:
+                descartadas["sin_hora"].append(str(medicion.sensor_id))
+                continue
 
-                    # Fuera de rango: del futuro (reloj del equipo mal sincronizado)
-                    # o más vieja que lo que retenemos.
-                    if timestamp > ahora + TOLERANCIA_JITTER or timestamp < ahora - ANTIGUEDAD_MAXIMA:
-                        invalidas.append(str(medicion.sensor_id))
-                        continue
+            timestamp = a_utc(medicion.time)
 
-                    candidatas.append((timestamp, medicion.sensor_id, medicion.value))
+            # Fuera de rango: del futuro o más vieja que lo que retenemos.
+            if timestamp > ahora + TOLERANCIA_JITTER or timestamp < ahora - ANTIGUEDAD_MAXIMA:
+                descartadas["fuera_de_rango"].append(str(medicion.sensor_id))
+                continue
 
-                # Ordenadas por tiempo para poder comparar cada lectura contra la
-                # anterior del mismo sensor dentro del propio batch: cuando el
-                # firmware drena su buffer llegan varias lecturas por sensor en un
-                # mismo request. La evaluación de alertas reusa este mismo orden.
-                candidatas.sort(key=lambda fila: fila[0])
+            medicionesCandidatas.append((timestamp, medicion.sensor_id, medicion.value))
 
-                ventana = {}
-                if candidatas:
-                    # Alcanza con traer lo que ya está guardado alrededor del batch:
-                    # algo a más de un intervalo de distancia no cambia ninguna decisión.
-                    ventana = medicion_repo.mediciones_en_ventana(
-                        cur,
-                        list({sensor_id for _, sensor_id, _ in candidatas}),
-                        candidatas[0][0] - UMBRAL_THROTTLE,
-                        candidatas[-1][0] + UMBRAL_THROTTLE,
-                    )
+        # Ordenadas por tiempo para poder comparar cada lectura contra la
+        # anterior del mismo sensor dentro del propio batch
+        medicionesCandidatas.sort(key=lambda fila: fila[0])
 
-                filas = []
-                for timestamp, sensor_id, value in candidatas:
-                    existentes = ventana.setdefault(sensor_id, [])
-                    motivo = _clasificar(existentes, timestamp)
+        ventana = {}
+        if medicionesCandidatas:
+            # Se traen las mediciones ya guardadas de los sensores que vienen en el batch, en el mismo rango de tiempo
+            sensores_ids_en_mediciones = list({sensor_id for _, sensor_id, _ in medicionesCandidatas})
+            inicio = medicionesCandidatas[0][0] - UMBRAL_THROTTLE
+            fin = medicionesCandidatas[-1][0] + UMBRAL_THROTTLE
+            ventana = medicion_repo.mediciones_en_ventana(cur, sensores_ids_en_mediciones, inicio, fin)
 
-                    if motivo == "duplicada":
-                        duplicadas.append(str(sensor_id))
-                        continue
-                    if motivo == "intervalo":
-                        descartadas_por_intervalo.append(str(sensor_id))
-                        continue
+        filas = []
+        for timestamp, sensor_id, value in medicionesCandidatas:
+            medicionesExistentes = ventana.setdefault(sensor_id, [])
+            motivo = motivo_de_descarte(medicionesExistentes, timestamp)
 
-                    # Se suma a la ventana para que la siguiente lectura del mismo
-                    # sensor se compare también contra ésta: sin esto un batch con
-                    # 50 lecturas del mismo sensor separadas por 1 s entraría entero.
-                    bisect.insort(existentes, timestamp)
-                    filas.append((timestamp, sensor_id, value))
+            if motivo:
+                descartadas[motivo].append(str(sensor_id))
+                continue
 
-                insertadas = medicion_repo.insertar_muchas(cur, filas)
+            # Se suma a la ventana para que la siguiente lectura del mismo sensor la tenga en cuenta
+            bisect.insort(medicionesExistentes, timestamp)
+            filas.append((timestamp, sensor_id, value))
 
-            # Sólo si el owner es premium: un free no paga ni la query de lectura
-            # de reglas activas. Va después de insertar, misma transacción: si el
-            # commit falla, no queda un evento de alerta huérfano sin su medición.
-            if limites["puede_alertas"]:
-                if filas:
-                    notificaciones = alerta_service.evaluar_batch(cur_plan, filas, ahora)
-                # Copia plana de las reglas para que el equipo adelante el envío
-                # al cruzar un umbral. Va en cada respuesta: así una regla nueva
-                # llega sola y un equipo que rebootó se recupera sin nada extra.
-                umbrales = alerta_repo.umbrales_por_dispositivo(cur_plan, dispositivo_id)
+        insertadas = medicion_repo.insertar_muchas(cur, filas)
+
+        if limites["puede_alertas"]:
+            if filas:
+                notificaciones = alerta_service.evaluar_batch(cur, filas, ahora)
+            umbrales = alerta_repo.umbrales_por_dispositivo(cur, dispositivo["id"])
+
+    # len(filas) - insertadas es lo que frenó el ON CONFLICT: dos requests del mismo equipo en carrera.
+    _loguear_descartadas(dispositivo["id"], len(mediciones), descartadas, len(filas) - insertadas)
 
     return {
         "status": "ok",
-        "aceptadas": insertadas,
-        # reenvíos del buffer que ya estaban guardadas (respuesta perdida en el camino).
-        # La diferencia con `insertadas` cubre la carrera entre dos requests del mismo
-        # equipo, que frena el ON CONFLICT del insert.
-        "duplicadas": len(duplicadas) + (len(filas) - insertadas),
-        "rechazadas_invalidas": invalidas,
-        "rechazadas_por_intervalo": descartadas_por_intervalo,
-        # El equipo a batería no tiene reloj: guarda la EDAD de cada lectura y la
-        # convierte a fecha con este ancla. Va por acá y no por SNTP para no
-        # depender del UDP 123 ni del pool de terceros, cuyos términos prohíben
-        # usarlo como default en un producto que se distribuye.
+        # Se le pasa al equipo para que sepa si su reloj está atrasado o adelantado y pueda corregirlo
         "server_epoch": int(ahora.timestamp()),
         "intervalo_sugerido_seg": intervalo_sugerido,
-        # Cada cuánto tiene que HABLAR, publique o no. Va desde el servidor y no
-        # hardcodeado en el sketch: con una compilación por pedido, una constante
-        # del lado de la placa es una decisión que se arrastra años.
+        # Cada cuánto tiene que contactarse, publique o no.
         "intervalo_contacto_seg": dispositivo_service.INTERVALO_CONTACTO_SEG,
-        # El equipo compara cada muestra contra esto y, si CRUZA (transición, no
-        # estado), drena el buffer sin esperar el ciclo. No evalúa la alerta: la
-        # máquina de estados y el mail siguen siendo del servidor.
+        # El dispositivo cada que muestrea revisa las alertas, si alguna se dispara "muestras"veces seguidas, entonces el equipo la reporta.
         "umbrales": [
             {
                 "sensor_id": str(u["sensor_id"]),
@@ -179,12 +131,10 @@ def crear_medicion(time, mediciones, dispositivo_id, rotacion_pendiente=False, i
                 "umbral": u["umbral"],
                 "histeresis": u["histeresis"],
                 "muestras": u["muestras_confirmacion"],
-                # Estado inicial para una regla que el equipo no conocía: sin esto
-                # arranca en normal y "cruza" una regla ya disparada.
                 "disparada": u["disparada"],
             }
             for u in umbrales
         ],
-        # el firmware lee este flag y dispara la rotación de su secret en el próximo ciclo
-        "rotar_secret": bool(rotacion_pendiente),
+        # el dispositivo lee este flag y dispara la rotación de su secret en el próximo ciclo
+        "rotar_secret": bool(dispositivo["rotacion_pendiente"]),
     }, notificaciones

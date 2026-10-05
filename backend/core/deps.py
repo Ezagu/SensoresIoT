@@ -42,10 +42,9 @@ def get_dispositivo_autenticado(
                 dispositivo_repo.confirmar_rotacion(cur, dispositivo["id"])
                 dispositivo["secret_hash_anterior"] = None
         elif hash_anterior is not None and verificar_secrets(secret_hash, hash_anterior):
-            pass  # rotación todavía sin confirmar, el firmware la va a reintentar
+            # Si se utiliza el secret viejo, solicita que rote el secret nuevamente
+            dispositivo["rotacion_pendiente"] = True
         else:
             raise HTTPException(401, "credenciales inválidas")
 
-        if not dispositivo["activo"]:
-            raise HTTPException(401, "credenciales inválidas")
     return dispositivo

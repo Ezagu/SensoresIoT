@@ -6,20 +6,15 @@ from datetime import datetime
 class DispositivoCreate(BaseModel):
   nombre: Optional[str] = None
   ubicacion: Optional[str] = None
-  descripcion: Optional[str] = None
 
 class DispositivoUpdate(BaseModel):
   nombre: Optional[str] = None
   ubicacion: Optional[str] = None
-  descripcion: Optional[str] = None
-  activo: Optional[bool] = None
 
 class DispositivoOut(BaseModel):
   id: UUID
   nombre: Optional[str] = None
   ubicacion: Optional[str] = None
-  descripcion: Optional[str] = None
-  activo: bool
   # Cuándo HABLÓ el equipo (incluye heartbeats) vs cuándo mandó DATOS. Son dos
   # preguntas distintas: "¿está vivo?" y "¿sus lecturas llegan a tiempo?".
   last_seen_at: Optional[datetime]

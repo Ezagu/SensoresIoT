@@ -70,4 +70,4 @@ def buscar_con_tipo_por_dispositivos(cur, dispositivo_ids: list) -> list[dict]:
 
 def ids_por_dispositivo(cur, dispositivo_id) -> set:
     cur.execute("SELECT id FROM sensores WHERE dispositivo_id = %s", (dispositivo_id,))
-    return {row[0] for row in cur.fetchall()}
+    return {row["id"] for row in cur.fetchall()}

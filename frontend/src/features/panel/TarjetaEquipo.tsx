@@ -25,9 +25,7 @@ function Subtitulo({ fila, ahora }: { fila: FilaCartera; ahora: number }) {
   const conectividad = estadoDispositivo(d, ahora)
   return (
     <p className="mt-0.5 truncate pl-4.5 text-note-lg text-text-faint">
-      {!d.activo ? (
-        'Desactivado'
-      ) : conectividad === 'nunca' ? (
+      {conectividad === 'nunca' ? (
         'Nunca reportó'
       ) : conectividad === 'con-retraso' ? (
         <>

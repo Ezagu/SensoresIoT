@@ -56,14 +56,6 @@ export function situacionDeEquipo(d: DispositivoResumen, ahora: number): Situaci
   const desde = (iso: string | null) =>
     iso ? ` · ${duracion(iso, new Date(ahora).toISOString())}` : ''
 
-  if (!d.activo)
-    return {
-      glifo: 'inactivo',
-      texto: 'Desactivado',
-      tono: 'faint',
-      requiereAtencion: false,
-    }
-
   if (d.alertas_disparadas > 0) {
     const s = d.sensores.find((x) => x.disparada)
     const texto = s

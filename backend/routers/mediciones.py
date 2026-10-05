@@ -12,14 +12,12 @@ def create_medicion(
     dispositivo: dict = Depends(get_dispositivo_autenticado)
 ):
     if payload.diag:
-        print(f"[diag {dispositivo['id']}] mediciones={len(payload.mediciones)} {payload.diag}")
+        print(f"[Diagnóstico {dispositivo['id']}] mediciones={len(payload.mediciones)}; diag={payload.diag}")
 
-    respuesta, notificaciones = medicion_service.crear_medicion(
-        payload.time, payload.mediciones, dispositivo["id"], dispositivo["rotacion_pendiente"],
-        dispositivo["intervalo_configurado_seg"], dispositivo["first_connected_at"],
-    )
-    # Resend es HTTP bloqueante: el envío va después de responder al equipo,
-    # no en el mismo request.
+    respuesta, notificaciones = medicion_service.crear_medicion(payload.mediciones, dispositivo)
+
+    # Resend es HTTP bloqueante: el envío va después de responder al equipo, no en el mismo request.
     if notificaciones:
         background_tasks.add_task(alerta_service.notificar_eventos, notificaciones)
+
     return respuesta

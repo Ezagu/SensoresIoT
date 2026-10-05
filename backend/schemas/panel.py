@@ -16,8 +16,6 @@ class DispositivoResumenOut(BaseModel):
     id: UUID
     nombre: Optional[str] = None
     ubicacion: Optional[str] = None
-    descripcion: Optional[str] = None
-    activo: bool
     last_seen_at: Optional[datetime]
     last_data_at: Optional[datetime] = None
     first_connected_at: Optional[datetime]
