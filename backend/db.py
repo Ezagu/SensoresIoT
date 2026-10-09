@@ -47,3 +47,10 @@ def get_cursor_streaming(nombre: str, itersize: int = 2000):
         with conn.cursor(name=nombre, cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.itersize = itersize
             yield cur
+
+def tomar_lock_de_transaccion(cur, clave: int) -> bool:
+    # Advisory lock _xact: se libera solo en el commit o el rollback. try_ no
+    # espera: si otro proceso lo tiene devuelve False y quien llama se saltea.
+    # Las claves comparten un único espacio por base: definirlas junto a su uso.
+    cur.execute("SELECT pg_try_advisory_xact_lock(%s) AS tomado", (clave,))
+    return cur.fetchone()["tomado"]

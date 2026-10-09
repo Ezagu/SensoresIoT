@@ -8,9 +8,9 @@ from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 
 # El barrido de "dejó de reportar" corre acá adentro y no en un worker aparte.
-# Si algún día esto levanta con --workers N o con réplicas, cada proceso arranca
-# su propio bucle: lo único que evita mails duplicados es el advisory lock de
-# dispositivo_repo.tomar_lock_vigilancia.
+# Con --workers N o réplicas cada proceso arranca su propio bucle. El mail
+# duplicado lo evita el UPDATE condicional de abrir/cerrar_sin_reportar; el
+# advisory lock (vigilancia_service.LOCK_VIGILANCIA) evita el barrido doble.
 app = FastAPI(lifespan=ciclo_de_vida)
 
 app.state.limiter = limiter

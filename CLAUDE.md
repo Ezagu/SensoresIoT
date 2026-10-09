@@ -135,7 +135,7 @@ Sin la separación, un equipo con el bus I2C muerto (una lectura fallida no buff
 - Las dos piernas en un barrido, una transacción y mails después del commit: un commit por equipo dejaría caídas latcheadas sin mail. El `RETURNING` de `abrir_sin_reportar` (con `AND last_seen_at = %s`, concurrencia optimista) es lo que habilita el mail, no el `SELECT`.
 - `pg_try_advisory_xact_lock` evita dos barredores (réplicas, `--reload` en dev); es lo único que lo impide si algún día hay varios workers.
 - `medicion_at` de una apertura es `clock_timestamp()`: fechar por `last_seen_at` entierra el evento páginas atrás, y `now()` es fijo por transacción, con lo que dos equipos del mismo barrido compartirían timestamp y el cursor estricto (`medicion_at < %s`) perdería uno. Una reconexión usa el `last_seen_at` nuevo.
-- Excluidos: `last_seen_at IS NULL` (estado `nunca`) y los primeros `VENTANA_ARRANQUE_SEG` (30 min) tras `first_connected_at`, para no avisar por un equipo probado en el banco y desenchufado para llevarlo al sitio. No existe desactivar un equipo.
+- Excluidos: sólo `last_seen_at IS NULL` (estado `nunca`). No existe desactivar un equipo. **Pendiente**: un equipo probado en el banco y desenchufado abre una caída, y el cliente la ve (y recibe "volvió a reportar") al instalarlo. Se resuelve con el panel de admin; la ventana de 30 min tras `first_connected_at` se sacó porque no lo cubría.
 - Trade-off conocido: un equipo que oscila alrededor del umbral genera pares abrir/reconectar. Si el volumen molesta, la palanca es una columna de cooldown.
 
 ### Compartir: accesos e invitaciones

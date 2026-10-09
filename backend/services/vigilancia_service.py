@@ -1,14 +1,9 @@
 from repositories import acceso_repo, alerta_repo, dispositivo_repo
 from services import dispositivo_service
-from db import get_cursor
+from db import get_cursor, tomar_lock_de_transaccion
 
-# La falla silenciosa —el equipo se muere y nadie se entera— es la única que no
-# se puede evaluar inline en crear_medicion, porque se dispara por la AUSENCIA de
-# un POST. De ahí el barrido periódico, que es lo único de fondo del backend.
-
-# Tras la primera conexión no se abre ninguna caída: probarlo en el banco y
-# desenchufarlo para llevarlo al sitio no es "dejó de reportar".
-VENTANA_ARRANQUE_SEG = 30 * 60
+# Arbitraria pero fija: identifica al barrido, no a un dispositivo.
+LOCK_VIGILANCIA = 4831001
 
 def barrer() -> list[dict]:
     """
@@ -16,16 +11,14 @@ def barrer() -> list[dict]:
 
     Una sola transacción para todo el barrido, y los mails van DESPUÉS del commit:
     si el barrido falla a la mitad, rollea entero y no se mandó nada, así que el
-    próximo tick reintenta limpio. Con un commit por equipo, una falla dejaría
-    medio lote con la caída marcada y sin mail, que es el peor resultado posible
-    acá — silencio permanente sobre un equipo caído.
+    próximo tick reintenta limpio.
     """
     with get_cursor() as cur:
-        if not dispositivo_repo.tomar_lock_vigilancia(cur):
+        if not tomar_lock_de_transaccion(cur, LOCK_VIGILANCIA):
             return []  # otro proceso está barriendo
 
         candidatos = dispositivo_repo.candidatos_de_vigilancia(
-            cur, dispositivo_service.VENTANA_SIN_REPORTAR_SEG, VENTANA_ARRANQUE_SEG
+            cur, dispositivo_service.VENTANA_SIN_REPORTAR_SEG
         )
         if not candidatos:
             return []

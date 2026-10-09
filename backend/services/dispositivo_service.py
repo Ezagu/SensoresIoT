@@ -1,47 +1,28 @@
 import math
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException
+from core.security import generar_secret
 from repositories import dispositivo_repo, sensor_repo, acceso_repo, alerta_repo
 from services import plan_service
 from db import get_cursor
 
-# Cada cuánto PUBLICA el equipo. El muestreo es fijo (15 s en el firmware) y no
-# se configura. Lista cerrada y no un número libre: 137 s no significa nada para
-# nadie, y cada escalón acá es una decisión que el cliente puede justificar.
-PRESETS_INTERVALO_SEG = (60, 300, 900, 1800)
 ROLES_EDICION = ("admin", "owner", "editor")
 ROLES_OWNER = ("admin", "owner")
 ROLES_ASIGNABLES = ("editor", "viewer")
 
+# Cada cuánto PUBLICA el equipo. El muestreo es fijo (15 s en el firmware) y no se configura por ahora.
+PRESETS_INTERVALO_SEG = (60, 300, 900, 1800)
 # Cada cuánto el equipo tiene que HABLAR, publique o no.
 INTERVALO_CONTACTO_SEG = 300
 # Cada cuánto el equipo debe muestrear en busca de eventos.
 INTERVALO_MIN_MUESTREO_SEG = 15
 
-# Toleramos tres contactos perdidos antes de dar por caído al equipo: uno perdido
-# es un reintento normal del firmware.
 INTERVALOS_DE_GRACIA = 3
 
-# 15 min. Es UN número para todos los equipos, no 3 x su cadencia de publicación:
-# esa cadencia se elige por ancho de banda y filas en la base, y no tiene por qué
-# decidir qué tan rápido te enterás de una falla. Antes iba de 3 min (equipo de
-# 1 min, o sea un mail por cada reinicio de router) a 90 min (equipo de 30 min).
-#
-# Y es el MISMO umbral con el que sale el mail, así que la frase se puede escribir
-# en la pantalla sin asteriscos: cuando el panel dice "sin reportar", el mail ya
-# salió. El ruido de red lo absorbe el estado intermedio "con retraso", que mide
-# otra cosa (ver lecturas_al_dia).
 VENTANA_SIN_REPORTAR_SEG = INTERVALO_CONTACTO_SEG * INTERVALOS_DE_GRACIA
 
 def esta_online(last_seen_at, ahora=None) -> bool:
-    # ¿El equipo está vivo? Nada más. Si mandó datos o sólo dijo "acá estoy" es
-    # otra pregunta, y la contesta last_data_at.
-    #
-    # `ahora` existe para que el barrido de vigilancia_service le pase el reloj de
-    # Postgres que ya trae en la fila: last_seen_at lo escribe Python y el filtro
-    # del barrido usa now() de la base, así que un desfasaje entre los dos relojes
-    # abriría caídas falsas. Las pantallas lo llaman sin el parámetro y siguen
-    # usando el reloj del proceso — el predicado sigue siendo uno solo.
+    # `ahora`: el barrido pasa el reloj de Postgres, el mismo de su filtro.
     if last_seen_at is None:
         return False
     transcurrido = (ahora or datetime.now(timezone.utc)) - last_seen_at
@@ -87,8 +68,8 @@ def validar_que_exista_dispositivo(cur, dispositivo_id) -> dict:
     return dispositivo
 
 def rol_en_dispositivo(cur, dispositivo_id, usuario_id, rol) -> str | None:
-    # 'admin' | 'owner' | 'editor' | 'viewer' | None (sin acceso). Admin
-    # primero: es soporte, no pasa por usuario_dispositivo.
+    # 'admin' | 'owner' | 'editor' | 'viewer' | None (sin acceso).
+    # Admin primero: es soporte, no pasa por usuario_dispositivo.
     if rol == "admin":
         return "admin"
     return acceso_repo.buscar_rol_en_dispositivo(cur, dispositivo_id, usuario_id)
@@ -114,8 +95,11 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
 #-----------------ENDPOINTS----------------------
 
 def crear_dispositivo(dispositivo) -> dict:
+    # El secret sólo sale en texto plano acá; se persiste únicamente el hash.
+    secret, secret_hash = generar_secret()
     with get_cursor() as cur:
-        return dispositivo_repo.crear(cur, dispositivo.nombre, dispositivo.ubicacion)
+        creado = dispositivo_repo.crear(cur, dispositivo.nombre, dispositivo.ubicacion, secret_hash)
+    return {"dispositivo": creado, "secret": secret}
 
 def obtener_dispositivo(dispositivo_id, usuario_id, rol) -> dict:
     with get_cursor() as cur:
@@ -192,20 +176,27 @@ def configurar_intervalo(dispositivo_id, usuario_id, rol, intervalo_seg) -> dict
 #------------SECRET-------------
 
 def regenerar_secret_dispositivo(dispositivo_id) -> dict:
-    # Uso solo de admin, reflashear firmware manualmente con secret nuevo
+    # Uso de banco/fábrica: requiere reflashear el equipo con el secret devuelto.
+    secret, secret_hash = generar_secret()
     with get_cursor() as cur:
-        validar_que_exista_dispositivo(cur, dispositivo_id)
-        secret = dispositivo_repo.actualizar_secret(cur, dispositivo_id)
-        return {"secret": secret}
+        actualizado = dispositivo_repo.actualizar_secret(cur, dispositivo_id, secret_hash)
+    if not actualizado:
+        raise HTTPException(404, "Dispositivo no encontrado")
+    return {"secret": secret}
 
 def marcar_rotacion_pendiente(dispositivo_id) -> dict:
     # Activar flag para que dispositivo rote de secret
     with get_cursor() as cur:
-        dispositivo_repo.marcar_rotacion_pendiente(cur, dispositivo_id)
-        return {"detail": "El dispositivo va a rotar su secret en la próxima conexión"}
+        marcado = dispositivo_repo.marcar_rotacion_pendiente(cur, dispositivo_id)
+    if not marcado:
+        raise HTTPException(404, "Dispositivo no encontrado")
+    return {"detail": "El dispositivo va a rotar su secret en la próxima conexión"}
 
 def rotar_secret_dispositivo(dispositivo_id) -> dict:
     # Mismo dispositivo solicita rotar secret mediante una flag recibida
+    secret, secret_hash = generar_secret()
     with get_cursor() as cur:
-        secret = dispositivo_repo.rotar_secret(cur, dispositivo_id)
-        return {"secret": secret}
+        rotado = dispositivo_repo.rotar_secret(cur, dispositivo_id, secret_hash)
+    if not rotado:
+        raise HTTPException(404, "Dispositivo no encontrado")
+    return {"secret": secret}

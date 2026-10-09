@@ -1,15 +1,20 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 from uuid import UUID
-from typing import Optional
+from typing import Annotated, Optional
 from datetime import datetime
 
+# Mismos topes que esquemaIdentificacion del front.
+Nombre = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=80)]
+Ubicacion = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+
 class DispositivoCreate(BaseModel):
-  nombre: Optional[str] = None
-  ubicacion: Optional[str] = None
+  nombre: Nombre
+  ubicacion: Optional[Ubicacion] = None
 
 class DispositivoUpdate(BaseModel):
-  nombre: Optional[str] = None
-  ubicacion: Optional[str] = None
+  # Omitible pero no nulo (la columna es NOT NULL): Pydantic no valida el default.
+  nombre: Nombre = None
+  ubicacion: Optional[Ubicacion] = None
 
 class DispositivoOut(BaseModel):
   id: UUID

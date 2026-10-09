@@ -61,7 +61,7 @@ def crear_medicion(mediciones, dispositivo):
 
         ids_sensores = sensor_repo.ids_por_dispositivo(cur, dispositivo["id"])
 
-        medicionesCandidatas = []
+        mediciones_candidatas = []
 
         for medicion in mediciones:
             if medicion.sensor_id not in ids_sensores:
@@ -79,31 +79,31 @@ def crear_medicion(mediciones, dispositivo):
                 descartadas["fuera_de_rango"].append(str(medicion.sensor_id))
                 continue
 
-            medicionesCandidatas.append((timestamp, medicion.sensor_id, medicion.value))
+            mediciones_candidatas.append((timestamp, medicion.sensor_id, medicion.value))
 
         # Ordenadas por tiempo para poder comparar cada lectura contra la
         # anterior del mismo sensor dentro del propio batch
-        medicionesCandidatas.sort(key=lambda fila: fila[0])
+        mediciones_candidatas.sort(key=lambda fila: fila[0])
 
         ventana = {}
-        if medicionesCandidatas:
+        if mediciones_candidatas:
             # Se traen las mediciones ya guardadas de los sensores que vienen en el batch, en el mismo rango de tiempo
-            sensores_ids_en_mediciones = list({sensor_id for _, sensor_id, _ in medicionesCandidatas})
-            inicio = medicionesCandidatas[0][0] - UMBRAL_THROTTLE
-            fin = medicionesCandidatas[-1][0] + UMBRAL_THROTTLE
+            sensores_ids_en_mediciones = list({sensor_id for _, sensor_id, _ in mediciones_candidatas})
+            inicio = mediciones_candidatas[0][0] - UMBRAL_THROTTLE
+            fin = mediciones_candidatas[-1][0] + UMBRAL_THROTTLE
             ventana = medicion_repo.mediciones_en_ventana(cur, sensores_ids_en_mediciones, inicio, fin)
 
         filas = []
-        for timestamp, sensor_id, value in medicionesCandidatas:
-            medicionesExistentes = ventana.setdefault(sensor_id, [])
-            motivo = motivo_de_descarte(medicionesExistentes, timestamp)
+        for timestamp, sensor_id, value in mediciones_candidatas:
+            mediciones_existentes = ventana.setdefault(sensor_id, [])
+            motivo = motivo_de_descarte(mediciones_existentes, timestamp)
 
             if motivo:
                 descartadas[motivo].append(str(sensor_id))
                 continue
 
             # Se suma a la ventana para que la siguiente lectura del mismo sensor la tenga en cuenta
-            bisect.insort(medicionesExistentes, timestamp)
+            bisect.insort(mediciones_existentes, timestamp)
             filas.append((timestamp, sensor_id, value))
 
         insertadas = medicion_repo.insertar_muchas(cur, filas)
