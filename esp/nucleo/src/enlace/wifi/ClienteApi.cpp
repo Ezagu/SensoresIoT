@@ -38,7 +38,7 @@ static void agregarPunto(JsonArray& mediciones, const PuntoFechado& p) {
   punto["sensor_id"] = equipo::actual().sensorIds[p.sensorIdx];
   punto["value"]     = p.value;
 
-  // Sin ancla se omite el campo y el backend le pone la de recepción.
+  // Sin ancla se omite el campo y el backend descarta la lectura: fecharla con la llegada mentiría.
   if (p.epoch != 0) punto["time"] = reloj::isoUtc(p.epoch);
 }
 
@@ -97,7 +97,7 @@ bool postear(const char* apiBase, const Lote& lote, const Estado& estado, const 
   JsonDocument doc;
   JsonArray mediciones = doc["mediciones"].to<JsonArray>();
   for (uint16_t i = 0; i < lote.cantidad; i++) agregarPunto(mediciones, lote.puntos[i]);
-  if (estado.bateriaPct >= 0) doc["bateria_pct"] = estado.bateriaPct;
+  if (estado.bateriaMv >= 0) doc["bateria_mv"] = estado.bateriaMv;
   agregarDiagnostico(doc, estado.diag, wifi);
 
   String payload;

@@ -27,7 +27,7 @@ RTC_DATA_ATTR static uint8_t fallosContacto     = 0;
 RTC_DATA_ATTR static bool alertaPorEnviar = false;
 
 // Se lee una vez por contacto, antes de abrir el enlace: el ADC2 no lee con WiFi encendido.
-static int8_t bateriaPct = -1;
+static int16_t bateriaMv = -1;
 
 static void armarWatchdog() {
   esp_task_wdt_config_t wdt = {};
@@ -93,7 +93,7 @@ static void registrarResultado(const Enlace& enlace, bool ok) {
 
 static bool enviarLote(Enlace& enlace, const Lote& lote) {
   Respuesta respuesta;
-  Estado estado = {bateriaPct, diagnostico::armar(fallosContacto, alertaPorEnviar)};
+  Estado estado = {bateriaMv, diagnostico::armar(fallosContacto, alertaPorEnviar)};
   if (!enlace.enviar(lote, estado, respuesta)) return false;
 
   planoControl::aplicar(respuesta);
@@ -111,7 +111,7 @@ static bool enviarSiguiente(Enlace& enlace, Lote& lote) {
 // true si el backend aceptó al menos un lote.
 static bool contactar(Enlace& enlace, bool interactivo) {
   MedidorBateria* bateria = equipo::actual().bateria;
-  bateriaPct = bateria ? bateria->porcentaje() : -1;
+  bateriaMv = bateria ? bateria->milivoltios() : -1;
 
   if (!enlace.abrir(interactivo)) return false;
 

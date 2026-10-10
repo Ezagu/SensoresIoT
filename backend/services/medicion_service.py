@@ -15,6 +15,9 @@ ANTIGUEDAD_MAXIMA = timedelta(days=90)
 # fuera de ciclo de una alerta.
 UMBRAL_THROTTLE = timedelta(seconds=dispositivo_service.INTERVALO_MIN_MUESTREO_SEG - 3)
 
+# Techo de lo que el divisor puede medir: más arriba es basura del ADC.
+BATERIA_MV_MAX = 6000
+
 def motivo_de_descarte(existentes: list, timestamp) -> str | None:
     # Indica en que posición de la lista ordenada debería insertarse el timestamp para mantener el orden.
     posicion = bisect.bisect_left(existentes, timestamp)
@@ -42,7 +45,15 @@ def _loguear_descartadas(dispositivo_id, recibidas: int, descartadas: dict, en_c
     detalle = f" sensores_ajenos={sorted(set(descartadas['sensor_ajeno']))}" if descartadas["sensor_ajeno"] else ""
     print(f"[Mediciones {dispositivo_id}] recibidas={recibidas} descartadas={conteos}{detalle}")
 
-def crear_medicion(mediciones, dispositivo):
+def _registrar_bateria(cur, dispositivo, bateria_mv: int, ahora) -> None:
+    if not dispositivo["tiene_bateria"]:
+        print(f"[Mediciones {dispositivo['id']}] Ignorando batería {bateria_mv} mV: el dispositivo no tiene batería")
+    elif not 0 <= bateria_mv <= BATERIA_MV_MAX:
+        print(f"[Mediciones {dispositivo['id']}] Ignorando batería {bateria_mv} mV: fuera de rango 0-{BATERIA_MV_MAX}")
+    else:
+        dispositivo_repo.actualizar_bateria(cur, dispositivo["id"], bateria_mv, ahora)
+
+def crear_medicion(mediciones, dispositivo, bateria_mv = None):
     ahora = datetime.now(timezone.utc)
 
     notificaciones = []
@@ -58,6 +69,9 @@ def crear_medicion(mediciones, dispositivo):
         # Actualiza last_seen_at con la hora actual y last_data_at sólo si el POST traía mediciones.
         # Un heartbeat dice que el equipo está vivo, no que sus sensores anden.
         dispositivo_repo.actualizar_conexion(cur, dispositivo["id"], ahora, con_datos=bool(mediciones))
+
+        if bateria_mv is not None:
+            _registrar_bateria(cur, dispositivo, bateria_mv, ahora)
 
         ids_sensores = sensor_repo.ids_por_dispositivo(cur, dispositivo["id"])
 

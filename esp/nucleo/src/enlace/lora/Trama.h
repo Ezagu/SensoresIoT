@@ -3,11 +3,11 @@
 #include <Arduino.h>
 #include "comun/Lote.h"
 
-// Protocolo de aire nodo ↔ receptor, v1. Formato en esp/LORA.md. Todo little-endian;
+// Protocolo de aire nodo ↔ receptor, v2. Formato en esp/LORA.md. Todo little-endian;
 // cada trama termina en un MAC (HMAC-SHA256 truncado) sobre todo lo anterior.
 namespace trama {
 
-const uint8_t MAGIC       = 0xB1;  // 0xB: Bitácora, 1: versión
+const uint8_t MAGIC       = 0xB2;  // 0xB: Bitácora, 2: versión
 const uint8_t TIPO_DATOS  = 0x01;
 const uint8_t TIPO_ACK    = 0x02;
 const uint8_t CLAVE_LEN   = 16;
@@ -18,7 +18,7 @@ const size_t  MAX_TRAMA   = 255;   // tope del FIFO del SX127x
 struct Datos {
   uint16_t     idNodo;
   uint16_t     contador;   // empareja el ACK con su trama; los reintentos lo repiten
-  int8_t       bateriaPct; // -1 = sin batería o sin lectura
+  int16_t      bateriaMv;  // -1 = sin batería o sin lectura
   uint8_t      cantidad;
   PuntoFechado puntos[MAX_PUNTOS];
 };

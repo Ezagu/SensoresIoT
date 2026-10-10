@@ -34,7 +34,7 @@ bool EnlaceLora::enviar(const Lote& lote, const Estado& estado, Respuesta& respu
   trama::Datos datos;
   datos.idNodo     = config.idNodo;
   datos.contador   = proximoContador();
-  datos.bateriaPct = estado.bateriaPct;
+  datos.bateriaMv  = estado.bateriaMv;
   datos.cantidad   = lote.cantidad;
   for (uint8_t i = 0; i < datos.cantidad; i++) datos.puntos[i] = lote.puntos[i];
 

@@ -60,7 +60,10 @@ CREATE TABLE dispositivos (
     -- hasta que el owner vuelva a subir (el clamp se aplica en tiempo de request,
     -- ver medicion_service._obtener_intervalo_minimo).
     intervalo_configurado_seg INTEGER
-        CHECK (intervalo_configurado_seg IS NULL OR intervalo_configurado_seg > 0)
+        CHECK (intervalo_configurado_seg IS NULL OR intervalo_configurado_seg > 0),
+    tiene_bateria         BOOLEAN NOT NULL DEFAULT false,
+    bateria_mv            INTEGER,
+    bateria_at            TIMESTAMPTZ
 );
 
 CREATE TABLE usuario_dispositivo (

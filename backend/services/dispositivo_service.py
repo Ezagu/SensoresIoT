@@ -28,6 +28,24 @@ def esta_online(last_seen_at, ahora=None) -> bool:
     transcurrido = (ahora or datetime.now(timezone.utc)) - last_seen_at
     return transcurrido < timedelta(seconds=VENTANA_SIN_REPORTAR_SEG)
 
+# Celda Li-ion/LiPo en reposo, (mV, %): no es lineal, casi todo está entre 3,7 y 3,9 V.
+# Cargando, la tensión sigue al cargador y marca de más.
+CURVA_LI_ION = (
+    (3270, 0), (3610, 5), (3690, 10), (3710, 15), (3730, 20), (3750, 25), (3770, 30),
+    (3790, 35), (3800, 40), (3820, 45), (3840, 50), (3850, 55), (3870, 60), (3910, 65),
+    (3950, 70), (3980, 75), (4020, 80), (4080, 85), (4110, 90), (4150, 95), (4200, 100),
+)
+
+def porcentaje_bateria(bateria_mv) -> int | None:
+    if bateria_mv is None:
+        return None
+    if bateria_mv <= CURVA_LI_ION[0][0]:
+        return 0
+    for (mv_ant, pct_ant), (mv, pct) in zip(CURVA_LI_ION, CURVA_LI_ION[1:]):
+        if bateria_mv <= mv:
+            return round(pct_ant + (bateria_mv - mv_ant) / (mv - mv_ant) * (pct - pct_ant))
+    return 100
+
 def segundos_hasta_siguiente_medicion(last_seen_at, intervalo_efectivo_seg) -> int | None:
     # Cuánto falta para el próximo reporte esperado. None = nunca reportó, no hay
     # desde dónde contar.
@@ -90,6 +108,7 @@ def obtener_detalle_dispositivo(cur, dispositivo: dict, usuario_id, rol):
         dispositivo["intervalo_configurado_seg"], limites["intervalo_minimo_seg"]
     )
     dispositivo["notificar"] = acceso_repo.buscar_notificar(cur, dispositivo_id, usuario_id)
+    dispositivo["bateria_porcentaje"] = porcentaje_bateria(dispositivo["bateria_mv"])
     return dispositivo
 
 #-----------------ENDPOINTS----------------------

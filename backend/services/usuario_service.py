@@ -28,5 +28,6 @@ def obtener_dispositivos_de_usuario(usuario_id) -> list[dict]:
             )
             d["intervalo_efectivo_seg"] = intervalo
             d["online"] = dispositivo_service.esta_online(d["last_seen_at"])
+            d["bateria_porcentaje"] = dispositivo_service.porcentaje_bateria(d["bateria_mv"])
 
         return dispositivos

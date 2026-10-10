@@ -1,5 +1,6 @@
 COLUMNAS_PUBLICAS = ("id, nombre, ubicacion, last_seen_at, last_data_at, "
-                     "first_connected_at, intervalo_configurado_seg, intervalo_modificado_at")
+                    "first_connected_at, intervalo_configurado_seg, intervalo_modificado_at, "
+                    "tiene_bateria, bateria_mv, bateria_at")
 COLUMNAS_ACTUALIZABLES = ("nombre", "ubicacion")
 
 def crear(cur, nombre: str, ubicacion: str, secret_hash: str) -> dict:
@@ -75,6 +76,16 @@ def actualizar_conexion(cur, dispositivo_id, timestamp, con_datos: bool):
         """,
         (timestamp, timestamp, timestamp, dispositivo_id) if con_datos
         else (timestamp, timestamp, dispositivo_id)
+    )
+
+def actualizar_bateria(cur, dispositivo_id, bateria_mv: int, timestamp):
+    cur.execute(
+        """
+        UPDATE dispositivos
+        SET bateria_mv = %s, bateria_at = %s
+        WHERE id = %s
+        """,
+        (bateria_mv, timestamp, dispositivo_id)
     )
 
 #-----------VIGILANCIA DE SILENCIO---------------

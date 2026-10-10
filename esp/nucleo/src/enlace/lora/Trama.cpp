@@ -4,11 +4,11 @@
 namespace trama {
 
 const size_t LARGO_CABECERA = 6;   // magic, tipo, idNodo, contador
-const size_t LARGO_DATOS    = LARGO_CABECERA + 2;   // + batería y cantidad
+const size_t LARGO_DATOS    = LARGO_CABECERA + 3;   // + batería (mV) y cantidad
 const size_t LARGO_PUNTO    = 9;   // sensorIdx, value (float32), epoch
 const size_t LARGO_ACK      = LARGO_CABECERA + 9 + MAC_LEN;
 
-const uint8_t SIN_BATERIA        = 0xFF;
+const uint16_t SIN_BATERIA       = 0xFFFF;
 const uint8_t ACK_HAY_HORA       = 0x01;
 const uint8_t ACK_HAY_INTERVALOS = 0x02;
 
@@ -61,8 +61,8 @@ size_t codificar(const Datos& datos, const uint8_t* clave, uint8_t* salida, size
   if (largo > max) return 0;
 
   escribirCabecera(salida, TIPO_DATOS, datos.idNodo, datos.contador);
-  salida[LARGO_CABECERA]     = datos.bateriaPct < 0 ? SIN_BATERIA : datos.bateriaPct;
-  salida[LARGO_CABECERA + 1] = datos.cantidad;
+  escribir16(salida + LARGO_CABECERA, datos.bateriaMv < 0 ? SIN_BATERIA : datos.bateriaMv);
+  salida[LARGO_CABECERA + 2] = datos.cantidad;
 
   uint8_t* p = salida + LARGO_DATOS;
   for (uint8_t i = 0; i < datos.cantidad; i++, p += LARGO_PUNTO) {
@@ -102,16 +102,16 @@ bool leerCabecera(const uint8_t* trama, size_t largo, uint8_t& tipo, uint16_t& i
 bool decodificar(const uint8_t* trama, size_t largo, const uint8_t* clave, Datos& datos) {
   if (largo < LARGO_DATOS + MAC_LEN || trama[0] != MAGIC || trama[1] != TIPO_DATOS) return false;
 
-  uint8_t cantidad = trama[LARGO_CABECERA + 1];
+  uint8_t cantidad = trama[LARGO_CABECERA + 2];
   if (cantidad > MAX_PUNTOS) return false;
   if (largo != LARGO_DATOS + cantidad * LARGO_PUNTO + MAC_LEN) return false;
   if (!macValido(clave, trama, largo)) return false;
 
   datos.idNodo   = leer16(trama + 2);
   datos.contador = leer16(trama + 4);
-  uint8_t bateria = trama[LARGO_CABECERA];
-  datos.bateriaPct = bateria > 100 ? -1 : bateria;
-  datos.cantidad   = cantidad;
+  uint16_t bateria = leer16(trama + LARGO_CABECERA);
+  datos.bateriaMv = bateria > INT16_MAX ? -1 : bateria;
+  datos.cantidad  = cantidad;
 
   const uint8_t* p = trama + LARGO_DATOS;
   for (uint8_t i = 0; i < cantidad; i++, p += LARGO_PUNTO) {

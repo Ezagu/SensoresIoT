@@ -206,8 +206,8 @@ en 1,2 s, así que no hace falta tope por ciclo — la grilla de `dormir()` lo a
 
 **j. Medición de batería.** ADC sobre divisor (ver hoja de hardware). Habilita el
 aviso de "batería baja" *mientras todavía hay energía para mandarlo*, el modo
-conservación y el volcado del punto l. Definir si el % viaja como un sensor más
-o como campo del POST (esto último toca el backend).
+conservación y el volcado del punto l. Decidido: campo `bateria_mv` del POST, no
+sensor; el % lo calcula el backend.
 
 **p. Corregir el drift del oscilador por software, midiéndolo contra el servidor.**
 ✅ en `prueba_bmp.ino` (`calibrarReloj()`), **validado en placa el 29–30/9**: 21 h sin

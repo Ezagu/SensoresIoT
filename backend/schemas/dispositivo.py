@@ -30,6 +30,12 @@ class DispositivoOut(BaseModel):
   # Cuándo se cambió el intervalo. El equipo se entera recién en su próximo
   # contacto, así que hasta ahí no se lo puede marcar atrasado contra el valor nuevo.
   intervalo_modificado_at: Optional[datetime] = None
+  # Declarado en el alta: sin bateria_mv reciente, es que no se pudo leer.
+  tiene_bateria: bool
+  bateria_mv: Optional[int] = None
+  # Derivado de bateria_mv en dispositivo_service.porcentaje_bateria; no se guarda.
+  bateria_porcentaje: Optional[int] = None
+  bateria_at: Optional[datetime] = None
 
 class DispositivoEstadoOut(BaseModel):
   # Lo único que cambia solo mientras se mira un equipo: lo que el detalle pollea.

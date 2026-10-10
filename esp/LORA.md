@@ -46,29 +46,29 @@ Librería `LoRa` de Sandeep Mistry (0.8.0), la del prototipo. Instalarla una vez
 
 **Falta verificar con ENACOM** potencia y ocupación permitidas en 915 MHz antes de vender.
 
-## Tramas (v1)
+## Tramas (v2)
 
 Todo little-endian. Cada trama termina en un MAC: HMAC-SHA256 con la clave de enlace del
 nodo (16 B) sobre todos los bytes anteriores, truncado a 8 B.
 
-**Datos** (nodo → receptor), 16 + 9 × n bytes, n ≤ 16:
+**Datos** (nodo → receptor), 17 + 9 × n bytes, n ≤ 16:
 
 | Offset | Largo | Campo |
 |---|---|---|
-| 0 | 1 | magic `0xB1` (Bitácora, versión 1) |
+| 0 | 1 | magic `0xB2` (Bitácora, versión 2) |
 | 1 | 1 | tipo `0x01` |
 | 2 | 2 | id del nodo |
 | 4 | 2 | contador |
-| 6 | 1 | batería 0–100 %; `0xFF` = sin batería o sin lectura |
-| 7 | 1 | n, cantidad de puntos |
-| 8 | 9 × n | punto: índice de sensor (1), valor float32 (4), epoch (4; 0 = sin fecha) |
-| 8 + 9n | 8 | MAC |
+| 6 | 2 | batería en mV; `0xFFFF` = sin batería o sin lectura |
+| 8 | 1 | n, cantidad de puntos |
+| 9 | 9 × n | punto: índice de sensor (1), valor float32 (4), epoch (4; 0 = sin fecha) |
+| 9 + 9n | 8 | MAC |
 
 **ACK** (receptor → nodo), 23 bytes:
 
 | Offset | Largo | Campo |
 |---|---|---|
-| 0 | 1 | magic `0xB1` |
+| 0 | 1 | magic `0xB2` |
 | 1 | 1 | tipo `0x02` |
 | 2 | 2 | id del nodo |
 | 4 | 2 | contador de la trama que confirma |
@@ -78,11 +78,12 @@ nodo (16 B) sobre todos los bytes anteriores, truncado a 8 B.
 | 13 | 2 | `intervalo_contacto_seg` |
 | 15 | 8 | MAC |
 
-Tiempo en el aire a SF7: trama vacía (heartbeat) ~51 ms, trama llena (16 puntos, 160 B)
+Tiempo en el aire a SF7: trama vacía (heartbeat) ~51 ms, trama llena (16 puntos, 161 B)
 ~261 ms, ACK ~62 ms.
 
 La batería va en el encabezado y no como punto: es un dato del dispositivo, no una
 medición (ver CLAUDE.md). Se lee una vez por contacto y viaja igual en todos sus lotes.
+Viaja en mV y no en %: la curva vive en el backend (v1 mandaba 1 byte de %).
 
 ## Cómo se usa
 

@@ -77,7 +77,7 @@ void loop() {
   bool contestado = receptor.responder(ack);
 
   char bateria[12] = "sin dato";
-  if (datos.bateriaPct >= 0) snprintf(bateria, sizeof(bateria), "%d %%", datos.bateriaPct);
+  if (datos.bateriaMv >= 0) snprintf(bateria, sizeof(bateria), "%d mV", datos.bateriaMv);
 
   Serial.printf("[RX] Nodo %u, trama %u, %u mediciones, batería %s, RSSI %d dBm, ACK %s, rechazadas %lu\n",
                 datos.idNodo, datos.contador, datos.cantidad, bateria, rssi,

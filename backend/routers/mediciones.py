@@ -14,7 +14,7 @@ def create_medicion(
     if payload.diag:
         print(f"[Diagnóstico {dispositivo['id']}] mediciones={len(payload.mediciones)}; diag={payload.diag}")
 
-    respuesta, notificaciones = medicion_service.crear_medicion(payload.mediciones, dispositivo)
+    respuesta, notificaciones = medicion_service.crear_medicion(payload.mediciones, dispositivo, payload.bateria_mv)
 
     # Resend es HTTP bloqueante: el envío va después de responder al equipo, no en el mismo request.
     if notificaciones:

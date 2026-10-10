@@ -1,5 +1,5 @@
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -18,8 +18,18 @@ class Umbral(BaseModel):
 
 class MedicionCreate(BaseModel):
     mediciones: list[Medicion]
+    bateria_mv: Optional[int] = None
     # Estado interno del firmware; sólo se loguea, no se persiste.
     diag: Optional[dict] = None
+
+    @field_validator("bateria_mv", mode="wrap")
+    @classmethod
+    def _bateria_tolerante(cls, valor, handler):
+        # Un valor ilegible se ignora: un 422 tira el lote entero y el equipo lo reintenta para siempre.
+        try:
+            return handler(valor)
+        except ValidationError:
+            return None
 
 class MedicionCreateResponse(BaseModel):
     status: str
