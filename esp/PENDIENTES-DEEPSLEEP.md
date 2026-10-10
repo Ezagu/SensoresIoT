@@ -93,15 +93,13 @@ control del equipo. Motivos, en orden:
    distinguir "tengo una hora" de "tengo una hora *recién sincronizada*", y con
    `server_epoch` esa distinción no existe.
 
-`programa_base.ino` (enchufado) **todavía usa `pool.ntp.org` y `time.nist.gov`**
-y es el que hoy se entrega. Migrarlo es más simple que esto: no usa el sistema de
-edad/ancla, así que alcanza con `settimeofday()` desde el mismo `server_epoch`.
-Pendiente, decidido aparte.
+El firmware enchufado que se reescriba sobre `nucleo/` toma la hora del mismo
+`server_epoch`; el viejo (`programa_base.ino`, borrado el 2026-10-10) usaba
+`pool.ntp.org`.
 
 **b. Watchdog armado** (`MS_WATCHDOG` = 60 s, `esp_task_wdt_reconfigure` + `add`).
-Va como **primera línea de `setup()`**, antes del I2C — al revés que
-`programa_base.ino`, que lo arma después de la red. Acá no se puede: el cuelgue
-está en `aht.getEvent()`, que corre antes. El portal cautivo se cubre
+Va como **primera línea de `setup()`**, antes del I2C: el cuelgue está en
+`aht.getEvent()`, que corre antes de la red. El portal cautivo se cubre
 desuscribiendo la tarea alrededor de `startConfigPortal` (`abrirPortal`).
 No hace falta `esp_task_wdt_reset()`: no hay `loop()`.
 
@@ -144,7 +142,7 @@ secrets durante una rotación, así que el orden es seguro.
 
 **Bug de contrato, ya corregido en los dos firmwares:** `guardarUmbrales()` leía
 `item["cantMuestras"]`; el backend manda `muestras`
-(`backend/schemas/medicion.py:16`). Y `programa_base.ino` leía
+(`backend/schemas/medicion.py:16`). Y el firmware enchufado viejo leía
 `respuesta["intervalo_sugerido"]` en vez de `intervalo_sugerido_seg`, con lo cual
 **ningún equipo enchufado aplicaba nunca la cadencia del backend** y
 `PATCH /dispositivos/{id}/intervalo` no hacía nada en el equipo real.
@@ -368,19 +366,14 @@ ahí (no aplicar `VENTANA_ARRANQUE` a un equipo a batería), junto con 3.b.
 
 > El otro número de negocio que **sí** vive todavía en la placa es
 > `intervaloMuestreoSeg` (20 s): vale ~27 % del consumo y fija la latencia de
-> confirmación de alertas (3 muestras × 20 s = 60 s). `programa_base.ino` tiene el
-> mismo problema con `MS_MUESTREO` (15 s) y hoy es deliberado — el muestreo no es
-> configurable por nadie. Candidato al mismo tratamiento si el modo batería lo
-> necesita.
+> confirmación de alertas (3 muestras × 20 s = 60 s). Hoy es deliberado: el muestreo
+> no es configurable por nadie. Candidato al mismo tratamiento si hace falta.
 
-**d. ¿Un firmware con dos modos o dos firmwares? Postergada.** `esp/prueba/` se
-reemplazó por `prueba_aht10/` sobre el núcleo común; `programa_base.ino` sigue fuera de la librería y de `generar_sketches.py`, hasta que el modo batería
-esté validado en campo — unificar ahora es un refactor grande sobre código que
-todavía no arrancó una sola vez. Cuando toque: un solo template con
-`#ifdef MODO_BATERIA` y una entrada nueva en el dict `SKETCHES`, que es lo
-coherente con cómo ya se generan los sketches. El riesgo mientras tanto es el de
-siempre, que `empuja()` y el contrato con la API se desincronicen entre las dos
-copias; la mitigación es el cross-check de 4.
+**d. ¿Un firmware con dos modos o dos firmwares? Decidida: un núcleo, varios ciclos.**
+El enchufado se reescribe como otro ciclo sobre `nucleo/`, con el mismo `Enlace` y
+`Pendientes`. El viejo (`programa_base.ino` + `generar_sketches.py`) se borró el
+2026-10-10 y queda en el historial de git. Mientras tanto, un equipo enchufado corre el
+firmware a batería.
 
 **e. Capacidad del buffer: hay más aire del que se creía.** Medido en el mapa del
 linker con 500 entradas: `.rtc.data` = **4765 B**, de `0x50000200` a `0x5000149d`,

@@ -100,19 +100,79 @@ Límite: 10 por hora por IP.
 
 ## LoRa
 
-El nodo no habla HTTP: manda tramas binarias firmadas al receptor, que en la fase 2 las
-reenvía al backend. Formato en `LORA.md` (tramas v2). Equivalencias:
+El nodo no habla HTTP: manda tramas binarias firmadas que un gateway reenvía tal cual al
+backend. El backend arma y firma la respuesta (ACK) y el gateway se la transmite al nodo
+en una ventana de tiempo fija. Formato de las tramas, radio y ventanas en `LORA.md`
+(tramas v3). Equivalencias con `/mediciones/`:
 
 | Trama | HTTP |
 |---|---|
-| Datos: puntos (índice de sensor, valor, epoch) | `mediciones` (`sensor_id` sale del índice; epoch 0 = sin `time`) |
+| Datos: puntos (índice de sensor, valor, epoch) | `mediciones` (`sensor_id` sale del índice de `sensores`; epoch 0 = sin `time`) |
 | Datos: batería en mV, `0xFFFF` = sin dato | `bateria_mv` |
-| ACK: hora | `server_epoch` |
+| Datos: sección diag | `diag` |
+| ACK: epoch del fin de la subida | `server_epoch` (otro instante: ver `LORA.md`) |
 | ACK: intervalos | `intervalo_sugerido_seg`, `intervalo_contacto_seg` |
+| ACK: reglas, sólo si cambió su versión | `umbrales` (siempre) |
 
-Hoy no viajan por LoRa: `umbrales`, `rotar_secret` ni `diag`.
+No viaja por LoRa: `rotar_secret`. La clave de enlace del nodo no rota: está compilada.
+
+## `POST /gateways/tramas`
+
+Lo llama el gateway LoRa. El gateway es un dispositivo de tipo gateway y se autentica
+igual que cualquier equipo (`X-Dispositivo-Id` + `Authorization: Bearer`), con la misma
+rotación de secret. Es también su heartbeat.
+
+### Request
+
+```json
+{
+  "tramas": [
+    {"datos": "s3EB...", "rssi": -92, "snr": 7.5, "edad_ms": 35}
+  ],
+  "diag": {"…": "…"}
+}
+```
+
+| Campo | Tipo | Obligatorio | Significado |
+|---|---|---|---|
+| `tramas` | lista | sí (puede ir vacía) | Vacía = heartbeat, cada `intervalo_contacto_seg`. Normalmente una por request: la respuesta tiene que llegar dentro de la ventana del nodo. |
+| `tramas[].datos` | base64 | sí | La trama tal como llegó por el aire, sin tocar. |
+| `tramas[].rssi` | entero, dBm | sí | Intensidad con que la recibió. |
+| `tramas[].snr` | número, dB | sí | Relación señal/ruido. Decide qué gateway contesta si varios la oyeron. |
+| `tramas[].edad_ms` | entero | sí | Milisegundos entre el fin de la recepción y el envío del POST. Con esto el backend fecha el fin de la subida. |
+| `diag` | objeto | no | Estado del gateway. Sólo se loguea. |
+
+### Respuesta (`200`)
+
+```json
+{
+  "server_epoch": 1791727500,
+  "intervalo_contacto_seg": 60,
+  "rotar_secret": false,
+  "respuestas": [{"ack": "s3EC..."}]
+}
+```
+
+| Campo | Qué hace el gateway |
+|---|---|
+| `respuestas` | Una por trama, en el mismo orden. `ack` en base64 → la transmite en la ventana 1 si llega a tiempo, si no en la 2, si no la descarta. `ack: null` → no transmite nada (trama inválida, o le toca contestar a otro gateway). |
+| `intervalo_contacto_seg` | Cada cuánto heartbeatear. Mantiene viva la conexión: reconectar TLS cuesta 1–2 s en el ESP32 y manda todo a la ventana 2. |
+| `server_epoch` | Sólo diagnóstico: el gateway no necesita hora real. |
+| `rotar_secret` | Igual que un equipo. |
+
+### Errores
+
+- Sin conexión o respuesta no-2xx: el gateway transmite un **aviso** (tipo `0x03`) en la
+  ventana 1 del nodo, con motivo 1 o 2, y descarta la trama. **No reintenta el POST**: los
+  datos siguen en el nodo, que los reenvía en otro contacto.
+- Una trama inválida nunca da no-2xx: vuelve con `ack: null` y se loguea.
+- **Requisito del servidor**: keep-alive HTTP de 75 s o más (uvicorn trae 5 s por default)
+  y lo mismo en cualquier proxy delante.
 
 ## Historial
 
 - **2026-10-09**: congelado. `bateria_pct` (%) pasa a `bateria_mv` (mV) y la trama LoRa a
   v2 (batería en 2 bytes).
+- **2026-10-10**: LoRa pasa a v3, definida e implementándose: ACK de punta a punta armado
+  por el backend, ventanas de 1 y 5 s, reglas y diag por LoRa, aviso del gateway, radio a
+  500 kHz/SF9 (requisito de ENACOM) y `POST /gateways/tramas`. v2 no llegó a campo.
